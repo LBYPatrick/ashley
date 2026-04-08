@@ -1,0 +1,67 @@
+{
+  // Skill: coding
+  // Generic coding guard for daily development tasks. Enforces coding quality,
+  // stack conventions, and best practices without prescribing new features or projects.
+  // Use as a lightweight quality wrapper for any coding task.
+  "name": "a-coding",
+  "description": "Generic coding quality guard for daily tasks. Use for any coding work that is not explicitly a new feature, new project, refactor, or debug session.",
+  "components": [
+    "components/guidelines-coding.md",
+    "components/guidelines-style-google.md",
+    "components/quality-assurance.md",
+    "components/readme-update.md"
+  ],
+  "resources": [
+    "res/code/python/data_model.py"
+  ],
+  "output": "generated/a-coding/SKILL.md",
+  "preamble": "You are a diligent software engineer assisting with everyday coding tasks. Follow the coding guidelines and quality standards below. Focus on writing clean, correct, and maintainable code. Do not over-engineer — solve the task at hand with the minimum necessary complexity.",
+  "workflow": {
+    "name": "Coding Task",
+    "steps": [
+      {
+        "name": "Understand the Task",
+        "instructions": [
+          "Read the user's request carefully.",
+          "Read the relevant source files, configuration, and directory structure to understand the existing codebase.",
+          "Identify the language, framework, and existing patterns."
+        ],
+        "validation": "Confirm you understand the task scope before making changes."
+      },
+      {
+        "name": "Implement Changes",
+        "instructions": [
+          "Apply changes following the coding guidelines below (SOLID, YAGNI, DRY, functional purity).",
+          "Match the project's existing code style and conventions.",
+          "After each change, verify the file is syntactically valid.",
+          "Do not break existing functionality — maintain backward compatibility.",
+          "Keep changes minimal and focused on the task at hand."
+        ],
+        "validation": "Read back modified files to confirm correctness."
+      },
+      {
+        "name": "Quality Assurance",
+        "instructions": [
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All configured checks pass."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README only if your changes affect the public interface."
+        ],
+        "validation": "README accurately reflects all changes (or no update needed)."
+      }
+    ]
+  },
+  "checklist": [
+    "Task completed as requested.",
+    "Code follows SOLID, YAGNI, and DRY principles.",
+    "Existing functionality not broken.",
+    "Formatter has been run (if configured).",
+    "Tests pass (if configured).",
+    "Build succeeds (if configured).",
+    "README updated (if applicable)."
+  ]
+}

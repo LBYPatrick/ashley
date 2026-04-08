@@ -1,0 +1,92 @@
+{
+  // Skill: claudemd
+  // Generates or updates a project-level CLAUDE.md with concise, stack-specific
+  // development guidelines. Analyzes the project first, then selectively distills
+  // knowledge from reference components into a tailored file.
+  "name": "a-claudemd",
+  "description": "Generate or update a project's CLAUDE.md with tailored development guidelines (commit conventions, coding standards, CI, benchmarks). Use when user says \"create CLAUDE.md\", \"setup guidelines\", \"configure Claude Code\", or wants project-level conventions.",
+  "components": [
+    "components/commit-message.md",
+    "components/changelog-update.md",
+    "components/guidelines-coding.md",
+    "components/quality-assurance.md",
+    "components/formatter-python.md",
+    "components/formatter-typescript.md",
+    "components/stack/python.md",
+    "components/stack/typescript.md",
+    "components/stack/flutter.md",
+    "components/scaffold-makefile.md"
+  ],
+  "resources": [],
+  "output": "generated/a-claudemd/SKILL.md",
+  "preamble": "You are a project configuration specialist. The user wants you to generate or update a `CLAUDE.md` file that gives Claude Code project-specific development guidelines. You analyze the project's actual tech stack, then selectively distill the relevant reference sections below into a tailored CLAUDE.md — no generic boilerplate. The file MUST stay under 200 lines. Every line should be specific to this project.\n\nThe sections below (after the workflow) are your **knowledge base** — curated best practices for commits, changelogs, coding, quality assurance, formatters, and tech stacks. Do NOT copy them verbatim. Instead, read them, identify which apply to the detected project, and distill the relevant rules into concise, project-specific instructions.\n\nFor **benchmark/performance** sections: require before/after benchmarks with dynamic trial count (capped at 5 min per phase, min 3 trials), full statistics (mean, median, stdev, min, max, p95/p99), and Welch's t-test at alpha=0.05 with confidence scoring based on degrees of freedom (high df>=29, moderate 10-28, low <10).",
+  "workflow": {
+    "name": "Generate CLAUDE.md",
+    "steps": [
+      {
+        "name": "Analyze Project",
+        "instructions": [
+          "Read the project root: directory structure, config files (package.json, pyproject.toml, Cargo.toml, go.mod, Makefile, etc.), README, and any existing CLAUDE.md.",
+          "Determine: primary language(s), framework(s), package manager, build commands, formatter, linter, test framework, and CI setup.",
+          "Check for version files (VERSION, package.json version, pyproject.toml version, etc.).",
+          "Check for CHANGELOG.md and its format.",
+          "Check git log for branch naming conventions and commit message style.",
+          "Map the detected stack to the reference sections below. For example:",
+          "  - Python project → use Commitizen-Style Commit Messages, General Coding Guidelines, Quality Assurance, Python Formatter, Python Stack references.",
+          "  - TypeScript project → use Commitizen-Style Commit Messages, General Coding Guidelines, Quality Assurance, TypeScript Formatter, TypeScript Stack references.",
+          "  - Flutter project → use Flutter Stack reference in addition to the common references.",
+          "  - Performance-sensitive project → additionally use the Benchmark Results reference.",
+          "  - Project with Makefile → additionally use the Scaffold Makefile reference.",
+          "Note which sections will appear in CLAUDE.md — only those with matching stack or detected tooling."
+        ],
+        "validation": "Report detected stack, matched reference sections, and which CLAUDE.md sections will be generated."
+      },
+      {
+        "name": "Write CLAUDE.md",
+        "instructions": [
+          "Generate CLAUDE.md by distilling ONLY the matched reference sections from Step 1.",
+          "Every instruction must reference **actual project commands** — never generic placeholders. If you detected `pytest`, write `pytest`. If you detected `pnpm build`, write `pnpm build`.",
+          "**Git Workflow**: branch naming (detected from git history), PR expectations. Always include: never commit to main/master directly.",
+          "**Commit Messages**: distill from the Commitizen-Style Commit Messages reference below. Include type/scope/summary format, type table, and 1-2 examples using this project's actual module names as scopes.",
+          "**Code Style**: distill from the matched Formatter reference (Python or TypeScript) and General Coding Guidelines. Name the exact formatter command.",
+          "**Testing**: distill from Quality Assurance Checks. Name the exact test command and where tests live.",
+          "**Build / CI**: list exact pre-commit commands as a checklist.",
+          "**Changelog** (if applicable): distill from the CHANGELOG Maintenance reference. State format, categories, and where entries go.",
+          "**Versioning** (if applicable): list every file needing version bumps.",
+          "**Performance** (if applicable): distill from the Benchmark Results reference. Adapt trial count logic and statistical tests to the project's language-specific benchmark tool.",
+          "**Project Structure** (if 10+ directories): distill from Scaffold Makefile reference if Makefile exists. Brief 5-10 line guide to key directories.",
+          "Target 50-150 lines. MUST stay under 200 lines. Distill — don't duplicate."
+        ],
+        "validation": "CLAUDE.md written with only relevant sections, all commands are real, content distilled from matched references."
+      },
+      {
+        "name": "Merge with Existing (if updating)",
+        "instructions": [
+          "If CLAUDE.md already existed, diff your generated version against the original.",
+          "Preserve user-written sections that don't overlap (custom headings, project-specific notes).",
+          "For overlapping sections, prefer the user's version if more specific; prefer yours if the user's is generic or outdated.",
+          "If the user's CLAUDE.md was already good, only add missing sections."
+        ],
+        "validation": "Final CLAUDE.md preserves user customizations and adds missing guidelines."
+      },
+      {
+        "name": "Verify",
+        "instructions": [
+          "Read back the final CLAUDE.md.",
+          "Verify: no placeholder text, no sections for unused tech, all commands are real, under 200 lines.",
+          "Verify CLAUDE.md is not in .gitignore."
+        ],
+        "validation": "CLAUDE.md is correct, concise, stack-specific, and under 200 lines."
+      }
+    ]
+  },
+  "checklist": [
+    "Project tech stack detected and mapped to reference sections.",
+    "CLAUDE.md distills ONLY the relevant references for this stack.",
+    "All commands reference real project tools (no placeholders).",
+    "Commit message conventions included (Conventional Commits with project-specific scopes).",
+    "Existing user customizations preserved (if updating).",
+    "File is under 200 lines.",
+    "CLAUDE.md is not gitignored."
+  ]
+}

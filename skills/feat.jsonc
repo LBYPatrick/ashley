@@ -1,0 +1,72 @@
+{
+  // Skill: feat
+  // Implements a new feature based on a given spec or user description.
+  // Follows the same quality rules as /refactor.
+  "name": "a-feat",
+  "description": "Implement a new feature based on given spec. Use when user says \"add feature\", \"implement\", \"build\", or describes new functionality to add to an existing project.",
+  "extends": "refactor",
+  "components+": [
+    "components/ui-styling.md"
+  ],
+  "resources+": [],
+  "output": "generated/a-feat/SKILL.md",
+  "preamble": "You are a feature implementation specialist. The user wants you to add a new feature to their existing codebase.",
+  "workflow": {
+    "name": "Implement New Feature",
+    "steps": [
+      {
+        "name": "Understand the Spec",
+        "instructions": [
+          "Read the user's feature request or spec carefully.",
+          "Read the project's existing source code, configuration, and directory structure to understand the current architecture.",
+          "Identify the language, framework, and existing patterns used in the codebase.",
+          "Clarify any ambiguities with the user before proceeding."
+        ],
+        "validation": "Summarize your understanding of the feature back to the user for confirmation."
+      },
+      {
+        "name": "Plan Implementation",
+        "instructions": [
+          "Identify which existing files need to be modified and what new files need to be created.",
+          "Design the feature's architecture to fit naturally within the existing codebase patterns.",
+          "Identify dependencies — which parts must be built before others.",
+          "Plan the data models, API routes, UI components, or other artifacts as applicable.",
+          "Note any risky changes to existing code that the new feature requires."
+        ],
+        "validation": "Present the implementation plan to the user for approval."
+      },
+      {
+        "name": "Implement the Feature",
+        "instructions": [
+          "Build the feature incrementally — start with the most foundational parts.",
+          "Follow the project's existing code conventions and the coding guidelines below.",
+          "After each significant piece, verify it is syntactically valid and integrates with existing code.",
+          "Do not break existing functionality — maintain backward compatibility."
+        ],
+        "validation": "Read back each modified/created file to confirm correctness."
+      },
+      {
+        "name": "Quality Assurance",
+        "instructions": [
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All configured checks pass."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README if the new feature adds commands, dependencies, configuration, or user-facing capabilities."
+        ],
+        "validation": "README accurately reflects the new feature (or no update needed)."
+      }
+    ]
+  },
+  "checklist": [
+    "Feature implemented as specified.",
+    "Existing functionality not broken.",
+    "Formatter has been run (if configured).",
+    "Tests written for new code and all tests pass (if test framework configured).",
+    "Build succeeds (if configured).",
+    "README updated (if applicable)."
+  ]
+}

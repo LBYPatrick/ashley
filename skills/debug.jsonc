@@ -1,0 +1,84 @@
+{
+  // Skill: debug
+  // Investigates and fixes bugs, issues, and problems within a given scope.
+  // Accepts an optional problem description to narrow the search.
+  "name": "a-debug",
+  "description": "Find and fix bugs in the given scope. Use when user says \"debug\", \"fix bug\", \"investigate issue\", \"something is broken\", or describes unexpected behavior.",
+  "extends": "refactor",
+  "resources": [],
+  "output": "generated/a-debug/SKILL.md",
+  "preamble": "You are an expert debugger and diagnostician. The user wants you to find and fix issues in their codebase. You methodically narrow down root causes through evidence-based analysis, not guesswork.",
+  "workflow": {
+    "name": "Debug Issues",
+    "steps": [
+      {
+        "name": "Understand the Problem",
+        "instructions": [
+          "Read the user's problem description carefully. If no description is provided, you will scan the given scope for issues.",
+          "Read the project's source files, configuration, and directory structure to understand the architecture.",
+          "Identify the language, framework, and existing patterns.",
+          "Determine the scope of investigation: specific files, modules, or the entire codebase."
+        ],
+        "validation": "Summarize what you're investigating and the scope before proceeding."
+      },
+      {
+        "name": "Root Cause Analysis",
+        "instructions": [
+          "If a specific problem was described, trace the code path to understand the expected vs. actual behavior.",
+          "If no specific problem was described, scan the scope for common issue categories: logic errors, off-by-one errors, null/undefined handling, race conditions, resource leaks, incorrect API usage, missing error handling, type mismatches, and dead code paths.",
+          "Read error logs, stack traces, or test output if available.",
+          "Run existing tests to see which ones fail and analyze the failures.",
+          "Use static analysis signals: look for unhandled promises, unchecked return values, missing await keywords, incorrect comparisons, and boundary conditions.",
+          "For each issue found, perform a root cause analysis: trace the causal chain from symptom back to the originating defect. Do not stop at the surface-level error — identify the underlying code, design, or data flaw that produced the symptom.",
+          "Form a hypothesis for each issue found, supported by evidence from the code."
+        ],
+        "validation": "Present the Root Cause Analysis report: for each issue list the symptom, the traced causal chain, and the identified root cause with supporting evidence. **Then ask the user whether to proceed with fixes.** (Skip this confirmation if running in AFK mode or Claude's auto permission mode — proceed directly.)"
+      },
+      {
+        "name": "Plan Fixes",
+        "instructions": [
+          "For each identified issue, describe the specific fix you will apply.",
+          "Order fixes by dependency — fix foundational issues before dependent ones.",
+          "Identify any fixes that could have side effects on other parts of the codebase.",
+          "If multiple fix strategies exist, choose the simplest one that addresses the root cause."
+        ],
+        "validation": "Present the fix plan with rationale for each change."
+      },
+      {
+        "name": "Apply Fixes",
+        "instructions": [
+          "Apply fixes one issue at a time.",
+          "After each fix, verify the file is syntactically valid and the fix addresses the root cause.",
+          "Do not introduce new issues — maintain backward compatibility.",
+          "If a fix requires refactoring, keep the refactoring minimal and focused on the bug."
+        ],
+        "validation": "Read back modified files to confirm correctness of each fix."
+      },
+      {
+        "name": "Verify Fixes",
+        "instructions": [
+          "Run existing tests to confirm the fixes resolve the issues without breaking other functionality.",
+          "If no tests exist for the fixed code, write targeted regression tests that would catch the bug if it reappeared.",
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All tests pass and the original issues are resolved."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README if your fixes affect the public interface."
+        ],
+        "validation": "README accurately reflects all changes (or no update needed)."
+      }
+    ]
+  },
+  "checklist": [
+    "All identified issues have been diagnosed with root cause evidence.",
+    "Fixes applied address root causes, not just symptoms.",
+    "Regression tests written for each fix.",
+    "Existing tests still pass.",
+    "Formatter has been run (if configured).",
+    "Build succeeds (if configured).",
+    "README updated (if applicable)."
+  ]
+}

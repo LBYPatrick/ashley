@@ -1,0 +1,83 @@
+{
+  // Skill: rebase
+  // Cleans up branch history by squashing/merging related commits, reformatting
+  // messages to Conventional Commits, and force-pushing the tidied branch.
+  "name": "a-rebase",
+  "description": "Clean up branch commits: squash related changes, reformat messages to Conventional Commits, and force-push. Use when user says \"rebase\", \"clean up commits\", \"squash\", or wants tidy PR history.",
+  "components": [
+    "components/commit-message.md"
+  ],
+  "resources": [],
+  "output": "generated/a-rebase/SKILL.md",
+  "preamble": "You are a git history specialist. The user wants you to clean up the commits on their current branch before merging. You identify the base branch, analyze new commits, squash related ones together, reformat all commit messages to Conventional Commits style, and force-push the result. You never touch commits that belong to the base branch.",
+  "workflow": {
+    "name": "Rebase and Clean Branch History",
+    "steps": [
+      {
+        "name": "Identify Base Branch and Scope",
+        "instructions": [
+          "Determine the current branch name with `git branch --show-current`.",
+          "Guard: if the current branch is `main` or `master`, stop immediately and tell the user this skill is for feature/PR branches only.",
+          "Try to detect the base branch automatically using these methods in order:",
+          "  (a) If `gh` CLI is authenticated, run `gh pr view --json baseRefName -q .baseRefName` to get the PR base branch.",
+          "  (b) Otherwise, infer from `git log --oneline --merges -1` or common defaults (`main`, `master`, `develop`).",
+          "Identify the divergence point: `git merge-base <base-branch> HEAD`.",
+          "List new commits on this branch: `git log --oneline <merge-base>..HEAD`.",
+          "If there are 0 new commits, tell the user and stop."
+        ],
+        "validation": "Base branch identified, merge-base computed, and list of new commits displayed."
+      },
+      {
+        "name": "Analyze and Group Commits",
+        "instructions": [
+          "Read the full diff and message of each new commit: `git log --stat -p <merge-base>..HEAD`.",
+          "Group related commits that should be squashed together — e.g., a feature commit followed by fix-ups, typo corrections, or 'WIP' commits that continue the same logical change.",
+          "For each group, decide on a single Conventional Commits message that accurately describes the combined change.",
+          "For commits that are already standalone and well-scoped, keep them separate but reformat the message to Conventional Commits style if needed.",
+          "Present the proposed commit plan to the user: which commits get squashed, what the new messages will be, and the final ordering."
+        ],
+        "validation": "Commit plan displayed showing original commits, proposed grouping, and new messages."
+      },
+      {
+        "name": "Perform Interactive Rebase",
+        "instructions": [
+          "Create a backup tag at the current HEAD: `git tag backup-pre-rebase-$(date +%s)` so the user can recover if needed.",
+          "Use `git rebase -i <merge-base>` with a scripted `GIT_SEQUENCE_EDITOR` to apply the squash/reword plan — do NOT use an interactive terminal editor.",
+          "For squashing: mark the first commit of each group as `pick` and subsequent commits as `fixup` or `squash`.",
+          "For rewording: use `GIT_SEQUENCE_EDITOR` or `git commit --amend` after each step to set the Conventional Commits message.",
+          "Alternative approach if scripted rebase is complex: use `git reset --soft <merge-base>` followed by individual `git commit` calls to reconstruct the desired history from scratch.",
+          "After the rebase, verify the final diff matches the original: `git diff <backup-tag>..HEAD` should be empty (same tree, different history)."
+        ],
+        "validation": "Rebase complete. `git diff <backup-tag>..HEAD` shows no changes (identical tree). `git log --oneline <merge-base>..HEAD` shows the cleaned-up commits."
+      },
+      {
+        "name": "Force-Push",
+        "instructions": [
+          "Run `git push --force-with-lease` to update the remote branch.",
+          "If the branch has no upstream, use `git push -u origin HEAD --force-with-lease`.",
+          "Verify the push succeeded."
+        ],
+        "validation": "Remote branch updated. `git log --oneline origin/<branch>..HEAD` shows nothing (local and remote match)."
+      },
+      {
+        "name": "Offer PR Submission",
+        "instructions": [
+          "Check if a PR already exists for this branch: `gh pr view --json number 2>/dev/null`.",
+          "If no PR exists, ask the user if they want to create one. If yes (or in AFK mode), create the PR with `gh pr create` using a title derived from the cleaned commit history and a body summarizing the changes.",
+          "If a PR already exists, inform the user that the force-push has updated it."
+        ],
+        "validation": "PR status communicated to the user."
+      }
+    ]
+  },
+  "checklist": [
+    "Current branch is not main/master.",
+    "Base branch correctly identified (via gh or git heuristics).",
+    "All new commits analyzed and grouped by logical change.",
+    "Commit messages follow Conventional Commits format.",
+    "Backup tag created before rebase.",
+    "Rebase preserves identical tree (no code changes lost).",
+    "Force-push succeeded.",
+    "PR created or updated."
+  ]
+}

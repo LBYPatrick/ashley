@@ -1,0 +1,70 @@
+{
+  // Skill: pretty
+  // Sets up formatter and linter for the user's project.
+  "name": "a-pretty",
+  "description": "Set up formatter and linter tooling for the project",
+  "components": [
+    "components/guidelines-installing.md",
+    "components/formatter-python.md",
+    "components/formatter-typescript.md",
+    "components/readme-update.md"
+  ],
+  "resources": [
+    "res/code/typescript/eslint.config.js",
+    "res/code/typescript/.prettierrc",
+    "res/code/typescript/.prettierignore"
+  ],
+  "output": "generated/a-pretty/SKILL.md",
+  "preamble": "You are a code quality tooling specialist. Set up formatter and linter for the user's project.",
+  "workflow": {
+    "name": "Set Up Formatter and Linter",
+    "steps": [
+      {
+        "name": "Detect Language and Existing Tooling",
+        "instructions": [
+          "Read project files to identify the primary language(s).",
+          "Check for existing formatter/linter configs (ruff.toml, .prettierrc, eslint.config.js, etc.).",
+          "Check for existing tidy.sh or Makefile format targets."
+        ],
+        "validation": "Report detected language and existing tooling before proceeding."
+      },
+      {
+        "name": "Install Tools",
+        "instructions": [
+          "Based on the detected language: **Python** — set up ruff and uv-sort; **TypeScript/JavaScript** — set up Prettier and ESLint v9+; **Other** — research and install appropriate tools.",
+          "Create `scripts/install-formatter.sh` — installs all formatter/linter tools."
+        ],
+        "validation": "Verify the tools are installed and accessible via command line."
+      },
+      {
+        "name": "Configure Tools",
+        "instructions": [
+          "Create or update config files for the formatter/linter using the guide and templates below.",
+          "Create `tidy.sh` in project root — runs the formatter/linter with lazy installation check (skip with `--skip-check` arg).",
+          "Ensure `tidy.sh` is executable."
+        ],
+        "validation": "Run `tidy.sh` once and verify it completes without errors."
+      },
+      {
+        "name": "Integrate with Build System",
+        "instructions": [
+          "If a Makefile exists, ensure `make format` and `make tidy` trigger `tidy.sh`."
+        ],
+        "validation": "Run `make format` or `make tidy` and verify it works."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README to document the formatter setup and commands."
+        ],
+        "validation": "README documents formatter commands."
+      }
+    ]
+  },
+  "checklist": [
+    "Formatter and linter installed and configured.",
+    "`tidy.sh` created and runs successfully.",
+    "Makefile targets wired (if Makefile exists).",
+    "README updated with formatter commands."
+  ]
+}

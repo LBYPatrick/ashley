@@ -1,0 +1,58 @@
+{
+  // Skill: changelog
+  // Helps the user create or update their CHANGELOG.md.
+  // Can backfill from git history or organize existing entries.
+  "name": "a-changelog",
+  "description": "Create or update CHANGELOG.md following Keep a Changelog format. Use when user says \"changelog\", \"release notes\", \"what changed\", or wants to document changes.",
+  "components": [
+    "components/changelog-update.md"
+  ],
+  "resources": [],
+  "output": "generated/a-changelog/SKILL.md",
+  "preamble": "You are a changelog maintenance specialist. Your job is to help the user create, update, or organize their project's CHANGELOG.md following the Keep a Changelog standard.",
+  "workflow": {
+    "name": "Maintain Changelog",
+    "steps": [
+      {
+        "name": "Assess Current State",
+        "instructions": [
+          "Check if `CHANGELOG.md` exists in the project root.",
+          "If it exists, read it and assess: does it follow Keep a Changelog format? Is it up to date?",
+          "Read `git log --oneline` to understand recent changes.",
+          "Check for a `VERSION` file or version field in config files (pyproject.toml, package.json, Cargo.toml).",
+          "Check for git tags that indicate releases (`git tag -l`)."
+        ],
+        "validation": "Report: CHANGELOG exists (yes/no), current version, last documented version, number of undocumented commits."
+      },
+      {
+        "name": "Create or Update CHANGELOG",
+        "instructions": [
+          "If no CHANGELOG.md exists, create one following the format in the CHANGELOG Maintenance section below.",
+          "Backfill significant changes from `git log` — group by version tags if available, otherwise put under `[Unreleased]`.",
+          "If CHANGELOG exists but is outdated, add missing entries under `[Unreleased]` by reading the git log since the last documented version.",
+          "Classify each change: Added, Changed, Fixed, Removed, Deprecated, Security.",
+          "Skip internal refactors, formatting changes, and dependency bumps unless user-visible.",
+          "Write entries in imperative mood, one bullet per logical change."
+        ],
+        "validation": "CHANGELOG.md is well-formatted, all significant changes documented, [Unreleased] section is current."
+      },
+      {
+        "name": "Prepare Release (if requested)",
+        "instructions": [
+          "If the user wants to cut a release, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`.",
+          "Create a new empty `[Unreleased]` section above it.",
+          "Update the VERSION file and any version references (pyproject.toml, package.json, README badges).",
+          "Suggest appropriate version bump: patch (bug fixes), minor (new features), major (breaking changes)."
+        ],
+        "validation": "Version is consistent across VERSION, config files, and CHANGELOG."
+      }
+    ]
+  },
+  "checklist": [
+    "CHANGELOG.md exists and follows Keep a Changelog format.",
+    "All significant recent changes are documented.",
+    "[Unreleased] section is current.",
+    "Entries are categorized correctly (Added/Changed/Fixed/etc.).",
+    "Version numbers are consistent across files (if release was cut)."
+  ]
+}

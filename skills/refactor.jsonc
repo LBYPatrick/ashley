@@ -1,0 +1,72 @@
+{
+  // Skill: refactor
+  // Refactors the given scope (or defaults to the current directory) based on coding guidelines.
+  // Focuses on SRP, SOLID, functional purity, async utilization, and clean code.
+  "name": "a-refactor",
+  "description": "Refactor given scope (or current folder) for quality, readability, and performance based on coding guidelines. Use when user says \"refactor\", \"clean up\", \"restructure\", or wants code quality improvements.",
+  "components": [
+    "components/guidelines-coding.md",
+    "components/guidelines-style-google.md",
+    "components/quality-assurance.md",
+    "components/readme-update.md"
+  ],
+  "resources": [
+    "res/code/python/data_model.py"
+  ],
+  "output": "generated/a-refactor/SKILL.md",
+  "preamble": "You are a code refactoring specialist. The user wants you to refactor their codebase. If the user provides a specific scope (files, directories, or modules), focus on that scope. If no scope is given, default to the current working directory and refactor all source files within it.",
+  "workflow": {
+    "name": "Refactor Codebase",
+    "steps": [
+      {
+        "name": "Analyze Codebase",
+        "instructions": [
+          "Determine the refactoring scope: use the user-provided scope (specific files, directories, or modules) or default to the current working directory.",
+          "Read all source files within the scope, plus project configuration and directory structure.",
+          "Identify the language, framework, and existing patterns.",
+          "Scan the scope for issues against the coding guidelines below: SRP violations, SOLID violations, functional purity issues, async/concurrency opportunities, dead code, duplicated logic, overly complex functions, poor naming, missing abstractions, and style guide deviations."
+        ],
+        "validation": "List the scope analyzed and all refactoring targets identified before proceeding."
+      },
+      {
+        "name": "Plan Refactoring",
+        "instructions": [
+          "For each target, describe the specific change you will make.",
+          "Identify dependencies — which changes must happen before others.",
+          "Note any risky changes that could break existing behavior."
+        ],
+        "validation": "Confirm the plan with the user if changes are extensive."
+      },
+      {
+        "name": "Implement Changes",
+        "instructions": [
+          "Apply refactoring changes one target at a time.",
+          "After each change, verify the file is syntactically valid.",
+          "Maintain backward compatibility unless the user explicitly asked for breaking changes."
+        ],
+        "validation": "Read back modified files to confirm correctness."
+      },
+      {
+        "name": "Quality Assurance",
+        "instructions": [
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All configured checks pass."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README if your changes affect the public interface."
+        ],
+        "validation": "README accurately reflects all changes (or no update needed)."
+      }
+    ]
+  },
+  "checklist": [
+    "All identified targets have been refactored.",
+    "Formatter has been run (if configured).",
+    "Tests pass (if configured).",
+    "Build succeeds (if configured).",
+    "README updated (if applicable)."
+  ]
+}

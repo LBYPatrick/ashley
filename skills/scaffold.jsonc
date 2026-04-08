@@ -1,0 +1,69 @@
+{
+  // Skill: scaffold
+  // Sets up project scaffolding with a Makefile and supporting scripts.
+  "name": "a-scaffold",
+  "description": "Set up project scaffolding with Makefile, install/uninstall scripts, and tooling",
+  "extends": "refactor",
+  "components+": [
+    "components/guidelines-installing.md",
+    "components/guidelines-style-google.md",
+    "components/scaffold-makefile.md"
+  ],
+  "resources": [],
+  "output": "generated/a-scaffold/SKILL.md",
+  "preamble": "You are a project scaffolding specialist. Set up a complete build system for the user's project.",
+  "workflow": {
+    "name": "Set Up Project Scaffolding",
+    "steps": [
+      {
+        "name": "Detect Project",
+        "instructions": [
+          "Read the project's source files, package manifests, and directory structure.",
+          "Identify the language(s), framework(s), and package manager(s) in use.",
+          "Check for existing scaffolding (Makefile, scripts/, install scripts)."
+        ],
+        "validation": "Report detected stack and existing scaffolding before proceeding."
+      },
+      {
+        "name": "Plan Scaffolding",
+        "instructions": [
+          "Based on the detected stack, determine which targets the Makefile needs.",
+          "Plan install/uninstall scripts appropriate for the language.",
+          "Plan any supporting scripts (e.g., commit helper, formatter wrapper)."
+        ],
+        "validation": "Confirm the planned structure with the user if the project already has partial scaffolding."
+      },
+      {
+        "name": "Generate Files",
+        "instructions": [
+          "Create the Makefile following the Makefile conventions below.",
+          "Create install/uninstall scripts following the installation guidelines below.",
+          "Create any supporting scripts.",
+          "Ensure all scripts are executable (chmod +x)."
+        ],
+        "validation": "Run `make help` to verify all targets are listed."
+      },
+      {
+        "name": "Quality Assurance",
+        "instructions": [
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All configured checks pass."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Follow the README Maintenance section — update the README to document all new targets and scripts."
+        ],
+        "validation": "README documents all Makefile targets and scripts."
+      }
+    ]
+  },
+  "checklist": [
+    "Makefile created with all required targets.",
+    "Install/uninstall scripts work on both Linux and macOS.",
+    "`make help` lists all targets.",
+    "Formatter has been run (if configured).",
+    "README updated with new targets and scripts."
+  ]
+}

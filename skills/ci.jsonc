@@ -1,0 +1,78 @@
+{
+  // Skill: ci
+  // Sets up or fixes CI — Makefile targets, GitHub Actions, test framework, and coverage.
+  // Ensures the project has a green CI pipeline.
+  "name": "a-ci",
+  "description": "Set up or fix CI pipeline (Makefile targets, GitHub Actions, test framework, coverage). Use when user says \"CI\", \"pipeline\", \"GitHub Actions\", \"tests failing\", \"add tests\", \"coverage\", or wants a green check.",
+  "components": [
+    "components/ci-github-actions.md",
+    "components/guidelines-style-google.md",
+    "components/quality-assurance.md"
+  ],
+  "resources": [],
+  "output": "generated/a-ci/SKILL.md",
+  "preamble": "You are a CI/CD and testing infrastructure specialist. Your job is to ensure the project has a robust, passing CI pipeline with formatter checks, tests, coverage reporting, and build verification.",
+  "workflow": {
+    "name": "Set Up or Fix CI",
+    "steps": [
+      {
+        "name": "Audit Current CI State",
+        "instructions": [
+          "Read the project's Makefile (if any) and identify existing `format`, `test`, `build` targets.",
+          "Check for `.github/workflows/` — read any existing CI workflow files.",
+          "Detect the project's language/framework stack from config files (pyproject.toml, package.json, go.mod, Cargo.toml).",
+          "Check for an existing test framework: look for test directories, test config files, and test runner commands.",
+          "Check for coverage configuration.",
+          "Run existing CI checks locally (`make format`, `make test`, `make build`) to see what passes and what fails."
+        ],
+        "validation": "Report: (1) which CI targets exist, (2) which pass/fail, (3) what's missing (no tests? no GH Actions? no coverage?)."
+      },
+      {
+        "name": "Set Up Missing Makefile Targets",
+        "instructions": [
+          "If `make format` / `make tidy` is missing, create it using the detected formatter.",
+          "If `make test` is missing, create it using the detected or newly-installed test framework.",
+          "If `make build` is missing and the project has a build step, create it.",
+          "Ensure all targets exit non-zero on failure."
+        ],
+        "validation": "Run each new/fixed Makefile target locally and confirm it succeeds."
+      },
+      {
+        "name": "Set Up Test Framework (if missing)",
+        "instructions": [
+          "If no test framework is configured, install one following the CI Setup guide below.",
+          "Create a `tests/` directory (or language-appropriate equivalent) with at least one meaningful test that exercises real project code.",
+          "Do not write trivial placeholder tests (assert True) — test actual functions, API endpoints, or components.",
+          "Configure coverage reporting with a 70% initial threshold."
+        ],
+        "validation": "Run `make test` — tests pass with coverage report printed."
+      },
+      {
+        "name": "Set Up GitHub Actions (if missing or broken)",
+        "instructions": [
+          "If no `.github/workflows/ci.yml` exists, create one following the CI Setup guide below.",
+          "Tailor the workflow to the project's actual stack — remove steps for languages not used.",
+          "If a workflow exists but is failing, diagnose and fix the issue.",
+          "Ensure the workflow runs on push to main and on pull requests."
+        ],
+        "validation": "YAML is valid. Local CI checks all pass (format, test, build)."
+      },
+      {
+        "name": "Verify Full CI Locally",
+        "instructions": [
+          "Run the full CI sequence locally in order: format → test → build.",
+          "Follow the Quality Assurance Checks section below.",
+          "Fix any failures until everything passes."
+        ],
+        "validation": "All CI checks pass locally with zero errors."
+      }
+    ]
+  },
+  "checklist": [
+    "Makefile has `format`/`tidy`, `test`, and `build` targets (as applicable).",
+    "Test framework installed and configured with meaningful tests.",
+    "Coverage reporting enabled (≥70% threshold).",
+    "GitHub Actions workflow exists and is valid YAML.",
+    "All CI checks pass locally (format, test, build)."
+  ]
+}

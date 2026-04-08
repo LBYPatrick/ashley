@@ -1,0 +1,81 @@
+{
+  // Skill: commit
+  // Stage, format, and commit changes with a commitizen-style message.
+  "name": "a-commit",
+  "description": "Stage, format, and commit changes with a conventional (commitizen) commit message, then optionally push",
+  "components": [
+    "components/commit-staging.md",
+    "components/commit-message.md",
+    "components/changelog-update.md",
+    "components/commit-format-restage.md",
+    "components/commit-push.md"
+  ],
+  "resources": [],
+  "output": "generated/a-commit/SKILL.md",
+  "preamble": "You are a git commit assistant. Your job is to stage the user's changes, craft a clear commitizen-style commit message, run any configured formatter, and commit — then ask whether to push.",
+  "workflow": {
+    "name": "Commit Changes",
+    "steps": [
+      {
+        "name": "Check Staged Files",
+        "instructions": [
+          "Follow the Staging Changes section below to determine which files to commit."
+        ],
+        "validation": "Confirm which files are staged and ready for commit."
+      },
+      {
+        "name": "Analyze Changes and Draft Commit Message",
+        "instructions": [
+          "Run `git diff --cached` to inspect the full diff of staged changes.",
+          "Run `git log --oneline -10` to see recent commit style for context.",
+          "Draft a commit message following the Commitizen-Style Commit Messages section below.",
+          "Present the drafted commit message to the user and ask for approval or edits."
+        ],
+        "validation": "User has approved or edited the commit message."
+      },
+      {
+        "name": "Update CHANGELOG",
+        "instructions": [
+          "Check if `CHANGELOG.md` exists in the project root.",
+          "If it exists, read it and add entries for the changes being committed under the `[Unreleased]` section, following the CHANGELOG Maintenance section below.",
+          "If it does not exist, create it with the standard header and an `[Unreleased]` section containing entries for the current changes.",
+          "Classify entries as Added, Changed, Fixed, Removed, Deprecated, or Security.",
+          "Skip formatting-only changes, trivial refactors, or dependency bumps unless user-visible.",
+          "Stage the updated CHANGELOG.md with `git add CHANGELOG.md`."
+        ],
+        "validation": "CHANGELOG.md is staged and contains entries for the current commit."
+      },
+      {
+        "name": "Run Formatter and Re-stage",
+        "instructions": [
+          "Follow the Format and Re-stage section below — run the formatter if one is configured, then re-stage any modified files."
+        ],
+        "validation": "Staged files include any formatting changes (or no formatter was detected)."
+      },
+      {
+        "name": "Create the Commit",
+        "instructions": [
+          "Run `git commit` with the approved commit message.",
+          "Use a heredoc to pass the message so multi-line bodies are preserved correctly.",
+          "Verify the commit succeeded by running `git log --oneline -1`."
+        ],
+        "validation": "The new commit appears in git log with the correct message."
+      },
+      {
+        "name": "Offer to Push",
+        "instructions": [
+          "Follow the Push to Remote section below — ask the user and push if requested."
+        ],
+        "validation": "Push succeeded, or user chose not to push."
+      }
+    ]
+  },
+  "checklist": [
+    "Staged files verified (auto-staged if nothing was staged).",
+    "Commit message follows commitizen / conventional-commits format.",
+    "CHANGELOG.md updated with entries for this commit (under [Unreleased]).",
+    "Formatter ran and formatted files re-staged (if applicable).",
+    "Commit created successfully.",
+    "User was asked about pushing."
+  ]
+}

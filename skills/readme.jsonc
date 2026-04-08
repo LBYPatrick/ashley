@@ -1,0 +1,63 @@
+{
+  // Skill: readme
+  // Writes a beautiful, informative, and concise README.
+  "name": "a-readme",
+  "description": "Write a polished README for the project",
+  "components": [
+    "components/readme-template.md",
+    "components/readme-update.md"
+  ],
+  "resources": [
+    "res/docs/readme-example.md"
+  ],
+  "output": "generated/a-readme/SKILL.md",
+  "preamble": "You are a technical writing specialist. Write a README for the user's project that is beautiful, informationally correct, and concise.",
+  "workflow": {
+    "name": "Write Project README",
+    "steps": [
+      {
+        "name": "Analyze Project",
+        "instructions": [
+          "Read the project's source code, Makefile, and configuration files.",
+          "Identify the tech stack, prerequisites, entry points, and key features.",
+          "Find any existing README and note what can be kept or improved."
+        ],
+        "validation": "List the key facts you discovered (name, purpose, stack, commands) before writing."
+      },
+      {
+        "name": "Draft README",
+        "instructions": [
+          "Write the README following the template guidelines below.",
+          "Use the reference example README as inspiration for structure and tone — it demonstrates a well-organized README with clear sections for features, tech stack, API endpoints, setup, Docker, and development.",
+          "Adapt the structure to fit the current project's needs (not all sections may be relevant)."
+        ],
+        "validation": "Verify every section has accurate information by cross-referencing with the actual source code."
+      },
+      {
+        "name": "Validate Completeness",
+        "instructions": [
+          "Check that a new contributor could set up and use the project by reading only the README.",
+          "Verify all commands in the README actually work.",
+          "Confirm all prerequisites and versions are accurate."
+        ],
+        "validation": "Run any documented commands (like `make help`) to verify they work."
+      },
+      {
+        "name": "Finalize",
+        "instructions": [
+          "Polish formatting — check for consistent heading levels, code block languages, and table alignment.",
+          "Remove any redundant or outdated information.",
+          "Ensure the README is concise — no walls of text."
+        ],
+        "validation": "README is well-formatted and concise."
+      }
+    ]
+  },
+  "checklist": [
+    "All sections from the template are covered (where applicable).",
+    "Commands in the README are accurate and tested.",
+    "Prerequisites and versions are correct.",
+    "README is concise and well-formatted.",
+    "A new contributor can get started by reading the README alone."
+  ]
+}

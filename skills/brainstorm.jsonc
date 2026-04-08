@@ -1,0 +1,90 @@
+{
+  // Skill: brainstorm
+  // Creates a new project from scratch based on user requirements.
+  // Always enters plan mode first to gather design details.
+  "name": "a-brainstorm",
+  "description": "Design and build a new project from user requirements",
+  "components": [
+    "components/guidelines-coding.md",
+    "components/guidelines-style-google.md",
+    "components/guidelines-installing.md",
+    "components/stack/*.md",
+    "components/ui-styling.md",
+    "components/scaffold-makefile.md",
+    "components/formatter-*.md",
+    "components/quality-assurance.md",
+    "components/readme-update.md"
+  ],
+  "resources": [
+    "res/code/python/data_model.py",
+    "res/code/typescript/eslint.config.js",
+    "res/code/typescript/.prettierrc",
+    "res/code/typescript/.prettierignore",
+  ],
+  "output": "generated/a-brainstorm/SKILL.md",
+  "preamble": "You are a full-stack project architect. The user wants to create a new project from scratch.\n\n**IMPORTANT:** Enter plan mode first.",
+  "workflow": {
+    "name": "Design and Build New Project",
+    "steps": [
+      {
+        "name": "Gather Requirements",
+        "instructions": [
+          "Ask the user clarifying questions about: target language/framework, core features, UI/UX preferences (if applicable), deployment targets, and any specific libraries or tools.",
+          "Wait for user responses before proceeding."
+        ],
+        "validation": "Summarize the requirements back to the user for confirmation."
+      },
+      {
+        "name": "Design Architecture",
+        "instructions": [
+          "Design the project structure (directories, modules, key files).",
+          "Choose the tech stack components based on user preferences and the stack guides below.",
+          "Plan data models, API routes, and component hierarchy as applicable."
+        ],
+        "validation": "Present the architecture plan to the user for approval before implementing."
+      },
+      {
+        "name": "Scaffold the Project",
+        "instructions": [
+          "Create the directory structure.",
+          "Set up the package manager and dependencies.",
+          "Create the Makefile following the scaffolding conventions below.",
+          "Create install/uninstall scripts."
+        ],
+        "validation": "Run `make install` or equivalent to verify dependencies install."
+      },
+      {
+        "name": "Implement Core Features",
+        "instructions": [
+          "Build each feature one at a time, starting with the most foundational.",
+          "Follow the coding guidelines below.",
+          "After each feature, verify it works in isolation."
+        ],
+        "validation": "Run the project to confirm each feature works."
+      },
+      {
+        "name": "Quality Assurance",
+        "instructions": [
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All configured checks pass."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Generate a README using the README maintenance guidelines below.",
+          "The README should enable a new contributor to set up and use the project independently."
+        ],
+        "validation": "README is complete and all documented commands work."
+      }
+    ]
+  },
+  "checklist": [
+    "All requested features implemented.",
+    "Formatter configured and run.",
+    "Tests written and passing.",
+    "Build succeeds.",
+    "README generated.",
+    "Project runs end-to-end."
+  ]
+}

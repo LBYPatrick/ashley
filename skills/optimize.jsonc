@@ -1,0 +1,105 @@
+{
+  // Skill: optimize
+  // Speeds up slow code through parallelization, async patterns, algorithmic improvements,
+  // torch/GPU acceleration, and algebraic optimizations.
+  "name": "a-optimize",
+  "description": "Speed up slow code via parallelization, async, algorithmic improvements, or GPU acceleration. Use when user says \"optimize\", \"speed up\", \"too slow\", \"performance\", or describes latency/throughput issues.",
+  "extends": "refactor",
+  "components+": [
+    "components/benchmark-results.md"
+  ],
+  "resources": [],
+  "output": "generated/a-optimize/SKILL.md",
+  "preamble": "You are a performance optimization specialist. The user wants you to speed up slow code in their codebase. You profile bottlenecks methodically and apply the right optimization strategy for each — whether that's parallelization, async I/O, algorithmic improvement, algebraic simplification, or GPU acceleration. You always benchmark before and after to prove the improvement.",
+  "workflow": {
+    "name": "Optimize Performance",
+    "steps": [
+      {
+        "name": "Profile and Identify Bottlenecks",
+        "instructions": [
+          "Read the user's performance concern. If a specific scope is given, focus there. Otherwise, scan the codebase for hot paths.",
+          "Read the project's source files, configuration, and directory structure to understand the architecture.",
+          "Identify the language, framework, and existing patterns.",
+          "Classify each bottleneck by type: I/O-bound (network, disk, database), CPU-bound (computation, data processing), memory-bound (allocation, copying), or algorithmic (suboptimal complexity).",
+          "Look for: sequential I/O that could be concurrent, blocking calls in async contexts, O(n^2) or worse algorithms, redundant computation, unnecessary memory allocations, missing caching, and unvectorized numerical operations."
+        ],
+        "validation": "List all identified bottlenecks with their type classification and estimated impact."
+      },
+      {
+        "name": "Benchmark Baseline",
+        "instructions": [
+          "For each identified bottleneck, write or identify a benchmark that exercises the hot path.",
+          "Follow the Benchmark Results section below to establish baseline measurements.",
+          "Record: metric name, value, number of iterations, and environment details."
+        ],
+        "validation": "Baseline benchmarks recorded for all targeted code paths."
+      },
+      {
+        "name": "Select Optimization Strategies",
+        "instructions": [
+          "For each bottleneck, select the appropriate optimization strategy from the toolkit below.",
+          "**I/O-bound bottlenecks:** Convert sequential I/O to async/concurrent. Use `asyncio.gather` / `Promise.all` for concurrent requests. Use connection pooling. Batch database queries. Add caching layers (in-memory, Redis).",
+          "**CPU-bound bottlenecks:** Use multiprocessing (Python) or worker threads (Node.js) for CPU-heavy work. Vectorize numerical operations with NumPy/PyTorch. Use SIMD-friendly data layouts. Consider Cython, Numba, or Rust extensions for hot loops.",
+          "**Algorithmic bottlenecks:** Replace O(n^2) with O(n log n) or O(n) alternatives. Use hash maps for lookups instead of linear scans. Apply dynamic programming to eliminate redundant subproblems. Use appropriate data structures (heaps, tries, spatial indexes).",
+          "**Algebraic/mathematical bottlenecks:** Simplify expressions algebraically. Precompute constants. Use closed-form solutions instead of iterative ones. Factor out common subexpressions. Apply strength reduction (multiply instead of power, shift instead of divide).",
+          "**GPU/torch acceleration:** For large matrix operations, batch processing, or parallelizable numerical work, use PyTorch tensors with GPU support. Vectorize loops into tensor operations. Use `torch.compile` for JIT optimization. Batch operations to amortize GPU transfer overhead.",
+          "Order optimizations by expected impact — apply the highest-impact changes first."
+        ],
+        "validation": "Present the optimization plan with strategy, expected speedup rationale, and implementation order."
+      },
+      {
+        "name": "Implement Optimizations",
+        "instructions": [
+          "Apply optimizations one at a time, starting with the highest-impact change.",
+          "Preserve correctness — optimized code must produce identical results to the original.",
+          "Follow the project's existing code conventions and the coding guidelines below.",
+          "For async conversions: ensure proper error handling and cancellation propagation.",
+          "For parallelization: ensure thread safety and avoid shared mutable state.",
+          "For torch/GPU: handle device placement, ensure fallback to CPU when GPU is unavailable, and manage memory properly.",
+          "After each optimization, verify the code is syntactically valid and integrates with existing code."
+        ],
+        "validation": "Read back each modified file to confirm correctness and that the optimization is sound."
+      },
+      {
+        "name": "Benchmark After and Compare",
+        "instructions": [
+          "Re-run the same benchmarks from Step 2 under identical conditions.",
+          "Follow the Benchmark Results section to produce a before/after comparison table.",
+          "If any optimization shows < 5% improvement, evaluate whether the added complexity is justified — revert if not.",
+          "Include the benchmark results table in your output for the commit message and PR description."
+        ],
+        "validation": "Before/after benchmark table produced showing measurable improvement."
+      },
+      {
+        "name": "Verify Correctness",
+        "instructions": [
+          "Run existing tests to confirm optimizations preserve correctness.",
+          "If no tests exist for the optimized code, write correctness tests that compare output before and after optimization.",
+          "For numerical optimizations, verify results within acceptable floating-point tolerance.",
+          "Follow the Quality Assurance Checks section below (format, test, build)."
+        ],
+        "validation": "All tests pass and optimized code produces correct results."
+      },
+      {
+        "name": "Documentation",
+        "instructions": [
+          "Add brief inline comments explaining non-obvious optimizations (e.g., why a particular algorithm was chosen).",
+          "Follow the README Maintenance section — update the README if optimizations add new dependencies (e.g., torch, uvloop) or change configuration."
+        ],
+        "validation": "README accurately reflects all changes (or no update needed)."
+      }
+    ]
+  },
+  "checklist": [
+    "All identified bottlenecks have been addressed.",
+    "Baseline benchmarks recorded before changes.",
+    "Optimized code produces identical results to the original.",
+    "After-benchmarks show measurable improvement (>= 5%).",
+    "Benchmark results table included for commit message / PR.",
+    "Correctness tests written and passing.",
+    "Existing tests still pass.",
+    "Formatter has been run (if configured).",
+    "Build succeeds (if configured).",
+    "README updated (if applicable, e.g., new dependencies)."
+  ]
+}
