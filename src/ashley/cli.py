@@ -246,9 +246,7 @@ def run(
 
     # Run before hooks (abort if they fail)
     if not run_before_hooks(hooks, skill, question_str, cwd, permission_mode):
-        click.echo(
-            "\033[0;31mAborted:\033[0m before_run hook failed.", err=True
-        )
+        click.echo("\033[0;31mAborted:\033[0m before_run hook failed.", err=True)
         sys.exit(1)
 
     if detached:
@@ -297,9 +295,9 @@ def run(
         click.echo()
     else:
         # Record in history
-        from ashley.history import record, record_outcome
-
         import time
+
+        from ashley.history import record, record_outcome
 
         inv_id = record(
             skill=skill,
@@ -318,7 +316,10 @@ def run(
 
         # Run after hooks
         run_after_hooks(
-            hooks, skill, question_str, cwd,
+            hooks,
+            skill,
+            question_str,
+            cwd,
             exit_code=result.returncode,
             permission=permission_mode,
         )
@@ -343,7 +344,9 @@ def run(
     is_flag=True,
     help="Fully autonomous (implies -dsp)",
 )
-def pipe(pipeline, question, dangerously_skip_permissions, auto_mode, away_from_keyboard):
+def pipe(
+    pipeline, question, dangerously_skip_permissions, auto_mode, away_from_keyboard
+):
     """Run a skill pipeline (e.g., ash pipe feat+commit+changelog "add login").
 
     Chain skills with '+' or use a named pipeline from config.yaml.
@@ -584,12 +587,8 @@ def history_stats(skill):
     click.echo(f"  {'─' * 40}")
     click.echo()
     click.echo(f"  Total invocations:  {data['total']}")
-    click.echo(
-        f"  Success:            \033[0;32m{data['success']}\033[0m"
-    )
-    click.echo(
-        f"  Failure:            \033[0;31m{data['failure']}\033[0m"
-    )
+    click.echo(f"  Success:            \033[0;32m{data['success']}\033[0m")
+    click.echo(f"  Failure:            \033[0;31m{data['failure']}\033[0m")
     click.echo(f"  Unknown:            {data['unknown']}")
 
     if data["avg_duration"] is not None:
@@ -609,12 +608,12 @@ def history_stats(skill):
         click.echo()
         click.echo(f"  \033[1mSuccess Rates\033[0m")
         for name, total, wins, rate in data["skill_rates"]:
-            color = "\033[0;32m" if rate >= 80 else (
-                "\033[0;33m" if rate >= 50 else "\033[0;31m"
+            color = (
+                "\033[0;32m"
+                if rate >= 80
+                else ("\033[0;33m" if rate >= 50 else "\033[0;31m")
             )
-            click.echo(
-                f"    {name:<12} {color}{rate:5.1f}%\033[0m  ({wins}/{total})"
-            )
+            click.echo(f"    {name:<12} {color}{rate:5.1f}%\033[0m  ({wins}/{total})")
 
     click.echo()
 

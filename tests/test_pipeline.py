@@ -11,18 +11,14 @@ def test_resolve_pipeline_plus_syntax():
 
 
 def test_resolve_pipeline_named():
-    config = AshleyConfig(
-        pipelines={"ship": ["feat", "commit", "changelog"]}
-    )
+    config = AshleyConfig(pipelines={"ship": ["feat", "commit", "changelog"]})
     result = resolve_pipeline("ship", config)
     assert result == ["feat", "commit", "changelog"]
 
 
 def test_resolve_pipeline_named_takes_precedence():
     """Named pipeline wins over treating it as a single skill."""
-    config = AshleyConfig(
-        pipelines={"feat": ["feat", "commit"]}
-    )
+    config = AshleyConfig(pipelines={"feat": ["feat", "commit"]})
     result = resolve_pipeline("feat", config)
     assert result == ["feat", "commit"]
 

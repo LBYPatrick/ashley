@@ -13,13 +13,10 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import (
     Button,
-    Checkbox,
     Footer,
     Header,
     Input,
     Label,
-    ListView,
-    ListItem,
     Static,
     TextArea,
 )
@@ -27,8 +24,8 @@ from textual.widgets import (
 import ashley
 from ashley import SKILLS_DIR
 
-
 # ── Available components (scanned from disk) ──
+
 
 def _scan_components() -> list[dict]:
     """Scan components/ for available markdown files."""

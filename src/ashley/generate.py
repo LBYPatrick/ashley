@@ -222,9 +222,7 @@ def assemble_skill(
                 parts.append(render_template(match.read_text(), project_context))
                 parts.append("\n")
         elif component_path.is_file():
-            parts.append(
-                render_template(component_path.read_text(), project_context)
-            )
+            parts.append(render_template(component_path.read_text(), project_context))
             parts.append("\n")
         else:
             parts.append(f"<!-- WARNING: Component not found: {component} -->\n")

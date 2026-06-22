@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from ashley.history import record, record_outcome, stats, clear
+from ashley.history import clear, record, record_outcome, stats
 
 
 def _use_temp_db():

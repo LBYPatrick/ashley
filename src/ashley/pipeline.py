@@ -14,7 +14,6 @@ Pipeline execution stops if any skill exits non-zero (fail-fast).
 import os
 import shutil
 import subprocess
-import sys
 
 import click
 
@@ -22,9 +21,7 @@ from ashley.config import AshleyConfig, get_hooks_for_skill, load_config
 from ashley.hooks import run_after_hooks, run_before_hooks
 
 
-def resolve_pipeline(
-    pipeline_spec: str, config: AshleyConfig
-) -> list[str]:
+def resolve_pipeline(pipeline_spec: str, config: AshleyConfig) -> list[str]:
     """Resolve a pipeline spec into a list of skill names.
 
     Accepts:
@@ -119,7 +116,10 @@ def run_pipeline(
 
         # After hooks
         run_after_hooks(
-            hooks, skill, skill_question, cwd,
+            hooks,
+            skill,
+            skill_question,
+            cwd,
             exit_code=result.returncode,
             permission=permission_mode,
         )
