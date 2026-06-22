@@ -31,14 +31,14 @@ def one_session(monkeypatch):
 
 
 def test_copy_id_copies_selected_session(one_session):
-    """Pressing 'C' copies the selected session's ID to the clipboard."""
+    """Pressing 'c' copies the selected session's ID to the clipboard."""
     copied: list[str] = []
 
     async def scenario():
         app = SessionsApp()
         async with app.run_test() as pilot:
             app.copy_to_clipboard = lambda text: copied.append(text)
-            await pilot.press("C")
+            await pilot.press("c")
             await pilot.pause()
 
     asyncio.run(scenario())

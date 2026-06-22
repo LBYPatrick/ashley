@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `C` key in the Sessions TUI to copy the selected session ID to the clipboard
+- Add `c` key in the Sessions TUI to copy the selected session ID to the clipboard
 
 ### Changed
 
 - Highlight the first session on load so Enter attaches immediately without moving the cursor
+- Rebind Sessions TUI keys: `k` now cleans up dead sessions and `K` kills the selected session
 
 ### Fixed
 

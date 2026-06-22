@@ -194,12 +194,12 @@ ash kill all               # Kill all sessions
 | Key | Action |
 |-----|--------|
 | Enter | Attach to session |
-| C | Copy session ID to clipboard |
+| c | Copy session ID to clipboard |
 | l | View full log |
-| k | Kill session |
+| K | Kill session |
 | d | Delete record |
 | r | Refresh |
-| c | Cleanup dead sessions |
+| k | Cleanup dead sessions |
 
 ---
 

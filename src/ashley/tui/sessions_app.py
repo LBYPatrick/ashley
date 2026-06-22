@@ -90,12 +90,12 @@ class SessionsApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
         Binding("enter", "attach", "Attach", show=True),
-        Binding("C", "copy_id", "Copy ID", show=True),
+        Binding("c", "copy_id", "Copy ID", show=True),
         Binding("l", "view_log", "Log", show=True),
-        Binding("k", "kill_session", "Kill", show=True),
+        Binding("K", "kill_session", "Kill", show=True),
         Binding("d", "delete_session", "Delete", show=True),
         Binding("r", "refresh", "Refresh", show=True),
-        Binding("c", "cleanup", "Cleanup Dead", show=True),
+        Binding("k", "cleanup", "Cleanup Dead", show=True),
     ]
 
     def __init__(self):
