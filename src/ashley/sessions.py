@@ -62,7 +62,12 @@ class Session:
         return "running" if self.is_alive() else "exited"
 
     def elapsed(self) -> str:
-        started = datetime.fromisoformat(self.started_at)
+        try:
+            started = datetime.fromisoformat(self.started_at)
+        except (ValueError, TypeError):
+            return "?"
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
         delta = datetime.now(timezone.utc) - started
         secs = int(delta.total_seconds())
         if secs < 60:

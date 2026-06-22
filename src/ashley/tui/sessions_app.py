@@ -90,6 +90,7 @@ class SessionsApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
         Binding("enter", "attach", "Attach", show=True),
+        Binding("C", "copy_id", "Copy ID", show=True),
         Binding("l", "view_log", "Log", show=True),
         Binding("k", "kill_session", "Kill", show=True),
         Binding("d", "delete_session", "Delete", show=True),
@@ -136,21 +137,41 @@ class SessionsApp(App):
             return
 
         for session in self._sessions:
-            status = session.status()
-            status_icon = "[green]●[/green]" if status == "running" else "[dim]○[/dim]"
-            label_text = (
-                f"{status_icon} {session.id}  {session.skill}  ({session.elapsed()})"
-            )
+            try:
+                status = session.status()
+                status_icon = (
+                    "[green]●[/green]" if status == "running" else "[dim]○[/dim]"
+                )
+                label_text = f"{status_icon} {session.id}  {session.skill}  ({session.elapsed()})"
+            except Exception:
+                # A broken/corrupt session record must not crash the list.
+                label_text = f"[red]![/red] {session.id}  [dim](corrupt)[/dim]"
             list_view.append(ListItem(Label(label_text, classes="session-item")))
 
         self._selected_session = self._sessions[0]
+        # Highlight the first row so Enter attaches immediately without
+        # requiring the user to move the cursor first.
+        list_view.index = 0
         self._update_detail()
         list_view.focus()
 
     def _update_detail(self) -> None:
         if not self._selected_session:
             return
-        s = self._selected_session
+        try:
+            self._render_detail(self._selected_session)
+        except Exception as exc:
+            # Never let a corrupt session record tear down the TUI.
+            detail = self.query_one("#detail", Static)
+            detail.update(
+                f"[bold red]Could not render session "
+                f"{getattr(self._selected_session, 'id', '?')}[/bold red]\n\n"
+                f"[dim]{exc}[/dim]"
+            )
+            log_viewer = self.query_one("#log-viewer", LogViewer)
+            log_viewer.update("")
+
+    def _render_detail(self, s) -> None:
         status = s.status()
         status_display = (
             "[bold green]RUNNING[/bold green]"
@@ -199,6 +220,23 @@ class SessionsApp(App):
         if idx is not None and idx < len(self._sessions):
             self._selected_session = self._sessions[idx]
             self._update_detail()
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """Attach when the user presses Enter on the focused list.
+
+        ListView consumes the Enter key to emit this event, so the
+        app-level "enter" binding never fires while the list has focus.
+        """
+        self.action_attach()
+
+    def action_copy_id(self) -> None:
+        """Copy the selected session's ID to the clipboard."""
+        if not self._selected_session:
+            self.notify("No session selected", severity="error")
+            return
+        session_id = self._selected_session.id
+        self.copy_to_clipboard(session_id)
+        self.notify(f"Copied session ID {session_id} to clipboard")
 
     def action_attach(self) -> None:
         """Attach to the selected session."""

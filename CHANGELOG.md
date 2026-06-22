@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Add `C` key in the Sessions TUI to copy the selected session ID to the clipboard
+
+### Changed
+
+- Highlight the first session on load so Enter attaches immediately without moving the cursor
+
+### Fixed
+
+- Prevent the Sessions TUI from crashing on broken session records (e.g. a malformed timestamp after a reboot); corrupt entries now render gracefully
+
 ## [0.1.0] - 2026-04-04
 
 ### Added
