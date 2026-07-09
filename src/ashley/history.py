@@ -293,9 +293,9 @@ def record_outcome(
 
 
 def stats(skill: str | None = None) -> dict:
-    """Get aggregated statistics for skill invocations.
+    """Get aggregated usage statistics for skill invocations.
 
-    Returns a dict with total, success, failure, avg_duration, etc.
+    Returns a dict with the total invocation count and the most-used skills.
     """
     conn = _get_conn()
     try:
@@ -311,27 +311,6 @@ def stats(skill: str | None = None) -> dict:
         ).fetchone()
         total = row[0]
 
-        # Outcome breakdown
-        outcome_rows = conn.execute(
-            f"""
-            SELECT outcome, COUNT(*) FROM invocations
-            {where}
-            GROUP BY outcome
-            """,
-            params,
-        ).fetchall()
-        outcomes = {r[0]: r[1] for r in outcome_rows}
-
-        # Average duration for completed runs
-        duration_where = f"{where} {'AND' if where else 'WHERE'} duration_s IS NOT NULL"
-        row = conn.execute(
-            f"SELECT AVG(duration_s), MIN(duration_s), MAX(duration_s) FROM invocations {duration_where}",
-            params,
-        ).fetchone()
-        avg_duration = row[0]
-        min_duration = row[1]
-        max_duration = row[2]
-
         # Top skills by usage
         skill_rows = conn.execute(
             f"""
@@ -345,34 +324,9 @@ def stats(skill: str | None = None) -> dict:
         ).fetchall()
         top_skills = [(r[0], r[1]) for r in skill_rows]
 
-        # Success rate per skill
-        rate_rows = conn.execute(
-            f"""
-            SELECT skill,
-                   COUNT(*) as total,
-                   SUM(CASE WHEN outcome = 'success' THEN 1 ELSE 0 END) as wins
-            FROM invocations
-            {where}
-            GROUP BY skill
-            ORDER BY total DESC
-            """,
-            params,
-        ).fetchall()
-        skill_rates = [
-            (r[0], r[1], r[2], (r[2] / r[1] * 100) if r[1] > 0 else 0)
-            for r in rate_rows
-        ]
-
         return {
             "total": total,
-            "success": outcomes.get("success", 0),
-            "failure": outcomes.get("failure", 0),
-            "unknown": outcomes.get("unknown", 0),
-            "avg_duration": avg_duration,
-            "min_duration": min_duration,
-            "max_duration": max_duration,
             "top_skills": top_skills,
-            "skill_rates": skill_rates,
         }
     finally:
         conn.close()

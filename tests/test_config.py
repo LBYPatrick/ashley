@@ -101,3 +101,50 @@ pipelines:
             assert config.global_hooks.before_run == ["echo hi"]
             assert config.skill_hooks["feat"].after_run == ["make format"]
             assert config.pipelines["ship"] == ["feat", "commit"]
+
+
+# ── Appearance / theme ──
+
+
+def test_load_theme_defaults_when_missing():
+    with tempfile.TemporaryDirectory() as d:
+        with patch("ashley.config.THEME_PATH", Path(d) / "theme.json"):
+            from ashley.config import load_theme, theme_configured
+
+            assert theme_configured() is False
+            assert load_theme() == {"mode": "dark", "preset": "blue"}
+
+
+def test_save_and_load_theme_roundtrip():
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "theme.json"
+        with (
+            patch("ashley.config.THEME_PATH", path),
+            patch("ashley.config.CONFIG_DIR", Path(d)),
+        ):
+            from ashley.config import load_theme, save_theme, theme_configured
+
+            save_theme("light", "sunset")
+            assert theme_configured() is True
+            assert load_theme() == {"mode": "light", "preset": "sunset"}
+
+
+def test_load_theme_rejects_invalid_values():
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "theme.json"
+        path.write_text('{"mode": "neon", "preset": "chartreuse"}')
+        with patch("ashley.config.THEME_PATH", path):
+            from ashley.config import load_theme
+
+            # Invalid mode/preset fall back to defaults.
+            assert load_theme() == {"mode": "dark", "preset": "blue"}
+
+
+def test_load_theme_handles_corrupt_file():
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "theme.json"
+        path.write_text("{not json")
+        with patch("ashley.config.THEME_PATH", path):
+            from ashley.config import load_theme
+
+            assert load_theme() == {"mode": "dark", "preset": "blue"}

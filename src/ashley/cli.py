@@ -39,12 +39,16 @@ def vibe():
     from textual.app import App
 
     from ashley.tui.app import VibeScreen
+    from ashley.tui.theme import BASE_CSS, apply_theme
 
     class VibeApp(App):
         TITLE = f"Ashley v{ashley.__version__}"
         SUB_TITLE = "Vibe — Skill Browser"
 
+        CSS = BASE_CSS
+
         def on_mount(self):
+            apply_theme(self)
             self.push_screen(VibeScreen())
 
     app = VibeApp()
@@ -227,13 +231,17 @@ def run(
     """Launch Claude Code with a skill prompt."""
     question_str = " ".join(question) if question else ""
 
+    # Every run is launched inside a tmux session for crash resilience.
+    # Without --detached we simply attach to it immediately; with it we
+    # leave it running in the background. Building with detached=True keeps
+    # large prompts out of the shell arg buffer in both cases.
     claude_args, permission_mode = _build_claude_invocation(
         skill,
         question_str,
         dangerously_skip_permissions,
         auto_mode,
         away_from_keyboard,
-        detached=detached,
+        detached=True,
     )
 
     # Load config and hooks
@@ -249,33 +257,32 @@ def run(
         click.echo("\033[0;31mAborted:\033[0m before_run hook failed.", err=True)
         sys.exit(1)
 
+    from ashley.sessions import create_detached_session, ensure_tmux
+
+    if not ensure_tmux():
+        click.echo("Error: tmux is required to run sessions.", err=True)
+        sys.exit(1)
+
+    session = create_detached_session(
+        skill=skill,
+        question=question_str,
+        claude_args=claude_args,
+        cwd=cwd,
+        permission_mode=permission_mode,
+    )
+
+    from ashley.history import record
+
+    inv_id = record(
+        skill=skill,
+        question=question_str,
+        cwd=cwd,
+        permission=permission_mode,
+        detached=detached,
+        session_id=session.id,
+    )
+
     if detached:
-        from ashley.sessions import create_detached_session, ensure_tmux
-
-        if not ensure_tmux():
-            click.echo("Error: tmux is required for detached mode.", err=True)
-            sys.exit(1)
-
-        session = create_detached_session(
-            skill=skill,
-            question=question_str,
-            claude_args=claude_args,
-            cwd=cwd,
-            permission_mode=permission_mode,
-        )
-
-        # Record in history
-        from ashley.history import record
-
-        record(
-            skill=skill,
-            question=question_str,
-            cwd=cwd,
-            permission=permission_mode,
-            detached=True,
-            session_id=session.id,
-        )
-
         click.echo(
             f"\n  \033[0;32m●\033[0m Session started: \033[1m{session.id}\033[0m"
         )
@@ -294,37 +301,37 @@ def run(
         click.echo(f"  \033[0;36mKill:\033[0m    ash kill {session.id}")
         click.echo()
     else:
-        # Record in history
+        # Foreground run: attach immediately and block until the user exits
+        # or detaches (Ctrl-b d).
         import time
 
-        from ashley.history import record, record_outcome
-
-        inv_id = record(
-            skill=skill,
-            question=question_str,
-            cwd=cwd,
-            permission=permission_mode,
-            detached=False,
-        )
+        from ashley.history import record_outcome
+        from ashley.sessions import attach_session
 
         start_time = time.monotonic()
-        result = subprocess.run(claude_args)
+        attach_session(session)
         elapsed = time.monotonic() - start_time
 
-        # Record outcome
-        record_outcome(inv_id, result.returncode, elapsed)
+        if session.is_alive():
+            # User detached — leave the session running in the background.
+            click.echo(
+                f"\n  \033[0;33m●\033[0m Detached; session \033[1m{session.id}\033[0m "
+                f"still running."
+            )
+            click.echo(f"  \033[0;36mRe-attach:\033[0m  ash attach {session.id}")
+        else:
+            # Session finished; tidy up its record and log the outcome.
+            record_outcome(inv_id, 0, elapsed)
+            session.delete()
 
-        # Run after hooks
         run_after_hooks(
             hooks,
             skill,
             question_str,
             cwd,
-            exit_code=result.returncode,
+            exit_code=0,
             permission=permission_mode,
         )
-
-        sys.exit(result.returncode)
 
 
 @main.command()
@@ -424,19 +431,11 @@ def logs(session_id, follow, tail):
 @click.argument("session_id")
 def kill(session_id):
     """Kill a detached session."""
-    from ashley.sessions import kill_session, load_all_sessions, resolve_session
+    from ashley.sessions import kill_all_sessions, kill_session, resolve_session
 
     if session_id == "all":
-        sessions_list = load_all_sessions()
-        killed = 0
-        for s in sessions_list:
-            if s.is_alive():
-                kill_session(s)
-                click.echo(f"  Killed {s.id} ({s.skill})")
-                killed += 1
-            else:
-                s.meta_path.unlink(missing_ok=True)
-        click.echo(f"\nKilled {killed} session(s).")
+        killed = kill_all_sessions()
+        click.echo(f"Killed {killed} session(s).")
         return
 
     session = resolve_session(session_id)
@@ -575,7 +574,7 @@ def history_clear():
 @history.command("stats")
 @click.option("--skill", default=None, help="Filter stats by skill name")
 def history_stats(skill):
-    """Show skill invocation analytics and success rates."""
+    """Show skill usage analytics."""
     from ashley.history import stats as hstats
 
     data = hstats(skill=skill)
@@ -587,15 +586,6 @@ def history_stats(skill):
     click.echo(f"  {'─' * 40}")
     click.echo()
     click.echo(f"  Total invocations:  {data['total']}")
-    click.echo(f"  Success:            \033[0;32m{data['success']}\033[0m")
-    click.echo(f"  Failure:            \033[0;31m{data['failure']}\033[0m")
-    click.echo(f"  Unknown:            {data['unknown']}")
-
-    if data["avg_duration"] is not None:
-        click.echo()
-        click.echo(f"  Avg duration:       {data['avg_duration']:.0f}s")
-        click.echo(f"  Min duration:       {data['min_duration']:.0f}s")
-        click.echo(f"  Max duration:       {data['max_duration']:.0f}s")
 
     if data["top_skills"]:
         click.echo()
@@ -603,17 +593,6 @@ def history_stats(skill):
         for name, cnt in data["top_skills"]:
             bar = "█" * min(cnt, 30)
             click.echo(f"    {name:<12} {cnt:>4}  {bar}")
-
-    if data["skill_rates"]:
-        click.echo()
-        click.echo(f"  \033[1mSuccess Rates\033[0m")
-        for name, total, wins, rate in data["skill_rates"]:
-            color = (
-                "\033[0;32m"
-                if rate >= 80
-                else ("\033[0;33m" if rate >= 50 else "\033[0;31m")
-            )
-            click.echo(f"    {name:<12} {color}{rate:5.1f}%\033[0m  ({wins}/{total})")
 
     click.echo()
 

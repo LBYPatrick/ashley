@@ -23,6 +23,7 @@ from textual.widgets import (
 
 import ashley
 from ashley import SKILLS_DIR
+from ashley.tui.theme import BASE_CSS, apply_theme
 
 # ── Available components (scanned from disk) ──
 
@@ -297,5 +298,8 @@ class CreateApp(App):
     TITLE = f"Ashley v{ashley.__version__}"
     SUB_TITLE = "Create New Skill"
 
+    CSS = BASE_CSS
+
     def on_mount(self) -> None:
+        apply_theme(self)
         self.push_screen(CreateScreen())

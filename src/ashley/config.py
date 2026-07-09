@@ -8,12 +8,39 @@ Loads user configuration from ~/.ashley/config.yaml with support for:
 Config is created with sensible defaults on first access.
 """
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 CONFIG_DIR = Path.home() / ".ashley"
 CONFIG_PATH = CONFIG_DIR / "config.yaml"
+
+# ── Appearance / theme ──
+#
+# Stored separately from config.yaml (which is a commented template) so that
+# saving from the TUI never clobbers the user's hand-written hooks/pipelines.
+THEME_PATH = CONFIG_DIR / "theme.json"
+
+DEFAULT_THEME_MODE = "dark"  # dark | light
+DEFAULT_THEME_PRESET = "blue"
+
+# Colour swatch. Single-tone presets use one colour for both primary and
+# accent; dual-tone presets pair a distinct primary and accent.
+THEME_PRESETS: dict[str, dict[str, str]] = {
+    # Single primary colours
+    "blue": {"label": "Blue", "primary": "#4A9EFF", "accent": "#4A9EFF"},
+    "green": {"label": "Green", "primary": "#3FB950", "accent": "#3FB950"},
+    "purple": {"label": "Purple", "primary": "#A371F7", "accent": "#A371F7"},
+    "orange": {"label": "Orange", "primary": "#FEA62B", "accent": "#FEA62B"},
+    "rose": {"label": "Rose", "primary": "#F85149", "accent": "#F85149"},
+    "cyan": {"label": "Cyan", "primary": "#39C5CF", "accent": "#39C5CF"},
+    # Dual-tone presets (primary + contrasting accent)
+    "ocean": {"label": "Ocean", "primary": "#4A9EFF", "accent": "#39C5CF"},
+    "sunset": {"label": "Sunset", "primary": "#FEA62B", "accent": "#F85149"},
+    "grape": {"label": "Grape", "primary": "#A371F7", "accent": "#EC6CB9"},
+    "forest": {"label": "Forest", "primary": "#3FB950", "accent": "#2DD4BF"},
+}
 
 _DEFAULT_CONFIG = """\
 # Ashley Configuration
@@ -172,6 +199,43 @@ def init_config() -> Path:
     if not CONFIG_PATH.is_file():
         CONFIG_PATH.write_text(_DEFAULT_CONFIG)
     return CONFIG_PATH
+
+
+def theme_configured() -> bool:
+    """Return True once the user has completed appearance setup."""
+    return THEME_PATH.is_file()
+
+
+def load_theme() -> dict[str, str]:
+    """Load the saved appearance settings, falling back to defaults.
+
+    Returns:
+        A dict with validated ``mode`` (dark|light) and ``preset`` keys.
+    """
+    mode, preset = DEFAULT_THEME_MODE, DEFAULT_THEME_PRESET
+    if THEME_PATH.is_file():
+        try:
+            data = json.loads(THEME_PATH.read_text())
+            mode = data.get("mode", mode)
+            preset = data.get("preset", preset)
+        except (json.JSONDecodeError, OSError):
+            pass
+    if mode not in ("dark", "light"):
+        mode = DEFAULT_THEME_MODE
+    if preset not in THEME_PRESETS:
+        preset = DEFAULT_THEME_PRESET
+    return {"mode": mode, "preset": preset}
+
+
+def save_theme(mode: str, preset: str) -> None:
+    """Persist appearance settings to ``~/.ashley/theme.json``.
+
+    Args:
+        mode: ``"dark"`` or ``"light"``.
+        preset: A key from :data:`THEME_PRESETS`.
+    """
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    THEME_PATH.write_text(json.dumps({"mode": mode, "preset": preset}, indent=2) + "\n")
 
 
 def get_hooks_for_skill(config: AshleyConfig, skill: str) -> HookConfig:

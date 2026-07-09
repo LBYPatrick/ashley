@@ -93,13 +93,33 @@ def load_all_sessions() -> list[Session]:
     if not SESSIONS_DIR.is_dir():
         return []
     sessions = []
-    for meta_file in sorted(SESSIONS_DIR.glob("*.json"), reverse=True):
+    for meta_file in SESSIONS_DIR.glob("*.json"):
         try:
             data = json.loads(meta_file.read_text())
             sessions.append(Session(**data))
         except (json.JSONDecodeError, TypeError):
             continue
+    sessions.sort(key=lambda s: s.started_at or "", reverse=True)
     return sessions
+
+
+def sort_sessions(sessions: list[Session], mode: str = "time") -> list[Session]:
+    """Return a new list of sessions ordered by the given mode.
+
+    Args:
+        sessions: Sessions to sort.
+        mode: ``"time"`` for newest first, or ``"skill"`` for alphabetical
+            by skill (newest first within each skill). Unknown modes fall
+            back to ``"time"``.
+
+    Returns:
+        A new, sorted list. The input list is left unmodified.
+    """
+    by_time = sorted(sessions, key=lambda s: s.started_at or "", reverse=True)
+    if mode == "skill":
+        # Stable sort keeps the newest-first order within each skill group.
+        return sorted(by_time, key=lambda s: s.skill.lower())
+    return by_time
 
 
 def resolve_session(short_id: str) -> Session | None:
@@ -277,6 +297,21 @@ def kill_session(session: Session) -> None:
         )
     # Keep the log file but remove the metadata to mark as cleaned up
     session.meta_path.unlink(missing_ok=True)
+
+
+def kill_all_sessions() -> int:
+    """Kill every running session and remove exited records.
+
+    Returns the number of live sessions that were killed.
+    """
+    killed = 0
+    for session in load_all_sessions():
+        if session.is_alive():
+            kill_session(session)
+            killed += 1
+        else:
+            session.meta_path.unlink(missing_ok=True)
+    return killed
 
 
 def read_log(session: Session, tail: int = 0) -> str:

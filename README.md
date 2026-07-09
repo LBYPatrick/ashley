@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-≥3.13-3776AB?logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License" /></a>
 </p>
 
@@ -18,8 +18,8 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 - **Skill pipelines** — chain skills with `+` syntax (`feat+commit+changelog`) or named pipelines
 - **Lifecycle hooks** — run shell commands before/after any skill execution
 - **Project detection** — auto-detects tech stack for context-aware prompts
-- **Interactive TUI** — hub with skill browser, session manager, and history viewer
-- **Detached sessions** — background runs with tmux, log capture, and live status
+- **Interactive TUI** — hub with skill browser, session manager, history, analytics, and themeable appearance
+- **tmux-backed sessions** — every run is crash-resilient; detach to background with `--detached`
 - **Invocation history** — every run logged to SQLite for search and review
 
 ---
@@ -33,7 +33,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 | Python | ≥ 3.13 | |
 | [uv](https://docs.astral.sh/uv/) | latest | Python package manager |
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | latest | For running skills |
-| [tmux](https://github.com/tmux/tmux) | latest | Optional — detached sessions only |
+| [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
 
 ### One-Line Install
 
@@ -175,15 +175,38 @@ Run `ash` to launch the hub:
 | **History** | Browse invocation log | `ash history browse` |
 | **Generate** | Rebuild skill files | `ash generate` |
 | **Install** | Deploy skills to ~/.claude/skills/ | `ash install` |
+| **Stats** | Usage analytics (top skills) | `ash history stats` |
+| **Settings** | Appearance (theme & colour) | — |
+
+On first launch the TUI runs a quick setup wizard to pick your appearance.
+The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
+required, so it works over SSH/mosh.
 
 ---
 
-## Detached Sessions
+## Appearance
 
-Run skills in the background and manage them later:
+Ashley's look is configurable from the **Settings** screen in the TUI (or the
+first-run wizard). Choose:
+
+- **Mode** — light or dark
+- **Colour** — a primary colour (Blue, Green, Purple, Orange, Rose, Cyan) or a
+  dual-tone preset (Ocean, Sunset, Grape, Forest)
+
+Changes preview instantly and are saved to `~/.ashley/theme.json`, then
+auto-loaded on every launch. The default is **Blue + dark**.
+
+---
+
+## Sessions
+
+Every run launches inside a tmux session for crash resilience. Without
+`--detached`, Ashley attaches to it immediately (exiting cleans it up); with
+`--detached`, it runs in the background for you to manage later.
 
 ```bash
-ash run --detached feat "Add OAuth support"
+ash run feat "Add OAuth support"            # runs in tmux, attaches immediately
+ash run --detached feat "Add OAuth support" # background session
 ash sessions               # TUI session manager
 ash attach <session-id>    # Attach to interact
 ash logs -f <session-id>   # Follow log in real time
@@ -191,12 +214,19 @@ ash kill <session-id>      # Kill a session
 ash kill all               # Kill all sessions
 ```
 
+Detaching from a foreground run (`Ctrl-b d`) leaves it running in the
+background, just like `--detached`.
+
+**Session manager keys:**
+
 | Key | Action |
 |-----|--------|
 | Enter | Attach to session |
 | c | Copy session ID to clipboard |
 | l | View full log |
+| s | Cycle sort (newest / skill) |
 | K | Kill session |
+| X | Kill all running sessions |
 | d | Delete record |
 | r | Refresh |
 | k | Cleanup dead sessions |

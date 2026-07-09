@@ -61,6 +61,71 @@ def test_enter_on_list_attaches(one_session):
     assert attached == [True]
 
 
+def test_cycle_sort_toggles_mode(one_session):
+    """Pressing 's' cycles the sort mode between time and skill."""
+    modes: list[str] = []
+
+    async def scenario():
+        app = SessionsApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            modes.append(app._sort_mode)
+            await pilot.press("s")
+            await pilot.pause()
+            modes.append(app._sort_mode)
+            await pilot.press("s")
+            await pilot.pause()
+            modes.append(app._sort_mode)
+
+    asyncio.run(scenario())
+    assert modes == ["time", "skill", "time"]
+
+
+def test_kill_all_invokes_backend(one_session, monkeypatch):
+    """Pressing 'X' triggers the bulk-kill helper."""
+    calls: list[bool] = []
+    monkeypatch.setattr(
+        sessions_module, "kill_all_sessions", lambda: calls.append(True) or 1
+    )
+
+    async def scenario():
+        app = SessionsApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("X")
+            await pilot.pause()
+
+    asyncio.run(scenario())
+    assert calls == [True]
+
+
+def test_markup_in_question_and_log_does_not_crash(monkeypatch):
+    """A '[' in the question or log must not be parsed as console markup."""
+    session = _make_session()
+    session.question = "fix [dim]this[/] and handle ±5 up/down [not-a-tag]"
+    monkeypatch.setattr(sessions_module, "load_all_sessions", lambda: [session])
+    monkeypatch.setattr(
+        sessions_module,
+        "read_log",
+        lambda *a, **k: "line [dim]styled[/] with [brackets] and ±1 offsets\n",
+    )
+
+    errors: list[BaseException] = []
+
+    async def scenario():
+        app = SessionsApp()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            # Force a render pass so any markup would be parsed.
+            app.export_screenshot()
+            await pilot.pause()
+            if app._exception is not None:
+                errors.append(app._exception)
+
+    asyncio.run(scenario())
+    assert errors == []
+
+
 def test_broken_session_does_not_crash(monkeypatch):
     """A session with malformed metadata must not crash the TUI."""
     broken = _make_session("broken01")

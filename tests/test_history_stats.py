@@ -22,8 +22,7 @@ def test_record_and_outcome():
 
         data = stats()
         assert data["total"] == 1
-        assert data["success"] == 1
-        assert data["avg_duration"] is not None
+        assert data["top_skills"] == [("feat", 1)]
         clear()
 
 
@@ -31,7 +30,10 @@ def test_stats_empty():
     with _use_temp_db():
         data = stats()
         assert data["total"] == 0
-        assert data["success"] == 0
+        assert data["top_skills"] == []
+        # Run-duration and success-rate tracking have been removed.
+        assert "avg_duration" not in data
+        assert "skill_rates" not in data
 
 
 def test_stats_multiple_skills():
@@ -47,17 +49,13 @@ def test_stats_multiple_skills():
 
         data = stats()
         assert data["total"] == 3
-        assert data["success"] == 2
-        assert data["failure"] == 1
 
-        # Top skills
+        # Top skills by usage
         assert data["top_skills"][0][0] == "feat"
         assert data["top_skills"][0][1] == 2
 
-        # Skill rates
-        feat_rate = [r for r in data["skill_rates"] if r[0] == "feat"][0]
-        assert feat_rate[1] == 2  # total
-        assert feat_rate[2] == 1  # wins
-        assert feat_rate[3] == 50.0  # rate
+        # Success-rate tracking has been removed.
+        assert "skill_rates" not in data
+        assert "success" not in data
 
         clear()

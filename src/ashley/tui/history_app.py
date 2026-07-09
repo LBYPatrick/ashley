@@ -6,6 +6,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Input, Label, ListItem, ListView, Static
 
 from ashley.history import Invocation, count, db_path, db_size, query
+from ashley.tui.theme import BASE_CSS, apply_theme, fade_in
 
 
 class HistoryApp(App):
@@ -14,21 +15,24 @@ class HistoryApp(App):
     TITLE = "Ashley History"
     SUB_TITLE = "Invocation log"
 
-    CSS = """
+    CSS = (
+        BASE_CSS
+        + """
     #main {
         height: 1fr;
     }
 
     #list-container {
-        width: 50;
-        border-right: solid $surface-lighten-2;
+        width: 52;
+        border: round $surface-lighten-2;
         padding: 0 1;
+        margin: 1 0 1 1;
     }
 
     #list-label {
         text-style: bold;
-        padding: 1 0 0 0;
-        color: $text;
+        padding: 0 0 1 0;
+        color: $accent-lighten-1;
     }
 
     #history-list {
@@ -37,7 +41,9 @@ class HistoryApp(App):
 
     #detail-container {
         width: 1fr;
+        border: round $surface-lighten-2;
         padding: 1 2;
+        margin: 1 1 1 1;
         overflow-y: auto;
     }
 
@@ -48,7 +54,7 @@ class HistoryApp(App):
     #filter-container {
         height: 3;
         padding: 0 1;
-        border-top: solid $surface-lighten-2;
+        margin: 0 1 1 1;
     }
 
     #filter-input {
@@ -59,6 +65,7 @@ class HistoryApp(App):
         padding: 0 1;
     }
     """
+    )
 
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
@@ -81,7 +88,7 @@ class HistoryApp(App):
         self._total = 0
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield Header(show_clock=True)
         with Horizontal(id="main"):
             with Vertical(id="list-container"):
                 yield Label("History", id="list-label")
@@ -96,6 +103,8 @@ class HistoryApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        apply_theme(self)
+        fade_in(self.query_one("#main"))
         self._refresh()
 
     def _refresh(self) -> None:
@@ -110,13 +119,15 @@ class HistoryApp(App):
         list_view = self.query_one("#history-list", ListView)
         list_view.clear()
 
+        from rich.markup import escape
+
         if not self._invocations:
             detail = self.query_one("#detail", Static)
             if self._search:
-                detail.update(f'No results for "{self._search}"')
+                detail.update(f'No results for "{escape(self._search)}"')
             else:
                 detail.update(
-                    "No invocation history yet.\n\nRun a skill with: ash run <skill> [question]"
+                    "No invocation history yet.\n\nRun a skill with: ash run <skill> <question>"
                 )
             self._selected = None
             self._update_label()
@@ -125,9 +136,9 @@ class HistoryApp(App):
         for inv in self._invocations:
             detached_icon = " [dim]⇢[/dim]" if inv.detached else ""
             label_text = (
-                f"[dim]{inv.time_display[5:16]}[/dim]  "
-                f"[bold]{inv.skill}[/bold]{detached_icon}  "
-                f"[dim]{inv.question_short[:30]}[/dim]"
+                f"[dim]{escape(inv.time_display[5:16])}[/dim]  "
+                f"[bold]{escape(inv.skill)}[/bold]{detached_icon}  "
+                f"[dim]{escape(inv.question_short[:30])}[/dim]"
             )
             list_view.append(ListItem(Label(label_text, classes="history-item")))
 
@@ -137,32 +148,36 @@ class HistoryApp(App):
         list_view.focus()
 
     def _update_label(self) -> None:
+        from rich.markup import escape
+
         total_pages = max(1, (self._total + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
         page_display = f"Page {self._page + 1}/{total_pages}"
         label_text = f"History ({self._total} total) — {page_display}"
         if self._search:
-            label_text += f' — filter: "{self._search}"'
+            label_text += f' — filter: "{escape(self._search)}"'
         self.query_one("#list-label", Label).update(label_text)
 
     def _update_detail(self) -> None:
         if not self._selected:
             return
+        from rich.markup import escape
+
         inv = self._selected
         detached_str = (
-            "Yes" + (f" (session: {inv.session_id})" if inv.session_id else "")
+            "Yes" + (f" (session: {escape(inv.session_id)})" if inv.session_id else "")
             if inv.detached
             else "No"
         )
 
         text = (
             f"[bold]Invocation #{inv.id}[/bold]\n\n"
-            f"Time:       {inv.time_display} UTC\n"
-            f"Skill:      [bold]{inv.skill}[/bold]\n"
-            f"Question:   {inv.question or '(none)'}\n"
-            f"Directory:  {inv.cwd}\n"
-            f"Permission: {inv.permission}\n"
+            f"Time:       {escape(inv.time_display)} UTC\n"
+            f"Skill:      [bold]{escape(inv.skill)}[/bold]\n"
+            f"Question:   {escape(inv.question or '(none)')}\n"
+            f"Directory:  {escape(inv.cwd)}\n"
+            f"Permission: {escape(inv.permission)}\n"
             f"Detached:   {detached_str}\n\n"
-            f"[dim]Database: {db_path()} ({db_size()})[/dim]"
+            f"[dim]Database: {escape(str(db_path()))} ({escape(db_size())})[/dim]"
         )
         detail = self.query_one("#detail", Static)
         detail.update(text)
