@@ -74,6 +74,23 @@ FEATURES = [
 ]
 
 
+# ── Run modes ──
+#
+# Each mode maps to the same permission flags the CLI exposes on `ash run`.
+# The Vibe screen lets the user pick one before launching a skill.
+RUN_MODES = [
+    {"key": "normal", "label": "Normal", "hint": "Standard permission prompts"},
+    {"key": "dsp", "label": "DSP", "hint": "Skip all permission checks"},
+    {"key": "auto", "label": "AUTO", "hint": "Auto-accept edits"},
+    {"key": "afk", "label": "AFK", "hint": "Fully autonomous — implies DSP"},
+]
+
+
+def _mode_flags(mode: str) -> tuple[bool, bool, bool]:
+    """Map a run-mode key to (dsp, auto, afk) booleans for the CLI builder."""
+    return (mode == "dsp", mode == "auto", mode == "afk")
+
+
 class HubScreen(Screen):
     """Main hub screen showing Ashley features."""
 
@@ -246,6 +263,43 @@ class VibeScreen(Screen):
         width: 1fr;
     }
 
+    #run-mode-row {
+        height: 1;
+        padding: 0 1;
+        margin: 1 1 0 1;
+    }
+
+    #run-mode-label {
+        width: auto;
+        color: $text-muted;
+        padding: 0 1 0 0;
+    }
+
+    .run-mode-chip {
+        width: auto;
+        height: 1;
+        padding: 0 1;
+        margin: 0 1 0 0;
+        color: $text;
+    }
+
+    .run-mode-chip.-selected {
+        background: $accent;
+        color: $surface;
+        text-style: bold;
+    }
+
+    .run-mode-chip:focus {
+        background: $accent 30%;
+        text-style: bold;
+    }
+
+    #run-mode-hint {
+        width: 1fr;
+        color: $text-muted;
+        content-align: right middle;
+    }
+
     #question-container {
         height: 3;
         padding: 0 1;
@@ -264,6 +318,7 @@ class VibeScreen(Screen):
     BINDINGS = [
         Binding("escape", "go_back", "Back", show=True),
         Binding("slash", "focus_filter", "Filter", show=True),
+        Binding("m", "cycle_mode", "Mode", show=True),
         Binding("p", "copy_prompt", "Copy Prompt", show=True),
     ]
 
@@ -271,6 +326,7 @@ class VibeScreen(Screen):
         super().__init__()
         self._skills = _load_skill_summaries()
         self._selected_skill: dict | None = None
+        self._run_mode = RUN_MODES[0]["key"]
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -289,6 +345,11 @@ class VibeScreen(Screen):
                 )
             with Vertical(id="skill-detail-container"):
                 yield Static(id="skill-detail")
+        with Horizontal(id="run-mode-row"):
+            yield Label("Run mode", id="run-mode-label")
+            for m in RUN_MODES:
+                yield ModeChip(m["key"], classes="run-mode-chip")
+            yield Static(id="run-mode-hint")
         with Horizontal(id="question-container"):
             from textual.widgets import Input
 
@@ -300,6 +361,7 @@ class VibeScreen(Screen):
 
     def on_mount(self) -> None:
         fade_in(self.query_one("#vibe-main"))
+        self._refresh_run_mode_chips()
         if self._skills:
             self._selected_skill = self._skills[0]
             self._update_skill_detail()
@@ -356,6 +418,30 @@ class VibeScreen(Screen):
         if isinstance(event.input, Input) and event.input.id == "question-input":
             self._run_skill(event.value)
 
+    def _refresh_run_mode_chips(self) -> None:
+        """Repaint the run-mode chips and hint to reflect the selection."""
+        for m in RUN_MODES:
+            chip = self.query_one(f"#mode-{m['key']}", ModeChip)
+            mark = "●" if m["key"] == self._run_mode else "○"
+            chip.update(f"{mark} {m['label']}")
+            chip.set_class(m["key"] == self._run_mode, "-selected")
+        hint = next(m["hint"] for m in RUN_MODES if m["key"] == self._run_mode)
+        self.query_one("#run-mode-hint", Static).update(hint)
+
+    def on_mode_chip_picked(self, event) -> None:
+        """A run-mode chip was clicked or activated with Enter/Space."""
+        self._run_mode = event.mode
+        self._refresh_run_mode_chips()
+
+    def action_cycle_mode(self) -> None:
+        """Advance to the next run mode (keyboard-first shortcut)."""
+        keys = [m["key"] for m in RUN_MODES]
+        idx = keys.index(self._run_mode)
+        self._run_mode = keys[(idx + 1) % len(keys)]
+        self._refresh_run_mode_chips()
+        label = next(m["label"] for m in RUN_MODES if m["key"] == self._run_mode)
+        self.app.notify(f"Run mode: {label}")
+
     def _run_skill(self, question: str) -> None:
         if not self._selected_skill:
             self.app.notify("No skill selected", severity="error")
@@ -363,8 +449,7 @@ class VibeScreen(Screen):
 
         import shutil
 
-        claude_bin = shutil.which("claude")
-        if not claude_bin:
+        if not shutil.which("claude"):
             self.app.notify(
                 "Claude Code not found. Install it first.", severity="error"
             )
@@ -372,7 +457,20 @@ class VibeScreen(Screen):
 
         skill_stem = self._selected_skill["stem"]
 
-        # Record in history
+        # Build the invocation exactly as the CLI does so run modes behave
+        # identically to `ash run` (default / DSP / AUTO / AFK).
+        from ashley.cli import _build_claude_invocation
+
+        dsp, auto, afk = _mode_flags(self._run_mode)
+        args, permission_mode = _build_claude_invocation(
+            skill_stem,
+            question,
+            dangerously_skip_permissions=dsp,
+            auto_mode=auto,
+            away_from_keyboard=afk,
+            detached=False,
+        )
+
         import os
 
         from ashley.history import record
@@ -381,34 +479,10 @@ class VibeScreen(Screen):
             skill=skill_stem,
             question=question,
             cwd=os.getcwd(),
+            permission=permission_mode,
         )
 
         import subprocess
-
-        from ashley.cli import _skill_is_installed
-
-        if _skill_is_installed(skill_stem):
-            # Skill is installed — let Claude Code load it natively
-            args = [claude_bin]
-            if question:
-                args.append(f"/a-{skill_stem} {question}")
-            else:
-                args.append(f"/a-{skill_stem}")
-        else:
-            # Skill not installed — inline the prompt
-            from ashley import GENERATED_DIR
-            from ashley.generate import generate as do_generate
-            from ashley.prompt import generate_prompt
-
-            if not GENERATED_DIR.is_dir() or not any(GENERATED_DIR.iterdir()):
-                do_generate()
-
-            system_prompt = generate_prompt(skill_stem, "")
-            args = [claude_bin, "--append-system-prompt", system_prompt]
-            if question:
-                args.append(question)
-            else:
-                args.append(f"/a-{skill_stem}")
 
         with self.app.suspend():
             subprocess.run(args)
@@ -1102,8 +1176,8 @@ class ModeChip(Static):
             self.mode = mode
             super().__init__()
 
-    def __init__(self, mode: str) -> None:
-        super().__init__(id=f"mode-{mode}", classes="mode-chip")
+    def __init__(self, mode: str, *, classes: str = "mode-chip") -> None:
+        super().__init__(id=f"mode-{mode}", classes=classes)
         self._mode = mode
 
     def on_click(self) -> None:

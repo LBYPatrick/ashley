@@ -170,7 +170,7 @@ Run `ash` to launch the hub:
 
 | Feature | Description | Direct CLI |
 |---------|-------------|------------|
-| **Vibe** | Skill browser — preview and launch | `ash vibe` |
+| **Vibe** | Skill browser — preview, pick a run mode, and launch | `ash vibe` |
 | **Sessions** | Manage detached runs | `ash sessions` |
 | **History** | Browse invocation log | `ash history browse` |
 | **Generate** | Rebuild skill files | `ash generate` |
@@ -181,6 +181,11 @@ Run `ash` to launch the hub:
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
 required, so it works over SSH/mosh.
+
+Inside **Vibe** you can pick a run mode before launching — **Normal** (standard
+permission prompts), **DSP** (skip all permission checks), **AUTO** (auto-accept
+edits), or **AFK** (fully autonomous, implies DSP). Press `m` to cycle modes or
+click a chip; these map to the same flags as `ash run`.
 
 ---
 
