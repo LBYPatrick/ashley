@@ -13,14 +13,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ashley.agents import DEFAULT_AGENT, is_agent
+
 CONFIG_DIR = Path.home() / ".ashley"
 CONFIG_PATH = CONFIG_DIR / "config.yaml"
 
-# ── Appearance / theme ──
+# ── Machine-written preferences ──
 #
 # Stored separately from config.yaml (which is a commented template) so that
 # saving from the TUI never clobbers the user's hand-written hooks/pipelines.
 THEME_PATH = CONFIG_DIR / "theme.json"
+PREFS_PATH = CONFIG_DIR / "prefs.json"
 
 DEFAULT_THEME_MODE = "dark"  # dark | light
 DEFAULT_THEME_PRESET = "blue"
@@ -49,6 +52,10 @@ _DEFAULT_CONFIG = """\
 # Default settings for `ash run`
 defaults:
   permission_mode: default  # default | auto | dsp | afk
+
+# The coding agent Ashley drives (claude | codex) is stored in
+# ~/.ashley/prefs.json. Change it with `ash agent codex`, from the TUI
+# Settings screen, or per-run with `ash run -c` / `ash run -o`.
 
 # Hooks — shell commands that run before/after skill execution.
 # Global hooks apply to all skills; per-skill hooks override globals.
@@ -236,6 +243,50 @@ def save_theme(mode: str, preset: str) -> None:
     """
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     THEME_PATH.write_text(json.dumps({"mode": mode, "preset": preset}, indent=2) + "\n")
+
+
+# ── Coding-agent preference ──
+
+
+def load_agent() -> str:
+    """Return the preferred coding-agent key.
+
+    Falls back to :data:`ashley.agents.DEFAULT_AGENT` when no preference has
+    been saved or the stored value names an unknown backend.
+    """
+    if PREFS_PATH.is_file():
+        try:
+            agent = json.loads(PREFS_PATH.read_text()).get("agent")
+        except (json.JSONDecodeError, OSError, AttributeError):
+            agent = None
+        if is_agent(agent):
+            return agent.strip().lower()
+    return DEFAULT_AGENT
+
+
+def save_agent(agent: str) -> None:
+    """Persist the preferred coding agent to ``~/.ashley/prefs.json``.
+
+    Args:
+        agent: A key from :data:`ashley.agents.AGENTS`.
+
+    Raises:
+        ValueError: If *agent* is not a supported backend.
+    """
+    if not is_agent(agent):
+        raise ValueError(f"Unknown coding agent: {agent}")
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    prefs: dict[str, Any] = {}
+    if PREFS_PATH.is_file():
+        try:
+            loaded = json.loads(PREFS_PATH.read_text())
+            if isinstance(loaded, dict):
+                prefs = loaded
+        except (json.JSONDecodeError, OSError):
+            pass
+    prefs["agent"] = agent.strip().lower()
+    PREFS_PATH.write_text(json.dumps(prefs, indent=2) + "\n")
 
 
 def get_hooks_for_skill(config: AshleyConfig, skill: str) -> HookConfig:

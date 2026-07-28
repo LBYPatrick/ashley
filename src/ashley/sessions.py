@@ -1,6 +1,6 @@
 """Ashley Session Manager.
 
-Manages detached Claude Code sessions using tmux with a JSON-based
+Manages detached coding-agent sessions using tmux with a JSON-based
 session registry for reliable tracking, log persistence, and metadata.
 
 Sessions are stored in ~/.ashley/sessions/ as JSON files with
@@ -36,6 +36,8 @@ class Session:
     started_at: str
     cwd: str
     permission_mode: str = ""
+    # Empty on records written before multi-agent support; treated as Claude.
+    agent: str = ""
     extra_flags: list[str] = field(default_factory=list)
 
     @property
@@ -172,18 +174,58 @@ def ensure_tmux() -> bool:
     return shutil.which("tmux") is not None
 
 
+def _shell_quote(text: str) -> str:
+    """Wrap *text* in single quotes, escaping any it contains."""
+    escaped = text.replace("'", "'\\''")
+    return f"'{escaped}'"
+
+
+def build_shell_command(claude_args: list[str], cwd: str) -> tuple[str, list[str]]:
+    """Render an agent invocation as a shell command line for tmux.
+
+    Arguments carrying the ``__ASHLEY_PROMPT_FILE__`` marker (see
+    :func:`ashley.cli._text_arg`) are replaced in place with a ``$(cat …)``
+    expansion, so large prompts are read from disk at launch instead of
+    travelling through tmux's input buffer.
+
+    Args:
+        claude_args: The agent argv, possibly containing prompt-file markers.
+        cwd: Directory the agent should start in.
+
+    Returns:
+        A ``(shell_command, temp_files)`` pair; *temp_files* are the spilled
+        prompt files the caller should have removed once the agent exits.
+    """
+    from ashley.cli import PROMPT_FILE_MARKER
+
+    cmd_parts: list[str] = []
+    prompt_files: list[str] = []
+    for arg in claude_args:
+        if arg.startswith(PROMPT_FILE_MARKER):
+            path = arg[len(PROMPT_FILE_MARKER) :]
+            prompt_files.append(path)
+            cmd_parts.append(f'"$(cat {_shell_quote(path)})"')
+        else:
+            cmd_parts.append(_shell_quote(arg))
+
+    cleanup = "".join(f"rm -f {_shell_quote(p)}; " for p in prompt_files)
+    shell_cmd = (
+        f"cd {_shell_quote(cwd)} && {' '.join(cmd_parts)}; "
+        f"{cleanup}"
+        f"echo ''; echo '[Session ended - press Enter to close]'; read"
+    )
+    return shell_cmd, prompt_files
+
+
 def create_detached_session(
     skill: str,
     question: str,
     claude_args: list[str],
     cwd: str,
     permission_mode: str = "",
+    agent: str = "",
 ) -> Session:
-    """Launch Claude Code in a detached tmux session with log capture.
-
-    Handles the __ASHLEY_PROMPT_FILE__ marker from _build_claude_invocation
-    to read the prompt from a temp file instead of passing it as a shell arg
-    (which would hit tmux's input buffer limit for large prompts).
+    """Launch a coding agent in a detached tmux session with log capture.
 
     Returns the created Session object.
     """
@@ -193,45 +235,7 @@ def create_detached_session(
 
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Extract prompt file marker if present
-    prompt_file = None
-    filtered_args = []
-    for arg in claude_args:
-        if arg.startswith("__ASHLEY_PROMPT_FILE__="):
-            prompt_file = arg.split("=", 1)[1]
-        else:
-            filtered_args.append(arg)
-    claude_args = filtered_args
-
-    # Build the claude command string for tmux.
-    # When a prompt file is present, we inject --append-system-prompt
-    # with a $(cat ...) expansion so the shell reads the file at
-    # runtime instead of embedding the content in the arg string.
-    cmd_parts = []
-    for arg in claude_args:
-        escaped = arg.replace("'", "'\\''")
-        cmd_parts.append(f"'{escaped}'")
-
-    if prompt_file:
-        # Insert the system prompt via file read — shell expands $(...)
-        escaped_path = prompt_file.replace("'", "'\\''")
-        cmd_parts.insert(1, "'--append-system-prompt'")
-        cmd_parts.insert(2, f"\"$(cat '{escaped_path}')\"")
-
-    claude_cmd = " ".join(cmd_parts)
-
-    # Build cleanup for temp prompt file
-    cleanup = ""
-    if prompt_file:
-        escaped_path = prompt_file.replace("'", "'\\''")
-        cleanup = f"rm -f '{escaped_path}'; "
-
-    # Create tmux session running claude, with automatic exit message
-    shell_cmd = (
-        f"cd '{cwd}' && {claude_cmd}; "
-        f"{cleanup}"
-        f"echo ''; echo '[Session ended - press Enter to close]'; read"
-    )
+    shell_cmd, _ = build_shell_command(claude_args, cwd)
 
     subprocess.run(
         [
@@ -273,6 +277,7 @@ def create_detached_session(
         started_at=datetime.now(timezone.utc).isoformat(),
         cwd=cwd,
         permission_mode=permission_mode,
+        agent=agent,
     )
     session.save()
 

@@ -1,7 +1,7 @@
 <h1 align="center">Ashley</h1>
 
 <p align="center">
-  <strong>Interactive skill set framework for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a></strong>
+  <strong>Interactive skill set framework for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> and <a href="https://developers.openai.com/codex">OpenAI Codex</a></strong>
 </p>
 
 <p align="center">
@@ -12,9 +12,10 @@
 
 ---
 
-Ashley provides 14 composable, production-ready skills that encode software engineering best practices as structured prompts for Claude Code. Skills are assembled from reusable components and inlined resources, then installed as slash commands (`/a-feat`, `/a-refactor`, etc.).
+Ashley provides 14 composable, production-ready skills that encode software engineering best practices as structured prompts for your coding agent. Skills are assembled from reusable components and inlined resources, then installed for Claude Code (`/a-feat`) or OpenAI Codex (`$a-feat`) — the same `SKILL.md` serves both.
 
 - **14 specialized skills** — feat, refactor, debug, optimize, commit, scaffold, and more
+- **Two agent backends** — Claude Code or OpenAI Codex, switchable globally or per run
 - **Skill pipelines** — chain skills with `+` syntax (`feat+commit+changelog`) or named pipelines
 - **Lifecycle hooks** — run shell commands before/after any skill execution
 - **Project detection** — auto-detects tech stack for context-aware prompts
@@ -32,7 +33,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 |-------------|---------|-------|
 | Python | ≥ 3.13 | |
 | [uv](https://docs.astral.sh/uv/) | latest | Python package manager |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | latest | For running skills |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) *or* [Codex](https://developers.openai.com/codex) | latest | For running skills — installed for you |
 | [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
 
 ### One-Line Install
@@ -41,7 +42,13 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | bash
 ```
 
-Clones to `~/.ashley/repo`, installs dependencies, generates skills, symlinks to `~/.claude/skills/`, and adds `ash` to `~/.local/bin`.
+Clones to `~/.ashley/repo`, installs dependencies, generates skills, symlinks them into your agent's skills directory, and adds `ash` to `~/.local/bin`.
+
+The installer asks which coding agent to set up. Skip the question with a flag:
+
+```bash
+curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --both
+```
 
 <details>
 <summary>Manual install</summary>
@@ -63,6 +70,7 @@ make install
 | `ASHLEY_REPO_URL` | `https://github.com/LBYPatrick/ashley.git` | Override repo URL |
 | `ASHLEY_USE_CN` | unset | Use China-accessible mirrors (`1` to enable) |
 | `ASHLEY_NO_COLOR` | unset | Disable colored output (`1` to enable) |
+| `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, or `both`) |
 
 </details>
 
@@ -87,6 +95,10 @@ ash run debug "Fix the 500 error on /api/users"
 
 # Autonomous mode (no prompts)
 ash run -afk feat "Add dark mode toggle"
+
+# Pick the agent just for this run
+ash run -o feat "Add dark mode toggle"     # OpenAI Codex
+ash run -c feat "Add dark mode toggle"     # Claude Code
 
 # Run a pipeline (chain skills)
 ash pipe feat+commit+changelog "Add OAuth support"
@@ -174,9 +186,9 @@ Run `ash` to launch the hub:
 | **Sessions** | Manage detached runs | `ash sessions` |
 | **History** | Browse invocation log | `ash history browse` |
 | **Generate** | Rebuild skill files | `ash generate` |
-| **Install** | Deploy skills to ~/.claude/skills/ | `ash install` |
+| **Install** | Deploy skills to your agent's skills dir | `ash install` |
 | **Stats** | Usage analytics (top skills) | `ash history stats` |
-| **Settings** | Appearance (theme & colour) | — |
+| **Settings** | Coding agent, theme & colour | — |
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
@@ -186,6 +198,41 @@ Inside **Vibe** you can pick a run mode before launching — **Normal** (standar
 permission prompts), **DSP** (skip all permission checks), **AUTO** (auto-accept
 edits), or **AFK** (fully autonomous, implies DSP). Press `m` to cycle modes or
 click a chip; these map to the same flags as `ash run`.
+
+---
+
+## Coding Agent
+
+Ashley drives either [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+or [OpenAI Codex](https://developers.openai.com/codex). Both read the same
+`SKILL.md` format, so the generated skills install unchanged for either one —
+Claude Code triggers them as `/a-feat`, Codex as `$a-feat`.
+
+```bash
+ash install --codex        # install skills for Codex
+ash install --both         # install for both agents
+
+ash agent                  # show the current default
+ash agent codex            # change the default
+
+ash run -o feat "..."      # override for one run (Codex)
+ash run -c feat "..."      # override for one run (Claude Code)
+```
+
+The default is saved to `~/.ashley/prefs.json` and can also be changed from the
+TUI **Settings** screen. Every run mode works on both agents:
+
+| Ashley mode | Claude Code | OpenAI Codex |
+|-------------|-------------|--------------|
+| Normal | *(defaults)* | *(defaults)* |
+| `-dsp` | `--dangerously-skip-permissions` | `--dangerously-bypass-approvals-and-sandbox` |
+| `--auto` | `--permission-mode auto` | `--sandbox workspace-write --ask-for-approval never` |
+| `-afk` | DSP + autonomous instructions | DSP + autonomous instructions |
+
+| Agent | Skills directory |
+|-------|------------------|
+| Claude Code | `~/.claude/skills/` (or `$CLAUDE_CONFIG_DIR/skills`) |
+| OpenAI Codex | `~/.codex/skills/` (or `$CODEX_HOME/skills`) |
 
 ---
 
@@ -205,7 +252,8 @@ auto-loaded on every launch. The default is **Blue + dark**.
 
 ## Sessions
 
-Every run launches inside a tmux session for crash resilience. Without
+Every run launches the coding agent inside a tmux session for crash
+resilience. Without
 `--detached`, Ashley attaches to it immediately (exiting cleans it up); with
 `--detached`, it runs in the background for you to manage later.
 
@@ -264,7 +312,7 @@ ash                              Launch hub TUI
 ash vibe                         Skill browser TUI
 ash run <skill> [question]       Run a skill
 ash run --detached <skill> [q]   Run in background
-ash run raw [question]           Run Claude Code without a skill
+ash run raw [question]           Run the coding agent without a skill
 ash pipe <a+b+c> [question]      Run a skill pipeline
 ash generate                     Assemble skill files from JSONC
 ash list                         List available skills
@@ -278,7 +326,8 @@ ash history browse               Interactive history browser
 ash history prune <days>         Delete old entries
 ash history clear                Delete all history
 ash history info                 Database stats
-ash install                      Generate + install skills
+ash agent [name]                 Show or set the default coding agent
+ash install [--claude|--codex]   Generate + install skills
 ash uninstall                    Remove skills
 ash update [--branch NAME]       Pull latest + reinstall
 ash --version                    Print version
@@ -292,6 +341,8 @@ ash --version                    Print version
 | `--auto` | Auto-accept safe tools |
 | `-afk` / `--away-from-keyboard` | Fully autonomous, implies `-dsp` |
 | `--detached` | Run in background tmux session |
+| `-c` / `--claude` | Use Claude Code for this run |
+| `-o` / `--codex` | Use OpenAI Codex for this run |
 
 ---
 
@@ -325,7 +376,7 @@ make format         # Run ruff formatter
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all targets |
-| `make install` | Generate, install skills, symlink CLI |
+| `make install` | Generate, install skills, symlink CLI (`AGENT=claude\|codex\|both`) |
 | `make uninstall` | Remove skills and CLI |
 | `make generate` | Regenerate skill markdown files |
 | `make list` | List skill definitions |

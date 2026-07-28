@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support [OpenAI Codex](https://developers.openai.com/codex) alongside Claude Code as a coding-agent backend; the same generated skills install unchanged for either agent (`~/.claude/skills` and `~/.codex/skills` both read `SKILL.md`)
+- Ask which coding agent to set up on first install, with `--claude` / `--codex` / `--both` (or `AGENT=` / `ASHLEY_AGENT=`) to skip the question
+- Save the chosen agent as an Ashley preference in `~/.ashley/prefs.json`, configurable later via `ash agent <name>` or the TUI Settings screen
+- Add `-c` / `--claude` and `-o` / `--codex` to `ash run` and `ash pipe` to override the agent for a single invocation
+- Map every run mode onto Codex's equivalent flags: DSP → `--dangerously-bypass-approvals-and-sandbox`, AUTO → `--sandbox workspace-write --ask-for-approval never`, AFK → DSP plus the autonomous-operation instructions
+- Add `scripts/install_codex.sh` for native Codex CLI installation
+
+### Changed
+
+- Rename the Settings screen to "Preferences" and add a coding-agent picker above the appearance controls
+- Record the coding agent on each detached session and show it in the `ash run --detached` summary
+- `ash install` now reinstalls for whichever agents already have skills instead of re-asking, so `ash update` stays non-interactive
+- Honour `CLAUDE_CONFIG_DIR` and `CODEX_HOME` when locating an agent's skills directory
+
 ## [0.2.0] - 2026-07-09
 
 ### Added

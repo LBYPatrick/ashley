@@ -4,9 +4,9 @@ Chains multiple skills into sequential execution. Pipelines can be
 defined inline with '+' syntax (feat+commit+changelog) or as named
 pipelines in ~/.ashley/config.yaml.
 
-Each skill in the pipeline runs as a separate Claude Code session.
+Each skill in the pipeline runs as a separate coding-agent session.
 The first skill receives the user's question; subsequent skills
-receive their standard slash command trigger.
+receive their standard skill trigger.
 
 Pipeline execution stops if any skill exits non-zero (fail-fast).
 """
@@ -17,7 +17,8 @@ import subprocess
 
 import click
 
-from ashley.config import AshleyConfig, get_hooks_for_skill, load_config
+from ashley.agents import get_agent
+from ashley.config import AshleyConfig, get_hooks_for_skill, load_agent, load_config
 from ashley.hooks import run_after_hooks, run_before_hooks
 
 
@@ -46,10 +47,20 @@ def run_pipeline(
     dangerously_skip_permissions: bool = False,
     auto_mode: bool = False,
     away_from_keyboard: bool = False,
+    agent: str | None = None,
 ) -> int:
     """Execute a pipeline of skills sequentially.
 
-    Returns the exit code of the last failed skill, or 0 if all succeeded.
+    Args:
+        pipeline_spec: A '+' separated chain or a named pipeline.
+        question: Question handed to the first skill.
+        dangerously_skip_permissions: Skip all permission checks.
+        auto_mode: Auto-accept edits.
+        away_from_keyboard: Fully autonomous run (implies DSP).
+        agent: Backend key; falls back to the saved preference.
+
+    Returns:
+        The exit code of the last failed skill, or 0 if all succeeded.
     """
     config = load_config()
     skills = resolve_pipeline(pipeline_spec, config)
@@ -58,16 +69,16 @@ def run_pipeline(
         click.echo("Error: empty pipeline.", err=True)
         return 1
 
-    claude_bin = shutil.which("claude")
-    if not claude_bin:
-        click.echo("Error: Claude Code not found.", err=True)
+    spec = get_agent(agent if agent is not None else load_agent())
+    if not shutil.which(spec.binary):
+        click.echo(f"Error: {spec.label} not found.", err=True)
         return 1
 
     cwd = os.getcwd()
 
     # Display pipeline plan
     click.echo()
-    click.echo(f"\033[1m  Pipeline: {' → '.join(skills)}\033[0m")
+    click.echo(f"\033[1m  Pipeline: {' → '.join(skills)}\033[0m  ({spec.label})")
     if question:
         display_q = question[:60] + "..." if len(question) > 60 else question
         click.echo(f"  Question: {display_q}")
@@ -79,17 +90,18 @@ def run_pipeline(
         click.echo(f"  {'─' * 40}")
 
         # Build permission args
-        from ashley.cli import _build_claude_invocation
+        from ashley.cli import build_agent_invocation
 
         # Only pass question to the first skill
         skill_question = question if i == 1 else ""
 
-        claude_args, permission_mode = _build_claude_invocation(
+        claude_args, permission_mode = build_agent_invocation(
             skill,
             skill_question,
             dangerously_skip_permissions,
             auto_mode,
             away_from_keyboard,
+            agent=spec.key,
         )
 
         hooks = get_hooks_for_skill(config, skill)

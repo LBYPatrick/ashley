@@ -16,7 +16,15 @@ from textual.widgets import (
 )
 
 import ashley
-from ashley.config import THEME_PRESETS, load_theme, save_theme, theme_configured
+from ashley.agents import AGENTS, get_agent
+from ashley.config import (
+    THEME_PRESETS,
+    load_agent,
+    load_theme,
+    save_agent,
+    save_theme,
+    theme_configured,
+)
 from ashley.tui.sessions_app import SORT_LABELS, SORT_MODES
 from ashley.tui.theme import BASE_CSS, apply_theme, fade_in
 
@@ -26,13 +34,13 @@ FEATURES = [
     {
         "key": "vibe",
         "title": "Vibe — Skill Browser",
-        "description": "Browse skills, preview workflows, and launch Claude Code with a skill prompt.",
+        "description": "Browse skills, preview workflows, and launch your coding agent with a skill prompt.",
         "icon": "▸",
     },
     {
         "key": "sessions",
         "title": "Sessions — Detached Runs",
-        "description": "Manage background Claude Code sessions. Attach, view logs, or kill running sessions.",
+        "description": "Manage background agent sessions. Attach, view logs, or kill running sessions.",
         "icon": "⇢",
     },
     {
@@ -50,7 +58,7 @@ FEATURES = [
     {
         "key": "install",
         "title": "Install — Deploy Skills",
-        "description": "Generate skills and install them to ~/.claude/skills/ as slash commands.",
+        "description": "Generate skills and install them into your coding agent's skills directory.",
         "icon": "↓",
     },
     {
@@ -67,8 +75,8 @@ FEATURES = [
     },
     {
         "key": "settings",
-        "title": "Settings — Appearance",
-        "description": "Choose light or dark mode and a primary colour or dual-tone preset.",
+        "title": "Settings — Preferences",
+        "description": "Choose the default coding agent, light or dark mode, and a colour preset.",
         "icon": "✎",
     },
 ]
@@ -426,7 +434,8 @@ class VibeScreen(Screen):
             chip.update(f"{mark} {m['label']}")
             chip.set_class(m["key"] == self._run_mode, "-selected")
         hint = next(m["hint"] for m in RUN_MODES if m["key"] == self._run_mode)
-        self.query_one("#run-mode-hint", Static).update(hint)
+        agent_label = get_agent(load_agent()).label
+        self.query_one("#run-mode-hint", Static).update(f"{hint} · {agent_label}")
 
     def on_mode_chip_picked(self, event) -> None:
         """A run-mode chip was clicked or activated with Enter/Space."""
@@ -449,9 +458,10 @@ class VibeScreen(Screen):
 
         import shutil
 
-        if not shutil.which("claude"):
+        spec = get_agent(load_agent())
+        if not shutil.which(spec.binary):
             self.app.notify(
-                "Claude Code not found. Install it first.", severity="error"
+                f"{spec.label} not found. Install it first.", severity="error"
             )
             return
 
@@ -459,16 +469,17 @@ class VibeScreen(Screen):
 
         # Build the invocation exactly as the CLI does so run modes behave
         # identically to `ash run` (default / DSP / AUTO / AFK).
-        from ashley.cli import _build_claude_invocation
+        from ashley.cli import build_agent_invocation
 
         dsp, auto, afk = _mode_flags(self._run_mode)
-        args, permission_mode = _build_claude_invocation(
+        args, permission_mode = build_agent_invocation(
             skill_stem,
             question,
             dangerously_skip_permissions=dsp,
             auto_mode=auto,
             away_from_keyboard=afk,
             detached=False,
+            agent=spec.key,
         )
 
         import os
@@ -1189,11 +1200,36 @@ class ModeChip(Static):
             self.post_message(self.Picked(self._mode))
 
 
+class AgentChip(Static):
+    """A focusable chip selecting the default coding agent."""
+
+    can_focus = True
+
+    class Picked(Message):
+        """Posted when an agent chip is chosen."""
+
+        def __init__(self, agent: str) -> None:
+            self.agent = agent
+            super().__init__()
+
+    def __init__(self, agent: str) -> None:
+        super().__init__(id=f"agent-{agent}", classes="mode-chip")
+        self._agent = agent
+
+    def on_click(self) -> None:
+        self.post_message(self.Picked(self._agent))
+
+    def on_key(self, event) -> None:
+        if event.key in ("enter", "space"):
+            event.stop()
+            self.post_message(self.Picked(self._agent))
+
+
 class SettingsScreen(Screen):
-    """Appearance settings — light/dark mode and colour preset.
+    """Preferences — default coding agent, light/dark mode and colour preset.
 
     Doubles as the first-run setup wizard when ``first_run`` is set.
-    Changes preview live and are saved to ``~/.ashley/theme.json``.
+    Changes preview live and are saved to ``~/.ashley/``.
     """
 
     BINDINGS = [
@@ -1228,7 +1264,7 @@ class SettingsScreen(Screen):
         padding: 1 0 0 0;
     }
 
-    #mode-row {
+    #mode-row, #agent-row {
         height: 3;
         padding: 1 0 0 0;
     }
@@ -1309,20 +1345,26 @@ class SettingsScreen(Screen):
         saved = load_theme()
         self._mode = saved["mode"]
         self._preset = saved["preset"]
+        self._agent = load_agent()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Vertical(id="settings-main"):
             with Vertical(id="settings-card"):
                 lead = (
-                    "Welcome to Ashley — pick a look to get started."
+                    "Welcome to Ashley — pick your agent and a look to get started."
                     if self._first_run
-                    else "Adjust Ashley's appearance. Changes preview instantly."
+                    else "Adjust Ashley's preferences. Changes apply instantly."
                 )
                 intro = (
                     f"{lead}\n[dim]Arrows move · Enter selects · Esc saves & exits[/]"
                 )
                 yield Static(intro, id="settings-intro")
+
+                yield Label("Coding agent", classes="settings-h")
+                with Horizontal(id="agent-row"):
+                    for key in AGENTS:
+                        yield AgentChip(key)
 
                 yield Label("Mode", classes="settings-h")
                 with Horizontal(id="mode-row"):
@@ -1351,6 +1393,7 @@ class SettingsScreen(Screen):
         # solid-colour swatch blocks as transparent until they repaint.
         self._refresh_swatches()
         self._refresh_mode_chips()
+        self._refresh_agent_chips()
         # Start focus on the current colour so arrow-key navigation is
         # immediately usable (important for SSH/mosh sessions).
         self.query_one(f"#sw-{self._preset}", Swatch).focus()
@@ -1365,6 +1408,7 @@ class SettingsScreen(Screen):
             for i in range(0, len(swatches), SWATCH_COLUMNS)
         ]
         return [
+            [self.query_one(f"#agent-{k}", AgentChip) for k in AGENTS],
             [
                 self.query_one("#mode-dark", ModeChip),
                 self.query_one("#mode-light", ModeChip),
@@ -1407,6 +1451,12 @@ class SettingsScreen(Screen):
         self._refresh_mode_chips()
         self._apply()
 
+    def on_agent_chip_picked(self, event: AgentChip.Picked) -> None:
+        self._agent = event.agent
+        self._refresh_agent_chips()
+        self._apply()
+        self.app.notify(f"Default agent: {get_agent(self._agent).label}")
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "done-btn":
             self._finish()
@@ -1423,6 +1473,13 @@ class SettingsScreen(Screen):
             chip.update(f"{mark}{label}")
             chip.set_class(mode == self._mode, "-selected")
 
+    def _refresh_agent_chips(self) -> None:
+        for key, spec in AGENTS.items():
+            chip = self.query_one(f"#agent-{key}", AgentChip)
+            mark = "● " if key == self._agent else "○ "
+            chip.update(f"{mark}{spec.label}")
+            chip.set_class(key == self._agent, "-selected")
+
     def _refresh_swatches(self) -> None:
         for key, preset in THEME_PRESETS.items():
             swatch = self.query_one(f"#sw-{key}", Swatch)
@@ -1431,6 +1488,7 @@ class SettingsScreen(Screen):
 
     def _apply(self) -> None:
         save_theme(self._mode, self._preset)
+        save_agent(self._agent)
         apply_theme(self.app)
 
     def _finish(self) -> None:
@@ -1476,10 +1534,10 @@ def _load_skill_summaries() -> list[dict]:
 
 
 class AshleyApp(App):
-    """Ashley — Interactive skill set framework for Claude Code."""
+    """Ashley — Interactive skill set framework for coding agents."""
 
     TITLE = f"Ashley v{ashley.__version__}"
-    SUB_TITLE = "Interactive Skill Set for Claude Code"
+    SUB_TITLE = "Interactive Skill Set for Coding Agents"
 
     CSS = BASE_CSS
 

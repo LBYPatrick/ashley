@@ -10,8 +10,9 @@ from ashley.tui.app import AshleyApp
 
 
 def _isolated_theme(tmp: Path):
-    """Point theme storage at a temp dir for both config and app modules."""
+    """Point theme/prefs storage at a temp dir for config and app modules."""
     cfg.THEME_PATH = tmp / "theme.json"
+    cfg.PREFS_PATH = tmp / "prefs.json"
     cfg.CONFIG_DIR = tmp
     appmod.theme_configured = cfg.theme_configured
     appmod.load_theme = cfg.load_theme
@@ -177,3 +178,67 @@ def test_stats_screen_opens_without_error():
     asyncio.run(scenario())
     assert result["exc"] is None
     assert result["screen"] == "StatsScreen"
+
+
+def test_agent_picker_saves_preference():
+    """The Settings screen switches the default coding agent."""
+    result: dict = {}
+
+    async def scenario():
+        with tempfile.TemporaryDirectory() as d:
+            _isolated_theme(Path(d))
+            cfg.save_theme("dark", "blue")
+            app = AshleyApp()
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                lv = app.screen.query_one("#feature-list")
+                lv.index = [f["key"] for f in appmod.FEATURES].index("settings")
+                await pilot.pause()
+                await pilot.press("enter")
+                await pilot.pause()
+                result["default"] = cfg.load_agent()
+                await pilot.click("#agent-codex")
+                await pilot.pause()
+                result["saved"] = cfg.load_agent()
+                chip = app.screen.query_one("#agent-codex")
+                result["selected"] = chip.has_class("-selected")
+                result["exc"] = app._exception
+
+    asyncio.run(scenario())
+    assert result["exc"] is None
+    assert result["default"] == "claude"
+    assert result["saved"] == "codex"
+    assert result["selected"] is True
+
+
+def test_agent_row_joins_arrow_navigation():
+    """Arrow keys reach the agent chips from the mode chips — no mouse."""
+    result: dict = {}
+
+    async def scenario():
+        with tempfile.TemporaryDirectory() as d:
+            _isolated_theme(Path(d))
+            cfg.save_theme("dark", "blue")
+            app = AshleyApp()
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                lv = app.screen.query_one("#feature-list")
+                lv.index = [f["key"] for f in appmod.FEATURES].index("settings")
+                await pilot.pause()
+                await pilot.press("enter")
+                await pilot.pause()
+                # sw-blue → mode chips → agent chips.
+                await pilot.press("up")
+                await pilot.press("up")
+                await pilot.pause()
+                result["focus"] = app.focused.id
+                await pilot.press("right")
+                await pilot.press("enter")
+                await pilot.pause()
+                result["saved"] = cfg.load_agent()
+                result["exc"] = app._exception
+
+    asyncio.run(scenario())
+    assert result["exc"] is None
+    assert result["focus"] == "agent-claude"
+    assert result["saved"] == "codex"

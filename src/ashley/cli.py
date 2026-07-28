@@ -1,4 +1,4 @@
-"""Ashley CLI — Interactive skill set framework for Claude Code."""
+"""Ashley CLI — Interactive skill set framework for coding agents."""
 
 import os
 import shutil
@@ -8,6 +8,14 @@ import sys
 import click
 
 import ashley
+from ashley.agents import (
+    AGENT_KEYS,
+    get_agent,
+    permission_args,
+    select_agent,
+    skill_trigger,
+    skills_dir,
+)
 from ashley.generate import generate as do_generate
 from ashley.generate import list_skills
 from ashley.install import install as do_install
@@ -77,74 +85,7 @@ def prompt(skill, question):
     click.echo(result)
 
 
-def _skill_is_installed(skill: str) -> bool:
-    """Check if a skill is installed in ~/.claude/skills/ as a symlink."""
-    from pathlib import Path
-
-    skills_dir = Path.home() / ".claude" / "skills"
-    # Check both "a-<skill>" and "<skill>" forms
-    for name in (f"a-{skill}", skill):
-        candidate = skills_dir / name
-        if candidate.is_dir() and (candidate / "SKILL.md").is_file():
-            return True
-    return False
-
-
-def _build_claude_invocation(
-    skill: str,
-    question_str: str,
-    dangerously_skip_permissions: bool,
-    auto_mode: bool,
-    away_from_keyboard: bool,
-    detached: bool = False,
-) -> tuple[list[str], str]:
-    """Build claude CLI arguments.
-
-    When a skill is installed in ~/.claude/skills/, we let Claude Code
-    load it natively via the slash command — no need to inline the
-    entire prompt as --append-system-prompt. This avoids tmux/shell
-    argument length limits in detached mode.
-
-    When the skill is NOT installed, we fall back to
-    --append-system-prompt for interactive mode, or write the prompt
-    to a temp file and pass it via --system-prompt-file for detached
-    mode (avoiding shell argument limits).
-
-    Returns (claude_args_list, permission_mode_label).
-    """
-    claude_bin = shutil.which("claude")
-    if not claude_bin:
-        click.echo("Error: Claude Code not found. Install it first.", err=True)
-        sys.exit(1)
-
-    is_raw = skill == "raw"
-    installed = not is_raw and _skill_is_installed(skill)
-
-    # Only generate/inline the prompt if the skill isn't installed
-    system_prompt = ""
-    if not is_raw and not installed:
-        from ashley import GENERATED_DIR
-
-        if not GENERATED_DIR.is_dir() or not any(GENERATED_DIR.iterdir()):
-            click.echo("Generating skills...", err=True)
-            do_generate()
-        system_prompt = generate_prompt(skill, "")
-
-    claude_args = [claude_bin]
-    permission_mode = "default"
-
-    if dangerously_skip_permissions or away_from_keyboard:
-        claude_args.append("--dangerously-skip-permissions")
-        permission_mode = "dsp"
-    elif auto_mode:
-        claude_args.extend(["--permission-mode", "auto"])
-        permission_mode = "auto"
-
-    afk_addendum = ""
-    if away_from_keyboard:
-        permission_mode = "afk"
-        afk_addendum = """
-
+AFK_ADDENDUM = """\
 ## AFK Mode — Autonomous Operation
 
 The user is away from the keyboard. You MUST operate fully autonomously:
@@ -154,48 +95,140 @@ The user is away from the keyboard. You MUST operate fully autonomously:
 - If you encounter ambiguity, pick the most reasonable option and move forward.
 - Complete the entire task end-to-end without stopping."""
 
+# Marker consumed by ashley.sessions: the arg is replaced in place with a
+# shell "$(cat …)" expansion so huge prompts never enter tmux's arg buffer.
+PROMPT_FILE_MARKER = "__ASHLEY_PROMPT_FILE__="
+
+# Prompts longer than this are spilled to a temp file in detached mode.
+ARG_TEXT_LIMIT = 4000
+
+
+def _resolve_agent_flags(use_claude: bool, use_codex: bool) -> str | None:
+    """Resolve the per-run ``-c``/``-o`` flags, exiting on a conflict."""
+    try:
+        return select_agent(use_claude, use_codex)
+    except ValueError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        sys.exit(1)
+
+
+def _skill_is_installed(skill: str, agent=None) -> bool:
+    """Check if a skill is installed in the agent's skills directory."""
+    directory = skills_dir(agent)
+    # Check both "a-<skill>" and "<skill>" forms
+    for name in (f"a-{skill}", skill):
+        candidate = directory / name
+        if candidate.is_dir() and (candidate / "SKILL.md").is_file():
+            return True
+    return False
+
+
+def _text_arg(text: str, detached: bool) -> str:
+    """Return *text* as a CLI argument, spilling large text to a temp file.
+
+    tmux chokes on very long arguments, so detached runs get a
+    :data:`PROMPT_FILE_MARKER` that :mod:`ashley.sessions` expands at
+    launch time instead of the literal text.
+    """
+    if not detached or len(text) <= ARG_TEXT_LIMIT:
+        return text
+
+    import tempfile
+
+    prompt_file = tempfile.NamedTemporaryFile(
+        mode="w",
+        prefix="ashley-prompt-",
+        suffix=".md",
+        delete=False,
+    )
+    prompt_file.write(text)
+    prompt_file.close()
+    return f"{PROMPT_FILE_MARKER}{prompt_file.name}"
+
+
+def build_agent_invocation(
+    skill: str,
+    question_str: str,
+    dangerously_skip_permissions: bool,
+    auto_mode: bool,
+    away_from_keyboard: bool,
+    detached: bool = False,
+    agent: str | None = None,
+) -> tuple[list[str], str]:
+    """Build the coding-agent CLI arguments for a skill run.
+
+    When the skill is installed in the agent's skills directory we let the
+    agent load it natively (``/a-feat`` for Claude Code, ``$a-feat`` for
+    Codex) instead of inlining the whole prompt. When it is not installed,
+    the generated prompt is passed as extra system instructions — via
+    ``--append-system-prompt`` for agents that support it, or prepended to
+    the user prompt for those that don't.
+
+    Args:
+        skill: Skill stem, or ``"raw"`` to launch the agent with no skill.
+        question_str: The user's question, possibly empty.
+        dangerously_skip_permissions: Skip all permission checks.
+        auto_mode: Auto-accept edits.
+        away_from_keyboard: Fully autonomous run (implies DSP).
+        detached: Whether the run will be handed to tmux, which limits how
+            much text may travel in a single argument.
+        agent: Backend key; falls back to the saved preference.
+
+    Returns:
+        An ``(argv, permission_mode)`` pair.
+    """
+    from ashley.config import load_agent
+
+    spec = get_agent(agent if agent is not None else load_agent())
+    agent_bin = shutil.which(spec.binary)
+    if not agent_bin:
+        click.echo(f"Error: {spec.label} not found. Install it first.", err=True)
+        click.echo(f"See: {spec.docs_url}", err=True)
+        sys.exit(1)
+
+    is_raw = skill == "raw"
+    installed = not is_raw and _skill_is_installed(skill, spec)
+
+    args = [agent_bin]
+    perm_flags, permission_mode = permission_args(
+        spec,
+        dsp=dangerously_skip_permissions,
+        auto=auto_mode,
+        afk=away_from_keyboard,
+    )
+    args.extend(perm_flags)
+
+    # Split the payload into instructions the agent should treat as system
+    # context and the message the user "types".
+    instructions = [AFK_ADDENDUM] if away_from_keyboard else []
     if installed:
-        # Skill is installed — Claude Code will load it via slash command.
-        # Only pass AFK addendum if needed (it's short enough for CLI args).
-        if afk_addendum:
-            claude_args.extend(["--append-system-prompt", afk_addendum])
-
-        # Trigger the slash command; append question if provided
-        if question_str:
-            claude_args.append(f"/a-{skill} {question_str}")
-        else:
-            claude_args.append(f"/a-{skill}")
+        user_text = skill_trigger(spec, skill, question_str)
     else:
-        # Skill not installed — inline the prompt
-        system_prompt += afk_addendum
+        if not is_raw:
+            from ashley import GENERATED_DIR
 
-        if system_prompt and detached:
-            # Detached mode: write prompt to temp file to avoid
-            # shell argument length limits with tmux.
-            # We store the file path as a marker so sessions.py can
-            # build the shell command with proper cat expansion.
-            import tempfile
+            if not GENERATED_DIR.is_dir() or not any(GENERATED_DIR.iterdir()):
+                click.echo("Generating skills...", err=True)
+                do_generate()
+            instructions.insert(0, generate_prompt(skill, ""))
+        # With no question, still name the skill so the agent knows which
+        # workflow to start — same trigger text as the installed path.
+        user_text = question_str or (
+            "" if is_raw else skill_trigger(spec, skill, question_str)
+        )
 
-            prompt_file = tempfile.NamedTemporaryFile(
-                mode="w",
-                prefix="ashley-prompt-",
-                suffix=".md",
-                delete=False,
-            )
-            prompt_file.write(system_prompt)
-            prompt_file.close()
-            # Marker for sessions.py to handle
-            claude_args.append(f"__ASHLEY_PROMPT_FILE__={prompt_file.name}")
-        elif system_prompt:
-            claude_args.extend(["--append-system-prompt", system_prompt])
+    system_text = "\n\n".join(instructions)
 
-        # User message
-        if question_str:
-            claude_args.append(question_str)
-        elif not is_raw:
-            claude_args.append(f"/a-{skill}")
+    if spec.system_prompt_flag and system_text:
+        args.extend([spec.system_prompt_flag, _text_arg(system_text, detached)])
+    elif system_text:
+        # No system-prompt flag — fold the instructions into the prompt.
+        user_text = "\n\n".join(t for t in (system_text, user_text) if t)
 
-    return claude_args, permission_mode
+    if user_text:
+        args.append(_text_arg(user_text, detached))
+
+    return args, permission_mode
 
 
 @main.command()
@@ -220,6 +253,20 @@ The user is away from the keyboard. You MUST operate fully autonomously:
     is_flag=True,
     help="Run in background tmux session (use 'ash sessions' to manage)",
 )
+@click.option(
+    "-c",
+    "--claude",
+    "use_claude",
+    is_flag=True,
+    help="Use Claude Code for this run",
+)
+@click.option(
+    "-o",
+    "--codex",
+    "use_codex",
+    is_flag=True,
+    help="Use OpenAI Codex for this run",
+)
 def run(
     skill,
     question,
@@ -227,21 +274,27 @@ def run(
     auto_mode,
     away_from_keyboard,
     detached,
+    use_claude,
+    use_codex,
 ):
-    """Launch Claude Code with a skill prompt."""
+    """Launch the coding agent with a skill prompt."""
+    from ashley.config import load_agent
+
     question_str = " ".join(question) if question else ""
+    agent = get_agent(_resolve_agent_flags(use_claude, use_codex) or load_agent())
 
     # Every run is launched inside a tmux session for crash resilience.
     # Without --detached we simply attach to it immediately; with it we
     # leave it running in the background. Building with detached=True keeps
     # large prompts out of the shell arg buffer in both cases.
-    claude_args, permission_mode = _build_claude_invocation(
+    claude_args, permission_mode = build_agent_invocation(
         skill,
         question_str,
         dangerously_skip_permissions,
         auto_mode,
         away_from_keyboard,
         detached=True,
+        agent=agent.key,
     )
 
     # Load config and hooks
@@ -269,6 +322,7 @@ def run(
         claude_args=claude_args,
         cwd=cwd,
         permission_mode=permission_mode,
+        agent=agent.key,
     )
 
     from ashley.history import record
@@ -287,6 +341,7 @@ def run(
             f"\n  \033[0;32m●\033[0m Session started: \033[1m{session.id}\033[0m"
         )
         click.echo(f"    Skill:    {skill}")
+        click.echo(f"    Agent:    {agent.label}")
         if question_str:
             display_q = (
                 question_str[:60] + "..." if len(question_str) > 60 else question_str
@@ -351,8 +406,28 @@ def run(
     is_flag=True,
     help="Fully autonomous (implies -dsp)",
 )
+@click.option(
+    "-c",
+    "--claude",
+    "use_claude",
+    is_flag=True,
+    help="Use Claude Code for this run",
+)
+@click.option(
+    "-o",
+    "--codex",
+    "use_codex",
+    is_flag=True,
+    help="Use OpenAI Codex for this run",
+)
 def pipe(
-    pipeline, question, dangerously_skip_permissions, auto_mode, away_from_keyboard
+    pipeline,
+    question,
+    dangerously_skip_permissions,
+    auto_mode,
+    away_from_keyboard,
+    use_claude,
+    use_codex,
 ):
     """Run a skill pipeline (e.g., ash pipe feat+commit+changelog "add login").
 
@@ -367,6 +442,7 @@ def pipe(
         dangerously_skip_permissions=dangerously_skip_permissions,
         auto_mode=auto_mode,
         away_from_keyboard=away_from_keyboard,
+        agent=_resolve_agent_flags(use_claude, use_codex),
     )
     sys.exit(exit_code)
 
@@ -471,16 +547,77 @@ def config():
 
 
 @main.command()
-def install():
-    """Generate and install skills to ~/.claude/skills/."""
+@click.option(
+    "-c",
+    "--claude",
+    "use_claude",
+    is_flag=True,
+    help="Install for Claude Code (skip the prompt)",
+)
+@click.option(
+    "-o",
+    "--codex",
+    "use_codex",
+    is_flag=True,
+    help="Install for OpenAI Codex (skip the prompt)",
+)
+@click.option("--both", is_flag=True, help="Install for both agents (skip the prompt)")
+def install(use_claude, use_codex, both):
+    """Generate and install skills for a coding agent.
+
+    Without a flag, Ashley reinstalls for whichever agents already have
+    skills, and asks which agent to set up on a fresh machine.
+    """
+    if both:
+        agents = list(AGENT_KEYS)
+    elif use_claude or use_codex:
+        agents = [k for k, on in (("claude", use_claude), ("codex", use_codex)) if on]
+    else:
+        agents = None
+
     do_generate()
-    do_install()
+    do_install(agents)
 
 
 @main.command()
 def uninstall():
-    """Remove ashley skills from ~/.claude/skills/."""
+    """Remove ashley skills from every agent's skills directory."""
     do_uninstall()
+
+
+@main.command()
+@click.argument("name", required=False)
+def agent(name):
+    """Show or set the default coding agent (claude | codex).
+
+    With no argument, prints the current preference.
+    """
+    from ashley.config import load_agent, save_agent
+
+    if name is None:
+        current = get_agent(load_agent())
+        click.echo(f"  Default agent:  {current.label} ({current.key})")
+        click.echo(f"  Skills dir:     {skills_dir(current)}")
+        click.echo(f"  Available:      {', '.join(AGENT_KEYS)}")
+        click.echo("\n  Change it with: ash agent <name>")
+        return
+
+    key = name.strip().lower()
+    try:
+        save_agent(key)
+    except ValueError:
+        click.echo(
+            f"Error: unknown agent '{name}'. Choose one of: {', '.join(AGENT_KEYS)}",
+            err=True,
+        )
+        sys.exit(1)
+
+    spec = get_agent(key)
+    click.echo(f"Default agent set to {spec.label}.")
+    if not shutil.which(spec.binary):
+        click.echo(
+            f"Note: '{spec.binary}' is not on PATH — run 'ash install --{spec.key}'."
+        )
 
 
 @main.command()

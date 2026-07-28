@@ -1,10 +1,25 @@
 #!/bin/bash
 # Ashley — One-line installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | bash
+#        ... | bash -s -- --codex     # skip the agent question
 set -euo pipefail
 
 ASHLEY_DIR="${ASHLEY_DIR:-$HOME/.ashley/repo}"
 REPO_URL="${ASHLEY_REPO_URL:-https://github.com/LBYPatrick/ashley.git}"
+
+# Coding agent to install skills for: claude | codex | both.
+# Left empty, the installer asks (or reuses an existing setup).
+AGENT="${ASHLEY_AGENT:-}"
+for arg in "$@"; do
+    case "$arg" in
+        --claude | --codex | --both) AGENT="${arg#--}" ;;
+        --agent=*) AGENT="${arg#--agent=}" ;;
+        *)
+            echo "Unknown option: $arg" >&2
+            exit 1
+            ;;
+    esac
+done
 
 # Color support — disabled by ASHLEY_NO_COLOR or NO_COLOR
 _no_color=false
@@ -92,7 +107,7 @@ echo ""
 
 # Run make install
 cd "$ASHLEY_DIR"
-make install
+make install AGENT="$AGENT"
 
 echo ""
 echo "  ${DIM}Install location: $ASHLEY_DIR${NC}"

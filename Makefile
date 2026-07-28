@@ -7,9 +7,8 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install: ensure-uv generate ## Generate skills, install to ~/.claude/skills/, and symlink CLI
-	@bash scripts/install_claude.sh
-	@uv run python -m ashley.install
+install: ensure-uv generate ## Generate skills, install them for a coding agent, and symlink CLI (AGENT=claude|codex|both)
+	@uv run python -m ashley.install $(if $(AGENT),--agent $(AGENT),)
 	@mkdir -p "$(HOME)/.local/bin"
 	@ln -sf "$(CURDIR)/bin/ash" "$(HOME)/.local/bin/ash"
 	@echo "Installed: ash → $(HOME)/.local/bin/ash"
@@ -18,7 +17,7 @@ ensure-uv: ## Ensure uv is installed and deps synced
 	@bash scripts/install_uv.sh
 	@uv sync
 
-uninstall: ## Remove skills from ~/.claude/skills/ and CLI from ~/.local/bin
+uninstall: ## Remove skills from every agent's skills dir and CLI from ~/.local/bin
 	@uv run python -m ashley.install uninstall
 	@rm -f "$(HOME)/.local/bin/ash"
 	@echo "Removed: $(HOME)/.local/bin/ash"

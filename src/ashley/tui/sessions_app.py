@@ -1,4 +1,4 @@
-"""Ashley Sessions TUI — Manage detached Claude Code sessions."""
+"""Ashley Sessions TUI — Manage detached coding-agent sessions."""
 
 import subprocess
 
@@ -24,7 +24,7 @@ class SessionsApp(App):
     """TUI for managing detached Ashley sessions."""
 
     TITLE = "Ashley Sessions"
-    SUB_TITLE = "Manage detached Claude Code sessions"
+    SUB_TITLE = "Manage detached coding-agent sessions"
 
     CSS = (
         BASE_CSS

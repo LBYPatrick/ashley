@@ -1,4 +1,4 @@
-"""Ashley — Interactive skill set framework for Claude Code."""
+"""Ashley — Interactive skill set framework for coding agents."""
 
 from pathlib import Path
 

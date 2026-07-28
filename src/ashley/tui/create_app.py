@@ -162,7 +162,7 @@ class CreateScreen(Screen):
             yield Input(placeholder="(leave empty for standalone)", id="skill-extends")
 
             yield Label("Preamble", classes="form-label")
-            yield Static("System prompt intro for Claude", classes="form-help")
+            yield Static("System prompt intro for the agent", classes="form-help")
             yield TextArea(id="skill-preamble")
 
             yield Label("", id="preview-area")

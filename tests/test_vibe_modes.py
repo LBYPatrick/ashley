@@ -10,8 +10,9 @@ from ashley.tui.app import AshleyApp, _mode_flags
 
 
 def _isolated_theme(tmp: Path):
-    """Point theme storage at a temp dir and pre-configure a theme."""
+    """Point theme/prefs storage at a temp dir and pre-configure a theme."""
     cfg.THEME_PATH = tmp / "theme.json"
+    cfg.PREFS_PATH = tmp / "prefs.json"
     cfg.CONFIG_DIR = tmp
     appmod.theme_configured = cfg.theme_configured
     appmod.load_theme = cfg.load_theme
