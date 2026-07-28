@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `-c` / `--claude` and `-o` / `--codex` to `ash run` and `ash pipe` to override the agent for a single invocation
 - Map every run mode onto Codex's equivalent flags: DSP → `--dangerously-bypass-approvals-and-sandbox`, AUTO → `--sandbox workspace-write --ask-for-approval never`, AFK → DSP plus the autonomous-operation instructions
 - Add `scripts/install_codex.sh` for native Codex CLI installation
+- Track the coding agent per invocation in the history database and break usage down by agent in `ash history stats` and the TUI Stats screen, with `--agent` to filter
 
 ### Changed
 
@@ -22,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Record the coding agent on each detached session and show it in the `ash run --detached` summary
 - `ash install` now reinstalls for whichever agents already have skills instead of re-asking, so `ash update` stays non-interactive
 - Honour `CLAUDE_CONFIG_DIR` and `CODEX_HOME` when locating an agent's skills directory
+- Migrate existing history databases in place on the next run, adding the `agent_type` column and attributing all prior invocations to Claude Code
+- Break ties in the analytics group-by deterministically so bar ordering no longer varies between runs
 
 ## [0.2.0] - 2026-07-09
 

@@ -121,6 +121,7 @@ def run_pipeline(
             question=skill_question,
             cwd=cwd,
             permission=permission_mode,
+            agent_type=spec.key,
         )
 
         # Run skill

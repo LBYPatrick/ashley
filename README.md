@@ -187,7 +187,7 @@ Run `ash` to launch the hub:
 | **History** | Browse invocation log | `ash history browse` |
 | **Generate** | Rebuild skill files | `ash generate` |
 | **Install** | Deploy skills to your agent's skills dir | `ash install` |
-| **Stats** | Usage analytics (top skills) | `ash history stats` |
+| **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
@@ -294,9 +294,15 @@ Every `ash run` is logged to SQLite.
 ash history show                 # Recent invocations
 ash history show --skill feat    # Filter by skill
 ash history browse               # Interactive browser (TUI)
+ash history stats                # Usage by skill and by agent
+ash history stats --agent codex  # Restrict analytics to one agent
 ash history prune 30             # Delete entries older than 30 days
 ash history info                 # DB location and stats
 ```
+
+Each invocation records which coding agent ran it. Existing databases are
+migrated automatically on the next run — invocations logged before multi-agent
+support are counted as Claude Code.
 
 | Platform | Database location |
 |----------|-------------------|
@@ -323,6 +329,7 @@ ash logs [-f] <id>               View/follow session logs
 ash kill <id|all>                Kill sessions
 ash history show                 Show invocation history
 ash history browse               Interactive history browser
+ash history stats [--agent X]    Usage analytics by skill and agent
 ash history prune <days>         Delete old entries
 ash history clear                Delete all history
 ash history info                 Database stats

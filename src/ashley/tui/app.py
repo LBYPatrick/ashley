@@ -491,6 +491,7 @@ class VibeScreen(Screen):
             question=question,
             cwd=os.getcwd(),
             permission=permission_mode,
+            agent_type=spec.key,
         )
 
         import subprocess
@@ -974,6 +975,7 @@ class HistoryScreen(Screen):
             f"[bold]Invocation #{inv.id}[/bold]\n\n"
             f"Time:       {escape(inv.time_display)} UTC\n"
             f"Skill:      [bold]{escape(inv.skill)}[/bold]\n"
+            f"Agent:      {escape(inv.agent_label)}\n"
             f"Question:   {escape(inv.question or '(none)')}\n"
             f"Directory:  {escape(inv.cwd)}\n"
             f"Permission: {escape(inv.permission)}\n"
@@ -1112,6 +1114,20 @@ class StatsScreen(Screen):
         else:
             lines.append("")
             lines.append("[$text-muted]No invocations recorded yet.[/]")
+
+        if data["by_agent"]:
+            lines.append("")
+            lines.append("[b $accent-lighten-1]By agent[/]")
+            agents = data["by_agent"]
+            peak = max(cnt for _, cnt in agents)
+            shades = _accent_gradient(self.app, len(agents))
+            for (key, cnt), shade in zip(agents, shades):
+                width = max(1, round(cnt / peak * 24)) if peak else 1
+                bar = "█" * width
+                label = get_agent(key).label
+                lines.append(
+                    f"  [b]{label:<14}[/] [{shade}]{bar}[/] [$text-muted]{cnt}[/]"
+                )
 
         self.query_one("#stats-body", Static).update("\n".join(lines))
 

@@ -173,6 +173,7 @@ class HistoryApp(App):
             f"[bold]Invocation #{inv.id}[/bold]\n\n"
             f"Time:       {escape(inv.time_display)} UTC\n"
             f"Skill:      [bold]{escape(inv.skill)}[/bold]\n"
+            f"Agent:      {escape(inv.agent_label)}\n"
             f"Question:   {escape(inv.question or '(none)')}\n"
             f"Directory:  {escape(inv.cwd)}\n"
             f"Permission: {escape(inv.permission)}\n"

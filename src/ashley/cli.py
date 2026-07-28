@@ -334,6 +334,7 @@ def run(
         permission=permission_mode,
         detached=detached,
         session_id=session.id,
+        agent_type=agent.key,
     )
 
     if detached:
@@ -710,26 +711,42 @@ def history_clear():
 
 @history.command("stats")
 @click.option("--skill", default=None, help="Filter stats by skill name")
-def history_stats(skill):
+@click.option(
+    "--agent",
+    "agent_type",
+    default=None,
+    type=click.Choice(AGENT_KEYS),
+    help="Filter stats by coding agent",
+)
+def history_stats(skill, agent_type):
     """Show skill usage analytics."""
     from ashley.history import stats as hstats
 
-    data = hstats(skill=skill)
+    data = hstats(skill=skill, agent_type=agent_type)
 
     click.echo()
-    click.echo(f"  \033[1mAshley Analytics\033[0m")
+    click.echo("  \033[1mAshley Analytics\033[0m")
     if skill:
         click.echo(f"  Skill: {skill}")
+    if agent_type:
+        click.echo(f"  Agent: {get_agent(agent_type).label}")
     click.echo(f"  {'─' * 40}")
     click.echo()
     click.echo(f"  Total invocations:  {data['total']}")
 
     if data["top_skills"]:
         click.echo()
-        click.echo(f"  \033[1mTop Skills\033[0m")
+        click.echo("  \033[1mTop Skills\033[0m")
         for name, cnt in data["top_skills"]:
             bar = "█" * min(cnt, 30)
             click.echo(f"    {name:<12} {cnt:>4}  {bar}")
+
+    if data["by_agent"]:
+        click.echo()
+        click.echo("  \033[1mBy Agent\033[0m")
+        for key, cnt in data["by_agent"]:
+            bar = "█" * min(cnt, 30)
+            click.echo(f"    {get_agent(key).label:<14} {cnt:>4}  {bar}")
 
     click.echo()
 

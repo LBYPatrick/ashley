@@ -1,13 +1,15 @@
 """Ashley Invocation History.
 
 Tracks every skill invocation with timestamp, working directory, skill
-name, question, permission mode, and whether it was detached. Stored in
-a SQLite database at the platform-appropriate user data directory:
+name, question, permission mode, coding agent, and whether it was
+detached. Stored in a SQLite database at the platform-appropriate user
+data directory:
 
   - macOS:  ~/Library/Application Support/ashley/history.db
   - Linux:  ~/.local/share/ashley/history.db
 
-The database is created automatically on first use.
+The database is created automatically on first use, and older database
+files are migrated in place on the next connection.
 """
 
 import platform
@@ -15,6 +17,8 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+from ashley.agents import DEFAULT_AGENT
 
 # XDG_DATA_HOME on Linux, ~/Library/Application Support on macOS
 _system = platform.system()
@@ -33,7 +37,7 @@ else:
 
 DB_PATH = _data_dir / "history.db"
 
-_SCHEMA = """
+_SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS invocations (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp   TEXT    NOT NULL,
@@ -45,18 +49,22 @@ CREATE TABLE IF NOT EXISTS invocations (
     session_id  TEXT    NOT NULL DEFAULT '',
     exit_code   INTEGER DEFAULT NULL,
     duration_s  REAL    DEFAULT NULL,
-    outcome     TEXT    NOT NULL DEFAULT 'unknown'
+    outcome     TEXT    NOT NULL DEFAULT 'unknown',
+    agent_type  TEXT    NOT NULL DEFAULT '{DEFAULT_AGENT}'
 );
 CREATE INDEX IF NOT EXISTS idx_invocations_timestamp ON invocations(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_invocations_skill ON invocations(skill);
 """
 
-# Migration: add new columns to existing databases
-_MIGRATIONS = [
-    "ALTER TABLE invocations ADD COLUMN exit_code INTEGER DEFAULT NULL",
-    "ALTER TABLE invocations ADD COLUMN duration_s REAL DEFAULT NULL",
-    "ALTER TABLE invocations ADD COLUMN outcome TEXT NOT NULL DEFAULT 'unknown'",
-]
+# Columns added after the original schema, mapped to their ALTER TABLE
+# definition. Existing rows take the column default, so history recorded
+# before multi-agent support is attributed to Claude Code.
+_ADDED_COLUMNS: dict[str, str] = {
+    "exit_code": "INTEGER DEFAULT NULL",
+    "duration_s": "REAL DEFAULT NULL",
+    "outcome": "TEXT NOT NULL DEFAULT 'unknown'",
+    "agent_type": f"TEXT NOT NULL DEFAULT '{DEFAULT_AGENT}'",
+}
 
 
 @dataclass
@@ -72,6 +80,14 @@ class Invocation:
     exit_code: int | None = None
     duration_s: float | None = None
     outcome: str = "unknown"  # unknown | success | failure | cancelled
+    agent_type: str = DEFAULT_AGENT  # claude | codex
+
+    @property
+    def agent_label(self) -> str:
+        """Human-readable name of the coding agent that ran this skill."""
+        from ashley.agents import get_agent
+
+        return get_agent(self.agent_type).label
 
     @property
     def time_display(self) -> str:
@@ -114,18 +130,37 @@ class Invocation:
         }.get(self.outcome, "?")
 
 
+def migrate(conn: sqlite3.Connection) -> list[str]:
+    """Bring an older database file up to the current schema.
+
+    Adds any column missing from ``invocations``. SQLite backfills each
+    existing row with the column's default, so invocations recorded before
+    a column existed get a sensible value rather than NULL — in particular
+    pre-multi-agent history is attributed to Claude Code.
+
+    Args:
+        conn: An open connection to the history database.
+
+    Returns:
+        The names of the columns that were added, in schema order.
+    """
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(invocations)")}
+    added = [name for name in _ADDED_COLUMNS if name not in existing]
+    for name in added:
+        conn.execute(
+            f"ALTER TABLE invocations ADD COLUMN {name} {_ADDED_COLUMNS[name]}"
+        )
+    if added:
+        conn.commit()
+    return added
+
+
 def _get_conn() -> sqlite3.Connection:
-    """Get a database connection, creating the DB and tables if needed."""
+    """Get a database connection, creating or migrating the DB as needed."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH))
     conn.executescript(_SCHEMA)
-    # Run migrations (ignore errors for columns that already exist)
-    for migration in _MIGRATIONS:
-        try:
-            conn.execute(migration)
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already exists
+    migrate(conn)
     return conn
 
 
@@ -136,14 +171,17 @@ def record(
     permission: str = "default",
     detached: bool = False,
     session_id: str = "",
+    agent_type: str = DEFAULT_AGENT,
 ) -> int:
     """Record an invocation. Returns the row ID."""
     conn = _get_conn()
     try:
         cur = conn.execute(
             """
-            INSERT INTO invocations (timestamp, skill, question, cwd, permission, detached, session_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO invocations
+                (timestamp, skill, question, cwd, permission, detached,
+                 session_id, agent_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 datetime.now(timezone.utc).isoformat(),
@@ -153,6 +191,7 @@ def record(
                 permission,
                 1 if detached else 0,
                 session_id,
+                agent_type,
             ),
         )
         conn.commit()
@@ -166,10 +205,12 @@ def query(
     limit: int = 50,
     offset: int = 0,
     search: str | None = None,
+    agent_type: str | None = None,
 ) -> list[Invocation]:
     """Query invocations, newest first.
 
-    Optional filters: skill name, full-text search in question/cwd.
+    Optional filters: skill name, coding agent, full-text search in
+    question/cwd.
     """
     conn = _get_conn()
     try:
@@ -179,6 +220,9 @@ def query(
         if skill:
             conditions.append("skill = ?")
             params.append(skill)
+        if agent_type:
+            conditions.append("agent_type = ?")
+            params.append(agent_type)
         if search:
             conditions.append("(question LIKE ? OR cwd LIKE ? OR skill LIKE ?)")
             pattern = f"%{search}%"
@@ -189,7 +233,7 @@ def query(
         rows = conn.execute(
             f"""
             SELECT id, timestamp, skill, question, cwd, permission, detached,
-                   session_id, exit_code, duration_s, outcome
+                   session_id, exit_code, duration_s, outcome, agent_type
             FROM invocations
             {where}
             ORDER BY timestamp DESC
@@ -211,6 +255,7 @@ def query(
                 exit_code=r[8],
                 duration_s=r[9],
                 outcome=r[10] or "unknown",
+                agent_type=r[11] or DEFAULT_AGENT,
             )
             for r in rows
         ]
@@ -292,18 +337,29 @@ def record_outcome(
         conn.close()
 
 
-def stats(skill: str | None = None) -> dict:
+def stats(skill: str | None = None, agent_type: str | None = None) -> dict:
     """Get aggregated usage statistics for skill invocations.
 
-    Returns a dict with the total invocation count and the most-used skills.
+    Args:
+        skill: Restrict the figures to a single skill.
+        agent_type: Restrict the figures to a single coding agent.
+
+    Returns:
+        A dict with the total invocation count, the most-used skills, and
+        the per-agent breakdown. Invocations recorded before multi-agent
+        support are counted as Claude Code.
     """
     conn = _get_conn()
     try:
-        where = ""
+        conditions = []
         params: list = []
         if skill:
-            where = "WHERE skill = ?"
+            conditions.append("skill = ?")
             params.append(skill)
+        if agent_type:
+            conditions.append("agent_type = ?")
+            params.append(agent_type)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
         # Overall counts
         row = conn.execute(
@@ -317,16 +373,29 @@ def stats(skill: str | None = None) -> dict:
             SELECT skill, COUNT(*) as cnt FROM invocations
             {where}
             GROUP BY skill
-            ORDER BY cnt DESC
+            ORDER BY cnt DESC, skill ASC
             LIMIT 10
             """,
             params,
         ).fetchall()
         top_skills = [(r[0], r[1]) for r in skill_rows]
 
+        # Usage per coding agent
+        agent_rows = conn.execute(
+            f"""
+            SELECT agent_type, COUNT(*) as cnt FROM invocations
+            {where}
+            GROUP BY agent_type
+            ORDER BY cnt DESC, agent_type ASC
+            """,
+            params,
+        ).fetchall()
+        by_agent = [(r[0] or DEFAULT_AGENT, r[1]) for r in agent_rows]
+
         return {
             "total": total,
             "top_skills": top_skills,
+            "by_agent": by_agent,
         }
     finally:
         conn.close()
