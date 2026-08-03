@@ -11,6 +11,7 @@ import ashley
 from ashley.agents import (
     AGENT_KEYS,
     get_agent,
+    is_agent,
     permission_args,
     select_agent,
     skill_trigger,
@@ -596,11 +597,16 @@ def agent(name):
     from ashley.config import load_agent, save_agent
 
     if name is None:
+        from ashley.upgrade import detect
+
         current = get_agent(load_agent())
+        status = detect(current)
         click.echo(f"  Default agent:  {current.label} ({current.key})")
+        click.echo(f"  Version:        {status.version or '—'} ({status.source_label})")
         click.echo(f"  Skills dir:     {skills_dir(current)}")
         click.echo(f"  Available:      {', '.join(AGENT_KEYS)}")
         click.echo("\n  Change it with: ash agent <name>")
+        click.echo("  Upgrade it with: ash upgrade")
         return
 
     key = name.strip().lower()
@@ -624,8 +630,57 @@ def agent(name):
 @main.command()
 @click.option("--branch", default="main", help="Branch to pull from")
 def update(branch):
-    """Pull latest, re-generate, and re-install skills."""
-    do_update(branch)
+    """Pull latest, re-generate and re-install skills, upgrade the agent CLIs.
+
+    Set SKIP_TOOL=true (or 1/yes) to skip the agent-CLI upgrade.
+    """
+    from ashley.update import skip_tool_upgrade
+
+    do_update(branch, upgrade_tools=not skip_tool_upgrade())
+
+
+@main.command()
+@click.argument("names", nargs=-1)
+@click.option("--all", "all_agents", is_flag=True, help="Cover every supported agent")
+@click.option(
+    "--check",
+    is_flag=True,
+    help="Only report what is installed, upgrade nothing",
+)
+def upgrade(names, all_agents, check):
+    """Detect and upgrade the coding-agent CLIs (claude, codex).
+
+    Homebrew installs are upgraded with brew; anything else — including a
+    missing agent — is installed with the vendor's native installer.
+    Without arguments this covers the default agent only.
+    """
+    from ashley.config import load_agent
+    from ashley.upgrade import describe, detect, upgrade_agents
+
+    unknown = [n for n in names if not is_agent(n)]
+    if unknown:
+        click.echo(
+            f"Error: unknown agent(s): {', '.join(unknown)}. "
+            f"Choose from: {', '.join(AGENT_KEYS)}",
+            err=True,
+        )
+        sys.exit(1)
+
+    if all_agents:
+        selected = list(AGENT_KEYS)
+    elif names:
+        selected = list(dict.fromkeys(n.strip().lower() for n in names))
+    else:
+        selected = [get_agent(load_agent()).key]
+
+    if check:
+        click.echo()
+        for key in selected:
+            click.echo(describe(detect(key)))
+        click.echo()
+        return
+
+    sys.exit(1 if upgrade_agents(selected) else 0)
 
 
 @main.command()

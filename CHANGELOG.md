@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-03
+
 ### Added
 
 - Support [OpenAI Codex](https://developers.openai.com/codex) alongside Claude Code as a coding-agent backend; the same generated skills install unchanged for either agent (`~/.claude/skills` and `~/.codex/skills` both read `SKILL.md`)
@@ -16,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Map every run mode onto Codex's equivalent flags: DSP → `--dangerously-bypass-approvals-and-sandbox`, AUTO → `--sandbox workspace-write --ask-for-approval never`, AFK → DSP plus the autonomous-operation instructions
 - Add `scripts/install_codex.sh` for native Codex CLI installation
 - Track the coding agent per invocation in the history database and break usage down by agent in `ash history stats` and the TUI Stats screen, with `--agent` to filter
+- Add `ash upgrade` to detect and update the coding-agent CLIs: Homebrew installs are upgraded with `brew upgrade` (or `brew upgrade --cask`), and anything else — a native install, one from a Node package manager, or a missing agent — goes through the vendor's native installer; npm and pnpm are never invoked
+- Detect an agent's install source by resolving its binary out of Homebrew's `Cellar`/`Caskroom`, so no network call or package-name guessing is needed
+- Add `--all` and `--check` to `ash upgrade`, plus a `make upgrade` target (`AGENT=claude|codex`)
+- Accept `--force` / `--upgrade` in `scripts/install_claude.sh` and `scripts/install_codex.sh` so the native installers reinstall in place instead of exiting early
+- Upgrade the agent CLIs as the final step of `ash update`, covering whichever agents have Ashley skills linked; set `SKIP_TOOL=true` (or `1`/`yes`) to skip it
 
 ### Changed
 
@@ -25,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Honour `CLAUDE_CONFIG_DIR` and `CODEX_HOME` when locating an agent's skills directory
 - Migrate existing history databases in place on the next run, adding the `agent_type` column and attributing all prior invocations to Claude Code
 - Break ties in the analytics group-by deterministically so bar ordering no longer varies between runs
+- Show the installed version and install source in `ash agent`
+- Report the version delta after an agent upgrade (`now at X (was Y)`), or that it was already up to date
+
+### Fixed
+
+- Keep `ash update` running to completion when the generated skills are unchanged; it previously returned early and skipped the remaining steps
 
 ## [0.2.0] - 2026-07-09
 

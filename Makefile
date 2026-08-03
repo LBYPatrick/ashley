@@ -1,4 +1,4 @@
-.PHONY: help ensure-uv generate clean list install uninstall format tidy commit update test
+.PHONY: help ensure-uv generate clean list install uninstall format tidy commit update upgrade test
 
 SHELL := /bin/bash
 VERSION := $(shell cat VERSION 2>/dev/null | tr -d '\n' || echo "0.1.0")
@@ -36,8 +36,11 @@ clean: ## Remove generated files
 	@rm -rf generated/
 	@echo "Generated files removed."
 
-update: ## Pull latest, re-generate, and re-install skills if changed (BRANCH=main)
+update: ## Pull latest, re-install changed skills, upgrade agent CLIs (BRANCH=main, SKIP_TOOL=1 to skip CLIs)
 	@uv run python -m ashley.update $(or $(BRANCH),main)
+
+upgrade: ## Detect and upgrade the coding-agent CLIs (AGENT=claude|codex, default: all)
+	@uv run ash upgrade $(if $(AGENT),$(AGENT),--all)
 
 test: ## Run tests
 	@uv run pytest tests/ -v

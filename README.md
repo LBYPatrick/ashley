@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-≥3.13-3776AB?logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License" /></a>
 </p>
 
@@ -212,11 +212,41 @@ Claude Code triggers them as `/a-feat`, Codex as `$a-feat`.
 ash install --codex        # install skills for Codex
 ash install --both         # install for both agents
 
-ash agent                  # show the current default
+ash agent                  # show the current default, its version and install source
 ash agent codex            # change the default
 
 ash run -o feat "..."      # override for one run (Codex)
 ash run -c feat "..."      # override for one run (Claude Code)
+```
+
+### Keeping the agent CLIs up to date
+
+Ashley detects how each agent CLI was installed and upgrades it the same way:
+
+```bash
+ash upgrade --check --all  # report version + install source, change nothing
+ash upgrade                # upgrade the default agent
+ash upgrade codex          # upgrade a specific agent
+ash upgrade --all          # upgrade both
+```
+
+| Detected install | Upgrade path |
+|------------------|--------------|
+| Homebrew formula | `brew upgrade <formula>` |
+| Homebrew cask | `brew upgrade --cask <cask>` |
+| Anything else (native, npm, …) | the vendor's native installer |
+| Not installed | the vendor's native installer |
+
+npm and pnpm are never invoked — an agent installed with a Node package
+manager is migrated onto the native installer instead.
+
+`ash update` runs this upgrade as its last step, covering whichever agents have
+Ashley skills linked. Skip it with `SKIP_TOOL`:
+
+```bash
+ash update                 # update Ashley, then upgrade the agent CLIs
+SKIP_TOOL=1 ash update     # update Ashley only (also: true / yes)
+SKIP_TOOL=1 make update
 ```
 
 The default is saved to `~/.ashley/prefs.json` and can also be changed from the
@@ -334,9 +364,10 @@ ash history prune <days>         Delete old entries
 ash history clear                Delete all history
 ash history info                 Database stats
 ash agent [name]                 Show or set the default coding agent
+ash upgrade [names] [--all]      Detect + upgrade the agent CLIs (--check to report only)
 ash install [--claude|--codex]   Generate + install skills
 ash uninstall                    Remove skills
-ash update [--branch NAME]       Pull latest + reinstall
+ash update [--branch NAME]       Pull latest + reinstall + upgrade agent CLIs
 ash --version                    Print version
 ```
 
@@ -390,7 +421,8 @@ make format         # Run ruff formatter
 | `make format` | Run ruff formatter |
 | `make test` | Run pytest |
 | `make clean` | Remove generated files |
-| `make update` | Pull latest + reinstall |
+| `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
+| `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=claude\|codex`) |
 
 ---
 
