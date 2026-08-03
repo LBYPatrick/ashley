@@ -234,8 +234,12 @@ ash upgrade --all          # upgrade both
 |------------------|--------------|
 | Homebrew formula | `brew upgrade <formula>` |
 | Homebrew cask | `brew upgrade --cask <cask>` |
-| Anything else (native, npm, …) | the vendor's native installer |
+| Anything else, already installed | the CLI's own `update` subcommand, falling back to the native installer |
 | Not installed | the vendor's native installer |
+
+Every path checks for a new version before downloading anything, so re-running
+`ash upgrade` on an up-to-date agent costs a version check rather than a full
+reinstall.
 
 npm and pnpm are never invoked — an agent installed with a Node package
 manager is migrated onto the native installer instead.

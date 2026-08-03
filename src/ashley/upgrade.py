@@ -164,19 +164,39 @@ def detect(agent: Agent | str | None) -> AgentStatus:
     return AgentStatus(agent=spec, source=NATIVE, path=path, version=version)
 
 
-def upgrade_command(status: AgentStatus) -> list[str]:
-    """Build the command that installs or upgrades the agent in place.
+def native_install_command(spec: Agent) -> list[str]:
+    """Build the vendor's native install command for *spec*.
 
-    Homebrew installs are upgraded with ``brew``. Everything else — a
-    native install, an install from a Node package manager, or nothing at
-    all — goes through the vendor's native installer, which upgrades in
-    place and never involves npm or pnpm.
+    This installs the latest version unconditionally, so it is only ever
+    the last resort: it is how a missing agent is bootstrapped and how an
+    agent whose own updater refuses (an npm install, say) is migrated
+    onto the native distribution.
+    """
+    script = PROJECT_ROOT / "scripts" / spec.install_script
+    return ["bash", str(script), "--force"]
+
+
+def upgrade_plan(status: AgentStatus) -> list[list[str]]:
+    """Build the commands to try, in order, until one succeeds.
+
+    Homebrew installs are upgraded with ``brew``, which already skips the
+    work when the package is current. An installed agent is otherwise
+    asked to update itself — both CLIs ship an ``update`` subcommand that
+    checks for a new version before downloading anything, so re-running
+    ``ash upgrade`` on an up-to-date agent costs one version check rather
+    than a full reinstall. The native installer is the fallback, and the
+    only option for an agent that is not installed at all.
+
+    npm and pnpm never appear in any of these commands.
     """
     if status.source == BREW and status.brew_package:
         cask = ["--cask"] if status.brew_cask else []
-        return ["brew", "upgrade", *cask, status.brew_package]
-    script = PROJECT_ROOT / "scripts" / status.agent.install_script
-    return ["bash", str(script), "--force"]
+        return [["brew", "upgrade", *cask, status.brew_package]]
+
+    native = native_install_command(status.agent)
+    if status.installed and status.agent.self_update_args and status.path:
+        return [[str(status.path), *status.agent.self_update_args], native]
+    return [native]
 
 
 def describe(status: AgentStatus) -> str:
@@ -202,14 +222,18 @@ def upgrade(agent: Agent | str | None) -> bool:
 
     print()
     print(describe(before))
-    command = upgrade_command(before)
-    action = "Installing" if not before.installed else "Upgrading"
-    print(f"  {CYAN}▶{NC} {action} via: {' '.join(command)}")
-    print()
+    action = "Upgrading" if before.installed else "Installing"
 
-    result = subprocess.run(command, check=False)
-    if result.returncode != 0:
-        print(f"  {RED}✗{NC} {spec.label} upgrade failed (exit {result.returncode}).")
+    for attempt, command in enumerate(upgrade_plan(before)):
+        if attempt:
+            print()
+            print(f"  {YELLOW}!{NC} Falling back to the native installer.")
+        print(f"  {CYAN}▶{NC} {action} via: {' '.join(command)}")
+        print()
+        if subprocess.run(command, check=False).returncode == 0:
+            break
+    else:
+        print(f"  {RED}✗{NC} {spec.label} upgrade failed.")
         if before.source != BREW:
             print(f"    Install it manually: {spec.docs_url}")
         return False

@@ -33,6 +33,9 @@ class Agent:
             directory, if it defines one.
         home_dir: Default config directory name under ``$HOME``.
         install_script: Bootstrap script under ``scripts/``.
+        self_update_args: Subcommand that makes the CLI update itself,
+            checking whether a new version exists before downloading
+            anything. Empty when the agent has no such subcommand.
         docs_url: Where to send the user when auto-install is unavailable.
         skill_trigger: Prefix that names an installed skill in a prompt.
         system_prompt_flag: Flag that appends extra system instructions, or
@@ -48,6 +51,7 @@ class Agent:
     home_env: str
     home_dir: str
     install_script: str
+    self_update_args: tuple[str, ...]
     docs_url: str
     skill_trigger: str
     system_prompt_flag: str | None
@@ -62,6 +66,7 @@ CLAUDE = Agent(
     home_env="CLAUDE_CONFIG_DIR",
     home_dir=".claude",
     install_script="install_claude.sh",
+    self_update_args=("update",),
     docs_url="https://claude.ai/download",
     skill_trigger="/",
     system_prompt_flag="--append-system-prompt",
@@ -76,6 +81,7 @@ CODEX = Agent(
     home_env="CODEX_HOME",
     home_dir=".codex",
     install_script="install_codex.sh",
+    self_update_args=("update",),
     docs_url="https://developers.openai.com/codex",
     skill_trigger="$",
     # Codex has no separate system-prompt flag; instructions are prepended

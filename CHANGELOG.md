@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Map every run mode onto Codex's equivalent flags: DSP → `--dangerously-bypass-approvals-and-sandbox`, AUTO → `--sandbox workspace-write --ask-for-approval never`, AFK → DSP plus the autonomous-operation instructions
 - Add `scripts/install_codex.sh` for native Codex CLI installation
 - Track the coding agent per invocation in the history database and break usage down by agent in `ash history stats` and the TUI Stats screen, with `--agent` to filter
-- Add `ash upgrade` to detect and update the coding-agent CLIs: Homebrew installs are upgraded with `brew upgrade` (or `brew upgrade --cask`), and anything else — a native install, one from a Node package manager, or a missing agent — goes through the vendor's native installer; npm and pnpm are never invoked
+- Add `ash upgrade` to detect and update the coding-agent CLIs: Homebrew installs are upgraded with `brew upgrade` (or `brew upgrade --cask`), an installed agent is asked to update itself (`claude update` / `codex update`), and a missing agent — or one whose own updater refuses, as an npm install would — falls back to the vendor's native installer; npm and pnpm are never invoked
+- Check for a new version before downloading anything, so re-running `ash upgrade` or `ash update` on an up-to-date agent costs a version check rather than a full reinstall
 - Detect an agent's install source by resolving its binary out of Homebrew's `Cellar`/`Caskroom`, so no network call or package-name guessing is needed
 - Add `--all` and `--check` to `ash upgrade`, plus a `make upgrade` target (`AGENT=claude|codex`)
 - Accept `--force` / `--upgrade` in `scripts/install_claude.sh` and `scripts/install_codex.sh` so the native installers reinstall in place instead of exiting early

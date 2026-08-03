@@ -1,5 +1,6 @@
 """Tests for coding-agent CLI detection and upgrade routing."""
 
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +14,7 @@ from ashley.upgrade import (
     AgentStatus,
     brew_package_from_path,
     detect,
-    upgrade_command,
+    upgrade_plan,
 )
 
 BREW_PREFIX = Path("/opt/homebrew")
@@ -128,42 +129,65 @@ def _status(source: str, package: str | None = None, cask: bool = False):
     )
 
 
+def _native(spec):
+    return ["bash", str(PROJECT_ROOT / "scripts" / spec.install_script), "--force"]
+
+
 def test_brew_formula_upgrades_with_brew():
-    command = upgrade_command(_status(BREW, "codex"))
-    assert command == ["brew", "upgrade", "codex"]
+    assert upgrade_plan(_status(BREW, "codex")) == [["brew", "upgrade", "codex"]]
 
 
 def test_brew_cask_upgrades_with_the_cask_flag():
-    command = upgrade_command(_status(BREW, "claude-code", cask=True))
-    assert command == ["brew", "upgrade", "--cask", "claude-code"]
+    assert upgrade_plan(_status(BREW, "claude-code", cask=True)) == [
+        ["brew", "upgrade", "--cask", "claude-code"]
+    ]
 
 
-def test_native_install_upgrades_through_the_native_installer():
-    command = upgrade_command(_status(NATIVE))
-    script = PROJECT_ROOT / "scripts" / CLAUDE.install_script
-    assert command == ["bash", str(script), "--force"]
+def test_brew_needs_no_fallback():
+    """brew already skips the work when the package is current."""
+    assert len(upgrade_plan(_status(BREW, "codex"))) == 1
+
+
+def test_installed_agent_asks_the_cli_to_update_itself_first():
+    """The self-update checks for a new version before downloading."""
+    plan = upgrade_plan(_status(NATIVE))
+    assert plan[0] == ["/somewhere/claude", "update"]
+
+
+def test_installed_agent_falls_back_to_the_native_installer():
+    """Covers an npm install whose own updater refuses."""
+    plan = upgrade_plan(_status(NATIVE))
+    assert plan[1] == _native(CLAUDE)
+    assert len(plan) == 2
 
 
 def test_missing_agent_installs_through_the_native_installer():
-    command = upgrade_command(
+    """There is no binary to self-update, so the installer is the only path."""
+    plan = upgrade_plan(
         AgentStatus(agent=CODEX, source=MISSING, path=None, version=None)
     )
-    script = PROJECT_ROOT / "scripts" / CODEX.install_script
-    assert command == ["bash", str(script), "--force"]
+    assert plan == [_native(CODEX)]
+
+
+def test_agent_without_a_self_update_uses_the_installer_only():
+    spec = replace(CODEX, self_update_args=())
+    status = AgentStatus(
+        agent=spec, source=NATIVE, path=Path("/somewhere/codex"), version="1.0.0"
+    )
+    assert upgrade_plan(status) == [_native(spec)]
 
 
 def test_no_upgrade_path_ever_uses_a_node_package_manager():
     """Node package managers are deliberately never invoked."""
-    commands = [
-        upgrade_command(_status(BREW, "claude-code", cask=True)),
-        upgrade_command(_status(BREW, "codex")),
-        upgrade_command(_status(NATIVE)),
-        upgrade_command(_status(MISSING)),
+    plans = [
+        upgrade_plan(_status(BREW, "claude-code", cask=True)),
+        upgrade_plan(_status(BREW, "codex")),
+        upgrade_plan(_status(NATIVE)),
+        upgrade_plan(_status(MISSING)),
     ]
-    flattened = " ".join(part for command in commands for part in command)
-    assert "npm" not in flattened
-    assert "pnpm" not in flattened
-    assert "yarn" not in flattened
+    flattened = " ".join(part for plan in plans for command in plan for part in command)
+    for manager in ("npm", "pnpm", "yarn"):
+        assert manager not in flattened
 
 
 def test_native_install_script_exists_for_every_agent():
