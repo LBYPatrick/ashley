@@ -81,7 +81,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		case "Home", "Skills", "Sessions", "History", "Sync", "Create", "Analytics", "Theme":
 			screens := map[string]string{"Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Analytics": "stats", "Theme": "settings"}
 			m.open(screens[choice])
-			if choice == "Sync" && (m.job == nil || m.job.kind != "sync") {
+			if choice == "Sync" {
 				return m.startOperation("sync")
 			}
 		case "Maximize":

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -24,10 +25,17 @@ type Installer struct {
 	Home    string
 	Getenv  func(string) string
 	Catalog skills.Catalog
+	Log     io.Writer
 }
 
 // Result counts installed links and preserved conflicts.
 type Result struct{ Installed, Skipped, Removed int }
+
+func (i Installer) logf(format string, args ...any) {
+	if i.Log != nil {
+		fmt.Fprintf(i.Log, format+"\n", args...)
+	}
+}
 
 func (i Installer) generated() string { return filepath.Join(i.Home, ".ashley", "generated") }
 func (i Installer) directory(key string) string {
@@ -101,6 +109,7 @@ func (i Installer) Materialize() ([]string, error) {
 		}
 		current, err := os.ReadFile(destination)
 		if err == nil && digest(current) != manifest[relative] {
+			i.logf("Preserved local edit: %s", destination)
 			return nil
 		}
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -109,6 +118,7 @@ func (i Installer) Materialize() ([]string, error) {
 		if err := atomicMode(destination, content, mode); err != nil {
 			return err
 		}
+		i.logf("Generated: %s", destination)
 		manifest[relative] = digest(content)
 		return nil
 	}
@@ -265,11 +275,14 @@ func (i Installer) Install(keys []string) (Result, error) {
 	if err != nil {
 		return result, err
 	}
+	i.logf("1. Generate skills")
 	names, err := i.Materialize()
 	if err != nil {
 		return result, err
 	}
+	i.logf("2. Install skills")
 	for _, key := range keys {
+		i.logf("Agent: %s", agents.Get(key).Label)
 		directory := i.directory(key)
 		if err := os.MkdirAll(directory, 0755); err != nil {
 			return result, err
@@ -280,11 +293,13 @@ func (i Installer) Install(keys []string) (Result, error) {
 			info, err := os.Lstat(path)
 			if err == nil {
 				if info.Mode()&os.ModeSymlink == 0 || !i.owned(path) {
+					i.logf("Preserved custom path: %s", path)
 					result.Skipped++
 					continue
 				}
 				existing, _ := filepath.EvalSymlinks(path)
 				if existing == target {
+					i.logf("Verified link: %s -> %s", path, target)
 					result.Skipped++
 					continue
 				}
@@ -297,6 +312,7 @@ func (i Installer) Install(keys []string) (Result, error) {
 			if err := os.Symlink(target, path); err != nil {
 				return result, err
 			}
+			i.logf("Installed: %s -> %s", path, target)
 			result.Installed++
 		}
 	}

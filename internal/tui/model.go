@@ -496,9 +496,7 @@ func (m *Model) activate() tea.Cmd {
 		switch key {
 		case "sync":
 			m.open(key)
-			if m.job == nil || m.job.kind != "sync" {
-				return m.startOperation("sync")
-			}
+			return m.startOperation("sync")
 		default:
 			m.open(key)
 		}

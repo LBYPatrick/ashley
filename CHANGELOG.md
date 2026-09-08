@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Run generation and installation on every Sync activation, and retain the complete per-file and per-agent log with page and Home/End scrolling.
+
 - Expand Skills, Sessions, and History to the terminal width, adapt list columns, and align run-mode hints with the prompt field.
 
 - Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.

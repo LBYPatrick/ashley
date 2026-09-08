@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -29,17 +30,6 @@ type operationFinished struct {
 	elapsed time.Duration
 }
 
-// Retain bounded command output without handing the terminal away for quick work.
-type outputTail struct{ data []byte }
-
-func (b *outputTail) Write(p []byte) (int, error) {
-	n := len(p)
-	b.data = append(b.data, p...)
-	if len(b.data) > 128*1024 {
-		b.data = append([]byte(nil), b.data[len(b.data)-128*1024:]...)
-	}
-	return n, nil
-}
 func (m *Model) startOperation(kind string) tea.Cmd {
 	if m.job != nil && m.job.busy {
 		m.status = "A task is already running. Its result will stay available."
@@ -77,11 +67,11 @@ func (m *Model) startOperation(kind string) tea.Cmd {
 			if err == nil {
 				cmd := exec.CommandContext(ctx, executable, args...)
 				cmd.Env = append(os.Environ(), "HOME="+home)
-				var tail outputTail
-				cmd.Stdout = &tail
-				cmd.Stderr = &tail
+				var log bytes.Buffer
+				cmd.Stdout = &log
+				cmd.Stderr = &log
 				err = cmd.Run()
-				output = string(tail.data)
+				output = log.String()
 			}
 		}
 		return operationFinished{job, sessions.DisplayLog(output), err, time.Since(start)}
@@ -110,9 +100,17 @@ func (m *Model) operationKey(key string) tea.Cmd {
 		if m.screen == "sync" && (m.job == nil || !m.job.busy) {
 			return m.execute("install", "--agent", m.agent)
 		}
-	case "up", "pgup":
+	case "home":
+		m.screenScroll = 0
+	case "end":
+		m.screenScroll = m.operationMaxScroll()
+	case "pgup":
+		m.screenScroll = max(0, m.screenScroll-m.readingRect().h)
+	case "pgdown":
+		m.screenScroll = min(m.operationMaxScroll(), m.screenScroll+m.readingRect().h)
+	case "up":
 		m.screenScroll = max(0, m.screenScroll-3)
-	case "down", "pgdown":
+	case "down":
 		m.screenScroll = min(m.operationMaxScroll(), m.screenScroll+3)
 	}
 	return nil
@@ -139,7 +137,7 @@ func (m *Model) operationText() string {
 	}
 	text += "\n\n" + result + fmt.Sprintf(" · %s", job.elapsed.Round(time.Millisecond)) + "\n\nDestination\n" + job.destination
 	if strings.TrimSpace(job.output) != "" {
-		text += "\n\nResult\n" + job.output
+		text += "\n\nFull log · PgUp/PgDn scroll · Home/End\n" + job.output
 	}
 	return text + "\n\nR Run again   ·   Esc Back"
 }

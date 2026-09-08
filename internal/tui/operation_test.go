@@ -42,9 +42,11 @@ func TestSyncRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 	}
 	m.open("hub")
 	m.cursor = 3
-	if cmd := m.activate(); cmd != nil {
-		t.Fatal("reopening a result reran generation")
+	cmd = m.activate()
+	if cmd == nil || !m.job.busy {
+		t.Fatal("reopening Sync did not start fresh work")
 	}
+	m.Update(cmd())
 	if !strings.Contains(ansi.Strip(m.View()), "Skills synced") {
 		t.Fatal("result did not persist")
 	}
@@ -92,13 +94,7 @@ func TestSyncUsesGenerateThenInstallPipeline(t *testing.T) {
 	}
 	exportRegressionView(t, "sync-detected-result", m.View())
 }
-func TestBackgroundOutputIsBoundedAndQuitCancels(t *testing.T) {
-	var tail outputTail
-	input := strings.Repeat("x", 200000) + "TAIL"
-	n, err := tail.Write([]byte(input))
-	if err != nil || n != len(input) || len(tail.data) != 128*1024 || !strings.HasSuffix(string(tail.data), "TAIL") {
-		t.Fatal("unbounded or lost output")
-	}
+func TestQuitCancelsSync(t *testing.T) {
 	m := newModel(t)
 	stubSyncAgents(t, m)
 	m.open("sync")
@@ -163,5 +159,25 @@ func stubSyncAgents(t *testing.T, m *Model) {
 		if err := os.WriteFile(filepath.Join(bin, name), []byte("unused"), 0755); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestSyncRetainsFullLogAndScrollsToBothEnds(t *testing.T) {
+	m := newModel(t)
+	stubSyncAgents(t, m)
+	m.open("sync")
+	log := "FIRST ENTRY\n" + strings.Repeat("Generated a skill file\n", 7000) + "LAST ENTRY"
+	m.options.Background = func(context.Context, []string) (string, error) { return log, nil }
+	m.Update(m.startOperation("sync")())
+	if m.job.output != log {
+		t.Fatal("full log was truncated")
+	}
+	m.operationKey("end")
+	if !strings.Contains(ansi.Strip(m.View()), "LAST ENTRY") {
+		t.Fatal("end of log unreachable")
+	}
+	m.operationKey("home")
+	if !strings.Contains(ansi.Strip(m.View()), "FIRST ENTRY") {
+		t.Fatal("start of log unreachable")
 	}
 }

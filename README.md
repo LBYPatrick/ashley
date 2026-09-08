@@ -249,7 +249,8 @@ Run `ash` to launch the hub:
 
 Sync detects supported agent executables on PATH and in native install locations,
 then generates skills into `~/.ashley/generated` before installing links for every
-detected agent. Its destination and result stay visible; press `R` to sync again.
+detected agent. Every activation runs the complete sync again. The full per-file and per-agent
+log stays visible; use PgUp/PgDn or Home/End to scroll, and `R` to rerun.
 Press `I` to set up the agent selected in Settings. Standalone `ash generate` and
 `ash install` commands remain available for scripts and explicit CLI use.
 

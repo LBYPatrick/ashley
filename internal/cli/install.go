@@ -66,7 +66,7 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	if err != nil {
 		return err
 	}
-	installer := install.Installer{Home: home, Catalog: catalog}
+	installer := install.Installer{Home: home, Catalog: catalog, Log: stdout}
 	if command == "uninstall" {
 		result, err := installer.Uninstall(keys)
 		if err != nil {

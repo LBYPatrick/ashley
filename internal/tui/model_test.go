@@ -110,7 +110,11 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 	}
 	key(m, "esc")
 	m.cursor = 3
-	key(m, "enter")
+	cmd = m.activate()
+	if cmd == nil {
+		t.Fatal("Sync did not restart")
+	}
+	m.Update(cmd())
 	if m.screen != "sync" {
 		t.Fatal("Install did not open")
 	}

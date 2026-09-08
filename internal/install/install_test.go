@@ -1,8 +1,10 @@
 package install
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	ashley "github.com/LBYPatrick/ashley"
@@ -165,5 +167,31 @@ func TestCustomPackageDoesNotWriteThroughResourceSymlink(t *testing.T) {
 	}
 	if content, _ := os.ReadFile(filepath.Join(outside, "guide.md")); string(content) != "keep" {
 		t.Fatal("overwrote file outside generated directory")
+	}
+}
+
+func TestEveryInstallRegeneratesAndLogsAllStages(t *testing.T) {
+	var log bytes.Buffer
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	i := Installer{Home: home, Getenv: func(string) string { return "" }, Catalog: skills.Catalog{Source: ashley.Assets}, Log: &log}
+	for run := range 2 {
+		log.Reset()
+		if _, err := i.Install([]string{"claude", "codex"}); err != nil {
+			t.Fatal(err)
+		}
+		text := log.String()
+		if strings.Count(text, "Generated:") != 14 || strings.Index(text, "1. Generate skills") >= strings.Index(text, "2. Install skills") {
+			t.Fatal("missing generation or wrong stage order", text)
+		}
+		action := "Installed:"
+		if run == 1 {
+			action = "Verified link:"
+		}
+		if strings.Count(text, action) != 28 {
+			t.Fatal("incomplete agent log", text)
+		}
 	}
 }
