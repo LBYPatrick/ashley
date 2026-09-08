@@ -1,115 +1,57 @@
 #!/bin/bash
-# Ashley — One-line installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | bash
-#        ... | bash -s -- --codex     # skip the agent question
+# Bootstrap a binary release; no checkout or language runtime is downloaded.
 set -euo pipefail
-
-ASHLEY_DIR="${ASHLEY_DIR:-$HOME/.ashley/repo}"
-REPO_URL="${ASHLEY_REPO_URL:-https://github.com/LBYPatrick/ashley.git}"
-
-# Coding agent to install skills for: claude | codex | grok | opencode | kilo | both | all.
-# Left empty, the installer asks (or reuses an existing setup).
-AGENT="${ASHLEY_AGENT:-}"
-for arg in "$@"; do
-    case "$arg" in
-        --claude | --codex | --grok | --opencode | --kilo | --both | --all) AGENT="${arg#--}" ;;
-        --agent=*) AGENT="${arg#--agent=}" ;;
-        *)
-            echo "Unknown option: $arg" >&2
-            exit 1
+repo="${ASHLEY_REPO:-LBYPatrick/ashley}"
+install_dir="${ASHLEY_INSTALL_DIR:-$HOME/.local/bin}"
+binary_args=()
+agent_args=()
+skills_only=()
+binary_only=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version|--install-dir)
+            [[ $# -ge 2 && -n "$2" ]] || { echo "$1 requires a value" >&2; exit 1; }
+            binary_args+=("$1" "$2")
+            if [[ "$1" == --install-dir ]]; then install_dir="$2"; fi
+            shift 2
             ;;
+        --claude|--codex|--grok|--opencode|--kilo|--both|--all)
+            agent_args+=("$1")
+            shift
+            ;;
+        --agent|--agent=*)
+            if [[ "$1" == --agent ]]; then
+                [[ $# -ge 2 ]] || { echo '--agent requires a value' >&2; exit 1; }
+                agent="$2"
+                shift 2
+            else
+                agent="${1#--agent=}"
+                shift
+            fi
+            case "$agent" in
+                claude|codex|grok|opencode|kilo|both|all) agent_args+=("--agent" "$agent") ;;
+                *) echo "Unknown agent: $agent" >&2; exit 1 ;;
+            esac
+            ;;
+        --skills-only) skills_only=(--skills-only); shift ;;
+        --binary-only) binary_only=true; shift ;;
+        --help)
+            echo 'Usage: remote-install.sh [--version VERSION] [--install-dir DIR] [--AGENT ...] [--skills-only|--binary-only]'
+            exit 0
+            ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
-
-# Color support — disabled by ASHLEY_NO_COLOR or NO_COLOR
-_no_color=false
-case "${ASHLEY_NO_COLOR:-${NO_COLOR:-}}" in
-    1 | true | yes) _no_color=true ;;
-esac
-if ! [ -t 1 ]; then _no_color=true; fi
-
-if $_no_color; then
-    GREEN='' RED='' YELLOW='' CYAN='' NC='' BOLD='' DIM=''
-else
-    GREEN=$'\033[0;32m' RED=$'\033[0;31m' YELLOW=$'\033[0;33m'
-    CYAN=$'\033[0;36m' NC=$'\033[0m'
-    BOLD=$'\033[1m' DIM=$'\033[2m'
+if [[ ${#agent_args[@]} -eq 0 && -n "${ASHLEY_AGENT:-}" ]]; then
+    case "$ASHLEY_AGENT" in
+        claude|codex|grok|opencode|kilo|both|all) agent_args=(--agent "$ASHLEY_AGENT") ;;
+        *) echo "Unknown agent: $ASHLEY_AGENT" >&2; exit 1 ;;
+    esac
 fi
-
-# China mirror support
-case "${ASHLEY_USE_CN:-}" in
-    1 | true | yes)
-        REPO_URL="https://ghp.ci/${REPO_URL}"
-        ;;
-esac
-
-echo ""
-echo "${BOLD}===========================================${NC}"
-echo "${BOLD}      Ashley Remote Installation${NC}"
-echo "${BOLD}===========================================${NC}"
-echo ""
-
-# On Apple Silicon, install Rosetta 2 silently
-if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
-    if ! /usr/bin/pgrep -q oahd 2>/dev/null; then
-        echo "  ${CYAN}▶${NC} Installing Rosetta 2..."
-        /usr/sbin/softwareupdate --install-rosetta --agree-to-license 2>/dev/null
-        echo "  ${GREEN}✓${NC} Rosetta 2 installed"
-    else
-        echo "  ${GREEN}✓${NC} Rosetta 2 already installed"
-    fi
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+curl --retry 3 -fsSL "https://raw.githubusercontent.com/$repo/main/scripts/install.sh" -o "$tmp/install.sh"
+bash "$tmp/install.sh" ${binary_args[@]+"${binary_args[@]}"}
+if [[ "$binary_only" == false ]]; then
+    "$install_dir/ash" install ${agent_args[@]+"${agent_args[@]}"} ${skills_only[@]+"${skills_only[@]}"}
 fi
-
-# On macOS, ensure Xcode Command Line Tools are installed (provides git + make)
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    if ! xcode-select -p &>/dev/null; then
-        echo "  ${CYAN}▶${NC} Installing Xcode Command Line Tools (provides git, make)..."
-        echo "  ${DIM}A system dialog may appear — click Install and wait for it to finish.${NC}"
-        xcode-select --install 2>/dev/null || true
-        # Wait for the installation to complete
-        until xcode-select -p &>/dev/null; do
-            sleep 5
-        done
-        echo "  ${GREEN}✓${NC} Xcode Command Line Tools installed"
-    else
-        echo "  ${GREEN}✓${NC} Xcode Command Line Tools already installed"
-    fi
-fi
-
-# Check prerequisites
-for cmd in git make; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "  ${RED}✗${NC} Required command not found: ${BOLD}$cmd${NC}"
-        exit 1
-    fi
-done
-echo "  ${GREEN}✓${NC} Prerequisites OK (git, make)"
-
-# Clone or update
-if [ -d "$ASHLEY_DIR/.git" ]; then
-    echo "  ${CYAN}▶${NC} Existing installation found at ${BOLD}$ASHLEY_DIR${NC}"
-    echo "  ${CYAN}▶${NC} Pulling latest changes..."
-    git -C "$ASHLEY_DIR" pull --ff-only || {
-        echo "  ${YELLOW}⚠${NC} Pull failed — continuing with existing version"
-    }
-else
-    if [ -e "$ASHLEY_DIR" ]; then
-        echo "  ${RED}✗${NC} ${BOLD}$ASHLEY_DIR${NC} exists but is not a git repo"
-        echo "  ${DIM}Set ASHLEY_DIR to change the install location${NC}"
-        exit 1
-    fi
-    echo "  ${CYAN}▶${NC} Cloning into ${BOLD}$ASHLEY_DIR${NC}..."
-    mkdir -p "$(dirname "$ASHLEY_DIR")"
-    git clone "$REPO_URL" "$ASHLEY_DIR"
-    echo "  ${GREEN}✓${NC} Cloned"
-fi
-echo ""
-
-# Run make install
-cd "$ASHLEY_DIR"
-make install AGENT="$AGENT"
-
-echo ""
-echo "  ${DIM}Install location: $ASHLEY_DIR${NC}"
-echo "  ${DIM}To uninstall:     cd $ASHLEY_DIR && make uninstall${NC}"
-echo ""

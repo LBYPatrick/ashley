@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-ash = "ashley.cli:main"
+ash-python = "ashley.cli:main"
 
 [build-system]
 requires = ["hatchling"]

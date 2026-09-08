@@ -29,3 +29,7 @@ uv.lock
 
 # Misc
 *.log
+
+# Go coverage and build output
+/coverage.out
+/build-coverage.out

@@ -1,0 +1,100 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(python3 scripts/release.py check "$TAG")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  gate:
+    needs: version
+    uses: ./.github/workflows/gate.yml
+
+  package:
+    needs: [version, gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [darwin, linux]
+        arch: [arm64, amd64]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Build binary archive and checksum
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+        run: make package PLATFORM="$PLATFORM" ARCH="$ARCH"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ashley-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [version, package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: ashley-*
+          path: dist
+          merge-multiple: true
+      - name: Publish the complete set of binary packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          for platform in darwin linux; do
+            for arch in arm64 amd64; do
+              file="ashley-$VERSION-$platform-$arch.tar.gz"
+              test -f "dist/$file"
+              test -f "dist/$file.sha256"
+              (cd dist && sha256sum -c "$file.sha256")
+            done
+          done
+          if gh release list --limit 100 --json tagName --jq '.[].tagName' | grep -qxF "$TAG"; then
+            echo "Preserving existing release title and notes."
+          else
+            gh release create "$TAG" --verify-tag --draft --title "Ashley $VERSION" --generate-notes --prerelease="$PRERELEASE"
+          fi
+          gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
+          gh release edit "$TAG" --draft=false --prerelease="$PRERELEASE"

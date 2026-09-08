@@ -10,11 +10,8 @@ while [ -L "$SOURCE" ]; do
 done
 ASHLEY_ROOT="$(cd "$(dirname "$SOURCE")/.." && pwd)"
 
-# Ensure uv is available
-if ! command -v uv &>/dev/null; then
-    echo "Error: uv not found. Install it: https://docs.astral.sh/uv/" >&2
-    exit 1
+# Development-checkout launcher. Release installations contain the binary itself.
+if [[ ! -x "$ASHLEY_ROOT/build/ash-go" ]]; then
+    make -C "$ASHLEY_ROOT" build
 fi
-
-# Run the ashley CLI via uv from the project root
-exec uv run --project "$ASHLEY_ROOT" ash "$@"
+exec "$ASHLEY_ROOT/build/ash-go" "$@"

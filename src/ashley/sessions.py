@@ -8,6 +8,8 @@ corresponding .log files for output capture.
 """
 
 import json
+import re
+import shlex
 import shutil
 import subprocess
 import uuid
@@ -255,6 +257,8 @@ def create_detached_session(
         check=True,
     )
 
+    configure_scrolling(tmux_name)
+
     # Enable automatic logging via pipe-pane
     subprocess.run(
         [
@@ -284,11 +288,59 @@ def create_detached_session(
     return session
 
 
+def configure_scrolling(tmux_name: str) -> None:
+    """Capture wheel events in scrollback, scoped to this session.
+
+    Clone the session's key table so unrelated sessions and user shortcuts
+    retain their behavior. In particular, never forward alternate-screen
+    wheel events to an agent as cursor keys.
+    """
+    target = tmux_name
+    original = subprocess.run(
+        ["tmux", "show-options", "-Av", "-t", target, "key-table"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    table = (
+        original
+        if original.startswith("ashley-scroll-")
+        else f"ashley-scroll-{original}"
+    )
+    if table != original:
+        bindings = subprocess.run(
+            ["tmux", "list-keys", "-T", original],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        # Let tmux parse its own syntax (including nested command blocks).
+        copied = re.sub(
+            r"(?m)^(bind-key\s+(?:-\S+\s+)*-T\s+)\S+",
+            lambda match: match[1] + shlex.quote(table),
+            bindings,
+        )
+        subprocess.run(
+            ["tmux", "source-file", "-"], input=copied, text=True, check=True
+        )
+    for key, command in (
+        ("WheelUpPane", ["copy-mode", "-e", "-t", "="]),
+        (
+            "WheelDownPane",
+            ["if-shell", "-F", "#{pane_in_mode}", "send-keys -X -t = -N 5 scroll-down"],
+        ),
+    ):
+        subprocess.run(["tmux", "bind-key", "-T", table, key, *command], check=True)
+    subprocess.run(["tmux", "set-option", "-t", target, "key-table", table], check=True)
+    subprocess.run(["tmux", "set-option", "-t", target, "mouse", "on"], check=True)
+
+
 def attach_session(session: Session) -> int:
     """Attach to a tmux session interactively. Returns exit code."""
     if not session.is_alive():
         print(f"{RED}Session {session.id} is not running.{NC}")
         return 1
+    configure_scrolling(session.tmux_session)
     result = subprocess.run(["tmux", "attach-session", "-t", session.tmux_session])
     return result.returncode
 

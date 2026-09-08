@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-≥3.13-3776AB?logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/Go-native_binary-00ADD8?logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License" /></a>
 </p>
@@ -25,14 +25,67 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 
 ---
 
+## Go migration (`feat/exp-go`)
+
+Ashley now runs as a standalone Go executable. All CLI entry points and the
+interactive screens have Go implementations verified by the migration acceptance
+suite. Existing YAML settings, JSON preferences, and SQLite history are
+preserved. The Python implementation remains a development-only test reference.
+Evidence is recorded in [the migration acceptance](docs/go-migration-assessment.md).
+
+```bash
+make build
+./build/ash-go -i
+./build/ash-go list
+./build/ash-go agent
+./build/ash-go install --all --skills-only  # install prompts without installing CLIs
+./build/ash-go history stats
+./build/ash-go run --codex --detached feat "Add login"
+./build/ash-go prompt feat "Add login"
+./build/ash-go generate --output /tmp/ashley-skills
+./build/ash-go --root /path/to/custom-ashley prompt --project /path/to/project feat
+./build/ash-go update --check # inspect the latest stable release
+make gate                  # full local/CI test and build gate
+make go-dist               # four binary archives + SHA-256 checksums
+```
+
+The binary runs without Go, Python, uv, or a source checkout. Release archives
+contain only `ash` and `LICENSE`; external coding-agent CLIs and tmux remain
+separate dependencies. The repository stays
+open source. Once binary releases are available, `scripts/install.sh` downloads
+the matching release, verifies its checksum/version, and replaces the executable
+atomically. It does not clone or compile source or resolve language dependencies.
+
+
+`ash-go update` downloads a matching binary release, validates its archive and
+SHA-256 checksum, checks the executable version, and atomically replaces the
+running executable. It refreshes installed prompts using the new binary and
+upgrades tracked agents unless `--skip-tools` or `SKIP_TOOL=1` is set. Use
+`--version X.Y.Z` for a specific release, or `--install-dir ~/.local/bin` to
+replace an old launcher symlink while leaving its checkout intact. For explicit developer-checkout updates, use
+`ash-go --root /path/to/ashley update --branch feat/example`; this requires a
+clean Git checkout and Go, and leaves user installations on the binary path.
+
+Development and CI still use Go and uv/Python to test the port against the
+reference application. `make test` runs the complete current suite, including
+Python regressions, Go race tests with a 70% coverage floor, parity fixtures,
+and binary/package/installer integration tests. `make gate` also checks formatting,
+static analysis, and GitHub Actions workflows.
+
+Releases follow the Shelf workflow: use the repository's
+[publish-release skill](.agents/skills/publish-release/SKILL.md) and
+`make publish V=X.Y.Z NOTES=/path/to/notes.md YES=1`. A `v*` tag triggers tests on
+macOS/Linux and builds all four macOS/Linux arm64/amd64 archives. The draft goes
+live only after all packages and checksums are present. Incomplete migrations
+can only produce explicitly labeled prereleases. See [release development](docs/releases.md).
+
 ## Quick Start
 
 ### Prerequisites
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Python | ≥ 3.13 | |
-| [uv](https://docs.astral.sh/uv/) | latest | Python package manager |
+| macOS or Linux | arm64 or amd64 | A matching prebuilt release; no language runtime needed |
 | Claude Code, Codex, Grok Build, OpenCode, or Kilo Code | latest | For running skills — installed for you |
 | [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
 
@@ -42,7 +95,10 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | bash
 ```
 
-Clones to `~/.ashley/repo`, installs dependencies, generates skills, symlinks them into your agent's skills directory, and adds `ash` to `~/.local/bin`.
+Downloads and verifies the matching release binary into `~/.local/bin/ash`,
+then installs skills and the selected agent. No checkout, Python, uv, or Go
+toolchain is installed. Binary release assets must be published before using
+this installation path; use the developer build below to try this branch.
 
 The installer asks which coding agent to set up. Skip the question with a flag:
 
@@ -51,7 +107,7 @@ curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, -
 ```
 
 <details>
-<summary>Manual install</summary>
+<summary>Build from source (developers)</summary>
 
 ```bash
 git clone https://github.com/LBYPatrick/ashley.git
@@ -66,9 +122,9 @@ make install
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASHLEY_DIR` | `~/.ashley/repo` | Install location |
-| `ASHLEY_REPO_URL` | `https://github.com/LBYPatrick/ashley.git` | Override repo URL |
-| `ASHLEY_USE_CN` | unset | Use China-accessible mirrors (`1` to enable) |
+| `ASHLEY_INSTALL_DIR` | `~/.local/bin` | Binary installation directory |
+| `ASHLEY_REPO` | `LBYPatrick/ashley` | GitHub release repository |
+| `ASHLEY_VERSION` | latest stable | Specific binary release version |
 | `ASHLEY_NO_COLOR` | unset | Disable colored output (`1` to enable) |
 | `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, `grok`, `opencode`, `kilo`, `both`, or `all`) |
 
@@ -77,8 +133,9 @@ make install
 ### Uninstall
 
 ```bash
-cd ~/.ashley/repo && make uninstall
-rm -rf ~/.ashley
+ash uninstall
+rm ~/.local/bin/ash
+# Your settings, custom skills, logs, and history are retained.
 ```
 
 ---
@@ -187,12 +244,19 @@ Run `ash` to launch the hub:
 | **History** | Browse invocation log | `ash history browse` |
 | **Generate** | Rebuild skill files | `ash generate` |
 | **Install** | Deploy skills to your agent's skills dir | `ash install` |
+| **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
 required, so it works over SSH/mosh.
+
+The creator guides you through basics, component/resource selection, workflow,
+and preview. Use Tab to change fields, Ctrl+N to advance, Esc to go back, and
+Ctrl+S to save. In the workflow step, Ctrl+A adds a step, Ctrl+D removes it,
+and Ctrl+Left/Right switches steps. Ctrl+E opens the advanced JSON editor.
+New definitions live in `~/.ashley/skills` (or `--root/skills` for a checkout).
 
 Inside **Vibe** you can pick a run mode before launching — **Normal** (standard
 permission prompts), **DSP** (skip all permission checks), **AUTO** (auto-accept
@@ -209,6 +273,10 @@ All read the same generated `SKILL.md` packages. Claude and Grok use slash
 commands, Codex uses `$` mentions, and Ashley asks OpenCode and Kilo to load
 the named skill. Kilo installation requires Node.js/npm; its bootstrap uses
 `npm install -g @kilocode/cli`.
+
+Installing from `--root` imports complete custom packages from `generated/`,
+including supporting files and executable scripts, into `~/.ashley/generated`.
+They remain usable without the checkout; later installs preserve local edits.
 
 ```bash
 ash install --codex        # install skills for Codex
@@ -306,6 +374,11 @@ resilience. Without
 `--detached`, Ashley attaches to it immediately (exiting cleans it up); with
 `--detached`, it runs in the background for you to manage later.
 
+Ashley enables mouse scrolling for its sessions: wheel up opens tmux
+scrollback instead of sending arrow keys to the agent. Press `q` (or `Esc`
+in vi copy mode) to return to typing. Existing sessions receive this fix
+when reattached with `ash attach`. Other tmux sessions keep their settings.
+
 ```bash
 ash run feat "Add OAuth support"            # runs in tmux, attaches immediately
 ash run --detached feat "Add OAuth support" # background session
@@ -396,6 +469,7 @@ ash --version                    Print version
 |------|-------------|
 | `-dsp` / `--dangerously-skip-permissions` | Skip all permission checks |
 | `--auto` | Auto-accept safe tools |
+| `--normal` | Use normal permissions, overriding the configured default |
 | `-afk` / `--away-from-keyboard` | Fully autonomous, implies `-dsp` |
 | `--detached` | Run in background tmux session |
 | `-c` / `--claude` | Use Claude Code for this run |
@@ -410,7 +484,9 @@ ash --version                    Print version
 skills/          JSONC skill definitions (name, components, resources, workflow)
 components/      Reusable markdown instruction blocks
 res/             Code templates and reference docs
-src/ashley/      Python package (generator, CLI, TUI, hooks, pipelines)
+cmd/ash/         Native executable entry point
+internal/        Go CLI, TUI, generation, sessions, history, and updates
+src/ashley/      Python reference implementation (development tests only)
 generated/       Output: assembled SKILL.md files (always inlined)
 ```
 
@@ -426,7 +502,7 @@ cd ashley
 uv sync --group dev
 make generate       # Regenerate skills
 make test           # Run tests
-make format         # Run ruff formatter
+make format         # Format Go, Python reference tests, and shell scripts
 ```
 
 ### Makefile Targets
@@ -434,12 +510,12 @@ make format         # Run ruff formatter
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all targets |
-| `make install` | Generate, install skills, symlink CLI (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
+| `make install` | Build native CLI and install skills (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
 | `make uninstall` | Remove skills and CLI |
 | `make generate` | Regenerate skill markdown files |
 | `make list` | List skill definitions |
-| `make format` | Run ruff formatter |
-| `make test` | Run pytest |
+| `make format` | Run Go, Python, and shell formatters |
+| `make test` | Python reference tests, Go race/coverage tests, parity, and binary integration |
 | `make clean` | Remove generated files |
 | `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
 | `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |

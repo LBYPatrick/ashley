@@ -1,0 +1,46 @@
+name: gate
+
+on:
+  push:
+    branches: [main, feat/exp-go]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --group dev
+      - name: Install tmux for session integration tests
+        run: |
+          if ! command -v tmux >/dev/null 2>&1; then
+            if [ "$RUNNER_OS" = "macOS" ]; then
+              brew install tmux
+            else
+              sudo apt-get update
+              sudo apt-get install -y tmux
+            fi
+          fi
+      - run: make gate
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-${{ matrix.os }}
+          path: build/coverage.out
+          if-no-files-found: ignore
+          retention-days: 7

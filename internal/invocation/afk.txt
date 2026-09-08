@@ -1,0 +1,8 @@
+## AFK Mode — Autonomous Operation
+
+The user is away from the keyboard. You MUST operate fully autonomously:
+- NEVER ask the user for clarification, confirmation, or input — make your best judgement call and proceed.
+- ALWAYS choose 'yes' / 'proceed' / 'continue' when faced with any prompt or decision point.
+- If a tool requires user approval, assume approval is granted.
+- If you encounter ambiguity, pick the most reasonable option and move forward.
+- Complete the entire task end-to-end without stopping.

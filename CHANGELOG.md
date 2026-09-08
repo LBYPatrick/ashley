@@ -9,12 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Replace the Python runtime with a standalone Go executable, preserving skill generation, custom templates, configuration, history, pipelines, lifecycle hooks, tmux sessions and all interactive screens.
+- Add a guided skill creator with workflow/resource selection and advanced JSON editing; retain complete custom skill packages without a source checkout.
+- Add a full Makefile gate covering Python regressions, Go parity/race/coverage checks, binary smoke tests, and release installer tests.
+- Add binary archives, checksum-verified installation, a publish-release skill, and GitHub Actions for macOS/Linux release builds; require full parity before stable binary releases.
 - Add Grok Build, OpenCode, and Kilo Code support across installation, invocation, pipelines, settings, and upgrades.
 - Add `ash install --all` for all five agents while retaining `--both` for Claude Code and Codex.
 
 ### Fixed
 
+- Capture mouse-wheel scrolling in Ashley tmux sessions instead of forwarding arrow keys to coding agents, including when reattaching existing sessions.
 - Fix npm-installed executables such as `codex.js` under the Homebrew prefix being mistaken for Homebrew formulae.
+- Respect explicit Normal permissions when automatic permissions are configured, and retain all agent selections during binary bootstrap installation.
 
 ## [0.3.0] - 2026-08-03
 
