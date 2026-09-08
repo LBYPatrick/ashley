@@ -50,7 +50,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.screen == "create" {
 		return m.creatorMouse(msg)
 	}
-	if m.screen == "generate" || m.screen == "install" {
+	if m.screen == "sync" {
 		if wheel {
 			m.screenScroll = max(0, min(m.operationMaxScroll(), m.screenScroll+delta*3))
 		}

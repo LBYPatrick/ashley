@@ -114,10 +114,8 @@ func (m *Model) footer(f *frame, a appearance) {
 		}
 	case "create-preview":
 		text = "esc Back to editor  ↑↓ Scroll"
-	case "generate":
-		text = "esc Back  r Generate again  ↑↓ Scroll"
-	case "install":
-		text = "esc Back  enter Install detected  i Set up CLI"
+	case "sync":
+		text = "esc Back  enter Sync  r Sync again  i Set up CLI"
 	case "help", "log":
 		text = "esc Back  pgup/pgdown Scroll"
 	}
@@ -174,7 +172,7 @@ func (m *Model) View() string {
 	switch m.screen {
 	case "hub", "vibe", "sessions", "history":
 		m.browserView(f, a)
-	case "generate", "install":
+	case "sync":
 		m.operationView(f, a)
 	case "settings":
 		m.settingsView(f, a)

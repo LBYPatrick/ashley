@@ -13,14 +13,13 @@ import (
 	"github.com/titanous/json5"
 )
 
-var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Generate", "Install", "Create skill", "Analytics", "Settings"}
+var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Sync", "Create skill", "Analytics", "Settings"}
 
 var featureDescriptions = []string{
 	"Browse skills, preview workflows, and launch your coding agent with a skill prompt.",
 	"Manage background agent sessions. Attach, view logs, or kill running sessions.",
 	"Browse your full invocation history. Search, filter, prune, or clear past runs.",
-	"Regenerate all skill markdown files from JSONC definitions.",
-	"Generate skills and install them into your coding agent's skills directory.",
+	"Generate skills, then install them for every detected coding agent.",
 	"Build a new skill interactively with a step-by-step wizard.",
 	"See which skills and coding agents you use most.",
 	"Choose the default coding agent, light or dark mode, and a colour preset.",

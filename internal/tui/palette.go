@@ -12,7 +12,7 @@ import (
 )
 
 var paletteCommands = [][2]string{
-	{"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Generate", "Rebuild prompts and review the result"}, {"Install", "Install embedded skills into your user directories"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+	{"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
 }
 
 func (m *Model) paletteItems() [][2]string {
@@ -78,11 +78,11 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		switch choice {
 		case "Quit":
 			return m.quit()
-		case "Home", "Skills", "Sessions", "History", "Generate", "Install", "Create", "Analytics", "Theme":
-			screens := map[string]string{"Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Generate": "generate", "Install": "install", "Create": "create", "Analytics": "stats", "Theme": "settings"}
+		case "Home", "Skills", "Sessions", "History", "Sync", "Create", "Analytics", "Theme":
+			screens := map[string]string{"Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Analytics": "stats", "Theme": "settings"}
 			m.open(screens[choice])
-			if choice == "Generate" && (m.job == nil || m.job.kind != "generate") {
-				return m.startOperation("generate")
+			if choice == "Sync" && (m.job == nil || m.job.kind != "sync") {
+				return m.startOperation("sync")
 			}
 		case "Maximize":
 			if m.screen == "hub" || m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" {
@@ -95,7 +95,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 				m.helpPreview = m.preview
 				m.helpLogContent = m.logContent
 			}
-			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nGenerate: R rerun · Arrows scroll results\nInstall: Enter installs skills for all detected agents · I agent CLI"
+			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nSync: Enter/R generates and installs skills for detected agents · I agent CLI"
 			m.sizeLogPreview()
 			m.preview.GotoTop()
 			m.screen = "help"

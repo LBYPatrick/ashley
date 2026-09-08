@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Merge TUI Generate and Install into Sync: generate persistent skills, then install links for all detected agents with one retained result.
+
 - Select Rust for edge workloads requiring extreme performance, Python for ML/data work with acceptable runtime tradeoffs, and Go for other unspecified backends. Default new web frontends to Vue + TypeScript + Vite while retaining React references.
 
 - Install TUI skills for all detected coding agents automatically, and explain when no supported agent is installed.

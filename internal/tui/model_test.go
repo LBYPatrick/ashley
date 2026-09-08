@@ -95,22 +95,23 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 		t.Fatal(m.screen)
 	}
 	m.cursor = 3
+	stubSyncAgents(t, m)
 	m.options.Background = func(_ context.Context, argv []string) (string, error) {
 		args = argv
 		return "generated/a-feat/SKILL.md", nil
 	}
 	cmd := m.activate()
-	if m.screen != "generate" || cmd == nil {
-		t.Fatal("Generate did not open its result page")
+	if m.screen != "sync" || cmd == nil {
+		t.Fatal("Sync did not open its result page")
 	}
 	m.Update(cmd())
-	if len(args) < 1 || args[0] != "generate" || m.job.busy {
+	if len(args) < 1 || args[0] != "install" || m.job.busy {
 		t.Fatal(args)
 	}
 	key(m, "esc")
-	m.cursor = 4
+	m.cursor = 3
 	key(m, "enter")
-	if m.screen != "install" {
+	if m.screen != "sync" {
 		t.Fatal("Install did not open")
 	}
 	key(m, "i")

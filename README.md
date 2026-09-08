@@ -242,16 +242,16 @@ Run `ash` to launch the hub:
 | **Vibe** | Skill browser — preview, pick a run mode, and launch | `ash vibe` |
 | **Sessions** | Manage detached runs | `ash sessions` |
 | **History** | Browse invocation log | `ash history browse` |
-| **Generate** | Rebuild skill files | `ash generate` |
-| **Install** | Deploy skills to your agent's skills dir | `ash install` |
+| **Sync** | Generate skills, then install for all detected agents | — |
 | **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
 
-Generate runs in the background and keeps its destination and result visible;
-press `R` to regenerate. Install detects supported agent executables on PATH and in native install
-locations; Enter installs embedded skills for every detected agent. Press `I`
-to set up the agent selected in Settings.
+Sync detects supported agent executables on PATH and in native install locations,
+then generates skills into `~/.ashley/generated` before installing links for every
+detected agent. Its destination and result stay visible; press `R` to sync again.
+Press `I` to set up the agent selected in Settings. Standalone `ash generate` and
+`ash install` commands remain available for scripts and explicit CLI use.
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse

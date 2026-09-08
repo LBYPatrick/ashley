@@ -386,7 +386,7 @@ def test_interactive_screens_start_and_restore_terminal(
         assert b"Ashley" in output, output.decode(errors="replace")
         if not command:
             # Reproduce the reported hub -> Settings Enter freeze in a real PTY.
-            os.write(master, b"\x1b[B" * 7 + b"\r")
+            os.write(master, b"\x1b[B" * 6 + b"\r")
             settings_output = b""
             deadline = time.monotonic() + 3
             while time.monotonic() < deadline:
@@ -608,8 +608,7 @@ def test_first_install_agent_selection_in_terminal(binary, tmp_path, answer, exp
         os.close(master)
 
 
-@pytest.mark.parametrize("operation", ["generate", "install"])
-def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation):
+def test_tui_sync_uses_only_the_shipped_binary(binary, tmp_path):
     import fcntl
     import pty
     import select
@@ -625,13 +624,12 @@ def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation)
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
     # Detection-only executable fixtures must never be invoked. No runtime tools.
-    if operation == "install":
-        agent_bin = tmp_path / ".local/bin"
-        agent_bin.mkdir(parents=True)
-        for agent in ("claude", "codex", "grok", "opencode", "kilo"):
-            fixture = agent_bin / agent
-            fixture.write_text("not an executable format; detection only")
-            fixture.chmod(0o755)
+    agent_bin = tmp_path / ".local/bin"
+    agent_bin.mkdir(parents=True)
+    for agent in ("claude", "codex", "grok", "opencode", "kilo"):
+        fixture = agent_bin / agent
+        fixture.write_text("not an executable format; detection only")
+        fixture.chmod(0o755)
     env = {
         "HOME": str(tmp_path),
         "PATH": "",
@@ -661,26 +659,20 @@ def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation)
 
     try:
         wait_for(b"Ashley")
-        os.write(master, b"\x1b[B" * (3 if operation == "generate" else 4) + b"\r")
-        if operation == "install":
-            wait_for(b"Install skills")
-            os.write(master, b"\r")  # All detected agents, skills only.
-            wait_for(b"Skills installed for Claude Code")
-            for directory in (
-                ".claude",
-                ".codex",
-                ".grok",
-                ".config/opencode",
-                ".kilo",
-            ):
-                path = tmp_path / directory / "skills/a-feat/SKILL.md"
-                assert path.is_file()
-                assert len(path.read_text()) > 1000
-                assert path.resolve().is_relative_to(config / "generated")
-        else:
-            wait_for(b"Skills generated")
-            assert (tmp_path / "generated/a-feat/SKILL.md").is_file()
-            assert (tmp_path / "generated/a-debug/SKILL.md").is_file()
+        os.write(master, b"\x1b[B" * 3 + b"\r")
+        wait_for(b"Skills synced for Claude Code")
+        for directory in (
+            ".claude",
+            ".codex",
+            ".grok",
+            ".config/opencode",
+            ".kilo",
+        ):
+            path = tmp_path / directory / "skills/a-feat/SKILL.md"
+            assert path.is_file()
+            assert len(path.read_text()) > 1000
+            assert path.resolve().is_relative_to(config / "generated")
+        assert not (tmp_path / "generated").exists()
         # Quick operations keep the same alternate screen instead of flashing
         # command output on the shell and losing the result.
         assert output.count(b"\x1b[?1049h") == 1

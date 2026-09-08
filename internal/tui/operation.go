@@ -45,28 +45,18 @@ func (m *Model) startOperation(kind string) tea.Cmd {
 		m.status = "A task is already running. Its result will stay available."
 		return nil
 	}
-	destination := m.options.Root
-	if destination == "" {
-		destination, _ = os.Getwd()
+	m.detectInstallAgents()
+	if len(m.installAgents) == 0 {
+		m.status = "No supported agents detected. Set up an agent CLI, then sync again."
+		return nil
 	}
-	args := []string{"generate", "--output", destination}
-	if kind == "install" {
-		destination = filepath.Join(m.options.Home, ".ashley", "generated")
-		m.detectInstallAgents()
-		if len(m.installAgents) == 0 {
-			m.status = "No supported agents detected. Set up an agent CLI, then try again."
-			return nil
-		}
-		args = []string{"install", "--skills-only"}
-		for _, key := range m.installAgents {
-			args = append(args, "--agent", key)
-		}
+	// Install materializes all skills before linking any agent directories.
+	args := []string{"install", "--skills-only"}
+	for _, key := range m.installAgents {
+		args = append(args, "--agent", key)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	job := &operation{kind: kind, busy: true, destination: destination, cancel: cancel}
-	if kind == "install" {
-		job.target = m.installLabels()
-	}
+	job := &operation{kind: kind, busy: true, destination: filepath.Join(m.options.Home, ".ashley", "generated"), target: m.installLabels(), cancel: cancel}
 	m.job = job
 	m.screenScroll = 0
 	m.status = ""
@@ -117,7 +107,7 @@ func (m *Model) operationKey(key string) tea.Cmd {
 	case "enter", "r":
 		return m.startOperation(m.screen)
 	case "i":
-		if m.screen == "install" && (m.job == nil || !m.job.busy) {
+		if m.screen == "sync" && (m.job == nil || !m.job.busy) {
 			return m.execute("install", "--agent", m.agent)
 		}
 	case "up", "pgup":
@@ -128,30 +118,22 @@ func (m *Model) operationKey(key string) tea.Cmd {
 	return nil
 }
 func (m *Model) operationText() string {
-	title := "Generate skills"
-	description := "Assemble your skill definitions into ready-to-use prompts."
-	action := "Enter Generate   ·   Esc Back"
-	if m.screen == "install" {
-		title = "Install skills"
-		label := m.installLabels()
-		if label == "" {
-			label = "None — set up an agent CLI to get started."
-		}
-		description = "Install skills for every detected coding agent. Existing custom skills are preserved.\n\nDetected:  " + label + "\n\nI sets up " + agents.Get(m.agent).Label + " (chosen in Settings)."
-		action = "Enter Install skills   ·   I Set up agent CLI   ·   Esc Back"
+	title := "Sync skills"
+	label := m.installLabels()
+	if label == "" {
+		label = "None — set up an agent CLI to get started."
 	}
+	description := "Generate skills, then install them for every detected coding agent.\nExisting custom skills are preserved.\n\nDetected:  " + label + "\n\nI sets up " + agents.Get(m.agent).Label + " (chosen in Settings)."
+	action := "Enter Sync   ·   I Set up agent CLI   ·   Esc Back"
 	text := title + "\n\n" + description
 	job := m.job
 	if job == nil || job.kind != m.screen {
 		return text + "\n\n" + action
 	}
 	if job.busy {
-		return text + "\n\nWorking… You can return to the hub while this finishes.\n\nDestination\n" + job.destination
+		return text + "\n\nGenerating and installing… You can return to the hub while this finishes.\n\nDestination\n" + job.destination
 	}
-	result := "✓ Skills generated"
-	if m.screen == "install" {
-		result = "✓ Skills installed for " + job.target
-	}
+	result := "✓ Skills synced for " + job.target
 	if job.err != nil {
 		result = "Could not finish: " + job.err.Error()
 	}

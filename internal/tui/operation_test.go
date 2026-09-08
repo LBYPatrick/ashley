@@ -13,8 +13,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func TestGenerationRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
+func TestSyncRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 	m := newModel(t)
+	stubSyncAgents(t, m)
 	m.options.Root = t.TempDir()
 	var got []string
 	m.options.Background = func(_ context.Context, args []string) (string, error) {
@@ -23,18 +24,18 @@ func TestGenerationRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 	}
 	m.cursor = 3
 	cmd := m.activate()
-	if m.screen != "generate" || m.job == nil || !m.job.busy {
+	if m.screen != "sync" || m.job == nil || !m.job.busy {
 		t.Fatal("missing busy result page")
 	}
-	if m.startOperation("generate") != nil {
+	if m.startOperation("sync") != nil {
 		t.Fatal("duplicate work started")
 	}
 	m.Update(cmd())
-	if !reflect.DeepEqual(got, []string{"--root", m.options.Root, "generate", "--output", m.options.Root}) {
+	if !reflect.DeepEqual(got, []string{"--root", m.options.Root, "install", "--skills-only", "--agent", "claude", "--agent", "codex"}) {
 		t.Fatal(got)
 	}
 	text := ansi.Strip(m.View())
-	for _, value := range []string{"Skills generated", "Destination", "generated/a-feat/SKILL.md", "generated/a-debug/SKILL.md"} {
+	for _, value := range []string{"Skills synced", "Destination", "generated/a-feat/SKILL.md", "generated/a-debug/SKILL.md"} {
 		if !strings.Contains(text, value) {
 			t.Fatal("completion disappeared", value, text)
 		}
@@ -44,24 +45,25 @@ func TestGenerationRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 	if cmd := m.activate(); cmd != nil {
 		t.Fatal("reopening a result reran generation")
 	}
-	if !strings.Contains(ansi.Strip(m.View()), "Skills generated") {
+	if !strings.Contains(ansi.Strip(m.View()), "Skills synced") {
 		t.Fatal("result did not persist")
 	}
-	exportRegressionView(t, "generate-result", m.View())
+	exportRegressionView(t, "sync-result", m.View())
 }
 func TestBackgroundFailureAndCompletionAfterNavigation(t *testing.T) {
 	m := newModel(t)
-	m.open("generate")
+	stubSyncAgents(t, m)
+	m.open("sync")
 	m.options.Background = func(context.Context, []string) (string, error) {
 		return "Cannot read definition", errors.New("invalid skill")
 	}
-	cmd := m.startOperation("generate")
+	cmd := m.startOperation("sync")
 	m.open("hub")
 	m.Update(cmd())
 	if m.screen != "hub" || m.job.busy || m.job.err == nil {
 		t.Fatal("background work stole navigation")
 	}
-	m.open("generate")
+	m.open("sync")
 	if !strings.Contains(ansi.Strip(m.View()), "invalid skill") {
 		t.Fatal("error vanished")
 	}
@@ -71,21 +73,10 @@ func TestBackgroundFailureAndCompletionAfterNavigation(t *testing.T) {
 		t.Fatal("retry failed")
 	}
 }
-func TestInstallScreenUsesEmbeddedSkillsOnlyCommand(t *testing.T) {
+func TestSyncUsesGenerateThenInstallPipeline(t *testing.T) {
 	m := newModel(t)
-	t.Setenv("HOME", m.options.Home)
-	t.Setenv("PATH", t.TempDir())
-	t.Setenv("GROK_BIN_DIR", t.TempDir())
-	bin := filepath.Join(m.options.Home, ".local", "bin")
-	if err := os.MkdirAll(bin, 0755); err != nil {
-		t.Fatal(err)
-	}
-	for _, name := range []string{"claude", "codex"} {
-		if err := os.WriteFile(filepath.Join(bin, name), []byte("unused"), 0755); err != nil {
-			t.Fatal(err)
-		}
-	}
-	m.open("install")
+	stubSyncAgents(t, m)
+	m.open("sync")
 	var got []string
 	m.options.Background = func(_ context.Context, args []string) (string, error) {
 		got = args
@@ -96,10 +87,10 @@ func TestInstallScreenUsesEmbeddedSkillsOnlyCommand(t *testing.T) {
 	if !reflect.DeepEqual(got, []string{"install", "--skills-only", "--agent", "claude", "--agent", "codex"}) {
 		t.Fatal(got)
 	}
-	if !strings.Contains(ansi.Strip(m.View()), "Skills installed for Claude Code, OpenAI Codex") {
+	if !strings.Contains(ansi.Strip(m.View()), "Skills synced for Claude Code, OpenAI Codex") {
 		t.Fatal("missing install result")
 	}
-	exportRegressionView(t, "install-result", m.View())
+	exportRegressionView(t, "sync-detected-result", m.View())
 }
 func TestBackgroundOutputIsBoundedAndQuitCancels(t *testing.T) {
 	var tail outputTail
@@ -109,9 +100,10 @@ func TestBackgroundOutputIsBoundedAndQuitCancels(t *testing.T) {
 		t.Fatal("unbounded or lost output")
 	}
 	m := newModel(t)
-	m.open("generate")
+	stubSyncAgents(t, m)
+	m.open("sync")
 	m.options.Background = func(ctx context.Context, _ []string) (string, error) { <-ctx.Done(); return "", ctx.Err() }
-	cmd := m.startOperation("generate")
+	cmd := m.startOperation("sync")
 	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	message := cmd().(operationFinished)
 	if !errors.Is(message.err, context.Canceled) {
@@ -144,16 +136,32 @@ func TestHelpRestoresDraftAndPaletteScroll(t *testing.T) {
 	exportRegressionView(t, "palette", m.View())
 }
 
-func TestInstallWithoutDetectedAgentsDoesNotRun(t *testing.T) {
+func TestSyncWithoutDetectedAgentsDoesNotRun(t *testing.T) {
 	m := newModel(t)
 	t.Setenv("HOME", m.options.Home)
 	t.Setenv("PATH", t.TempDir())
 	t.Setenv("GROK_BIN_DIR", t.TempDir())
-	m.open("install")
+	m.open("sync")
 	if cmd := m.operationKey("enter"); cmd != nil || m.job != nil {
 		t.Fatal("installation started without detected agents")
 	}
 	if !strings.Contains(m.status, "No supported agents detected") {
 		t.Fatal(m.status)
+	}
+}
+
+func stubSyncAgents(t *testing.T, m *Model) {
+	t.Helper()
+	t.Setenv("HOME", m.options.Home)
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GROK_BIN_DIR", t.TempDir())
+	bin := filepath.Join(m.options.Home, ".local", "bin")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"claude", "codex"} {
+		if err := os.WriteFile(filepath.Join(bin, name), []byte("unused"), 0755); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

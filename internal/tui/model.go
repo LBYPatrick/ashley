@@ -35,7 +35,7 @@ type Options struct {
 type completed struct{ err error }
 type tick time.Time
 
-var hub = []string{"Vibe", "Sessions", "History", "Generate", "Install", "Create", "Stats", "Settings"}
+var hub = []string{"Vibe", "Sessions", "History", "Sync", "Create", "Stats", "Settings"}
 var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
@@ -227,7 +227,7 @@ func (m *Model) open(screen string) {
 	m.filter.Blur()
 	m.question.Blur()
 	m.refresh()
-	if screen == "install" {
+	if screen == "sync" {
 		m.detectInstallAgents()
 	}
 	if screen == "settings" {
@@ -276,7 +276,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case completed:
 		m.refresh()
-		if m.screen == "install" {
+		if m.screen == "sync" {
 			m.detectInstallAgents()
 		}
 		if msg.err != nil {
@@ -415,7 +415,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if key == "q" && (m.screen == "hub" || (m.options.Screen == m.screen && (m.screen == "history" || m.screen == "sessions"))) {
 			return m, m.quit()
 		}
-		if m.screen == "generate" || m.screen == "install" {
+		if m.screen == "sync" {
 			return m, m.operationKey(key)
 		}
 		switch key {
@@ -494,13 +494,11 @@ func (m *Model) activate() tea.Cmd {
 	case "hub":
 		key := strings.ToLower(hub[m.cursor])
 		switch key {
-		case "generate":
+		case "sync":
 			m.open(key)
-			if m.job == nil || m.job.kind != "generate" {
-				return m.startOperation("generate")
+			if m.job == nil || m.job.kind != "sync" {
+				return m.startOperation("sync")
 			}
-		case "install":
-			m.open(key)
 		default:
 			m.open(key)
 		}

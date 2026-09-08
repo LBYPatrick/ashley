@@ -39,7 +39,7 @@ func TestScreenHierarchyAndContent(t *testing.T) {
 				t.Fatal("missing original header", rows[0])
 			}
 			expected := map[string][]string{
-				"hub":      {"Home", "Generate", "Install", "Skill Browser"},
+				"hub":      {"Home", "Sync", "Skill Browser"},
 				"vibe":     {"Skills", "Overview", "Workflow", "Run mode"},
 				"sessions": {"Sessions", "No sessions found.", "Log (last 50 lines)"},
 				"history":  {"History", "Page 1/1", "No history yet.", "Search history"},

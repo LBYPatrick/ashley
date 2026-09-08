@@ -13,7 +13,7 @@ when an intended behavior change has been reviewed, using `make ui-reference`
 or `uv run python tests/reference/capture_parity.py`. The redesigned Go screens have responsive geometry, content, and interaction
 tests; Python screen snapshots remain historical references. Real-terminal
 integration tests also copy only the binary into an isolated directory with
-an empty PATH and verify generation and installation for all five agents.
+an empty PATH and verify the combined Sync generation and installation for all five agents.
 
 Put optional visual exports under `test-results/`, for example:
 
