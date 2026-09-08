@@ -56,8 +56,7 @@ curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remo
 
 Downloads and verifies the matching release binary into `~/.local/bin/ash`,
 then installs skills and the selected agent. No checkout, Python, uv, or Go
-toolchain is installed. Binary release assets must be published before using
-this installation path; use the developer build below to try this branch.
+toolchain is installed. Native release assets are available starting with v0.4.0.
 
 The installer asks which coding agent to set up. Skip the question with a flag:
 
@@ -67,8 +66,7 @@ curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, -
 
 ### Migrating from Python
 
-Use the migration script instead of running the old `make install`. Once the
-first native release is published and this script is on `main`:
+Use the migration script instead of running the old `make install`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/migrate-python.sh -o /tmp/ashley-migrate.sh
@@ -91,8 +89,8 @@ bash /tmp/ashley-migrate.sh --source ~/code/ashley --install-dir ~/.local/bin --
 # Pin a published native release with --version X.Y.Z.
 ```
 
-Before the first release, or for an offline migration, use a trusted native
-binary built by CI or extracted from a verified release archive:
+For an offline migration, use a trusted native binary built by CI or extracted
+from a verified release archive:
 
 ```bash
 bash scripts/migrate-python.sh --binary /path/to/ash
