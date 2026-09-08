@@ -38,14 +38,17 @@ type screenLayout struct{ left, right, list, detail, input, mode rect }
 
 func (m *Model) layout() screenLayout {
 	w, h := max(20, m.width), max(8, m.height)
-	margin := max(2, (w-132)/2)
+	margin := 2
+	if m.screen == "hub" {
+		margin = max(2, (w-132)/2)
+	}
 	available := w - 2*margin
 	sidebar := 28
 	if m.screen == "sessions" {
-		sidebar = 34
+		sidebar = min(56, max(34, available/4))
 	}
 	if m.screen == "history" {
-		sidebar = 38
+		sidebar = min(64, max(38, available/4))
 	}
 	sidebar = min(sidebar, max(12, available*2/5))
 	bottom := h - 2
@@ -62,6 +65,13 @@ func (m *Model) layout() screenLayout {
 	l.detail = rect{l.right.x + 1, 3, max(1, l.right.w-2), max(1, bottom-4)}
 	l.input = rect{margin, h - 5, available, 3}
 	l.mode = rect{margin, h - 6, available, 1}
+	if m.screen == "vibe" {
+		// Keep the prompt and its controls together while browser panels expand.
+		promptWidth := min(132, w-4)
+		promptX := (w - promptWidth) / 2
+		l.input = rect{promptX, h - 5, promptWidth, 3}
+		l.mode = rect{promptX, h - 6, promptWidth, 1}
+	}
 	if m.maximized {
 		l.list = rect{margin, 5, available, max(1, bottom-5)}
 		l.left.w = available
@@ -309,9 +319,10 @@ func (m *Model) browserView(f *frame, a appearance) {
 				x += ansi.StringWidth(text) + 1
 			}
 			hint := []string{"Standard permission prompts", "Skip all permission checks", "Auto-accept edits", "Fully autonomous — implies DSP"}[m.mode] + " · " + agents.Get(m.agent).Label
-			available := max(0, f.width-x-3)
+			right := l.mode.x + l.mode.w
+			available := max(0, right-x-1)
 			hint = ansi.Truncate(hint, available, "…")
-			f.put(f.width-ansi.StringWidth(hint)-2, l.mode.y, a.muted.Render(hint))
+			f.put(right-ansi.StringWidth(hint), l.mode.y, a.muted.Render(hint))
 		}
 		f.input(l.input, m.question.Value(), "Enter your question, then press Enter to run...", m.focus == "question", a, m.question.Position())
 		if m.focus == "filter" {

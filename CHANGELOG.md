@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Expand Skills, Sessions, and History to the terminal width, adapt list columns, and align run-mode hints with the prompt field.
+
 - Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.
 
 - Fix the Go Settings freeze and panel styling spills by composing terminal cells instead of duplicating ANSI sequences.

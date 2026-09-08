@@ -104,3 +104,27 @@ func TestPopulatedBrowsersPreserveAllDetails(t *testing.T) {
 		t.Fatal("unbounded analytics scroll")
 	}
 }
+
+func TestBrowserLayoutUsesWideTerminalAndResizes(t *testing.T) {
+	for _, screen := range []string{"vibe", "sessions", "history"} {
+		m := newModel(t)
+		m.open(screen)
+		for _, width := range []int{80, 190, 260, 100} {
+			m.Update(tea.WindowSizeMsg{Width: width, Height: 40})
+			l := m.layout()
+			if l.left.x != 2 || l.right.x+l.right.w != width-2 {
+				t.Fatalf("%s at %d leaves unused margins: %+v", screen, width, l)
+			}
+			if screen == "vibe" && (l.input.w != min(132, width-4) || l.mode.x != l.input.x || l.mode.w != l.input.w) {
+				t.Fatalf("prompt and mode controls must share bounded edges: %+v", l)
+			}
+			if m.preview.Width != l.detail.w {
+				t.Fatalf("%s viewport did not resize: %d != %d", screen, m.preview.Width, l.detail.w)
+			}
+			assertFrame(t, m.View(), width, 40)
+			if width == 190 {
+				exportRegressionView(t, screen+"-wide", m.View())
+			}
+		}
+	}
+}
