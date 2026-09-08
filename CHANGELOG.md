@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Install TUI skills for all detected coding agents automatically, and explain when no supported agent is installed.
+
 - Group regression tests, reference fixtures, release tooling, and migration documentation into dedicated folders; expand `make clean` to remove development artifacts.
 
 ### Changed

@@ -95,7 +95,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 				m.helpPreview = m.preview
 				m.helpLogContent = m.logContent
 			}
-			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nGenerate: R rerun · Arrows scroll results\nInstall: Left/Right agent · Enter skills · I agent CLI"
+			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nGenerate: R rerun · Arrows scroll results\nInstall: Enter installs skills for all detected agents · I agent CLI"
 			m.sizeLogPreview()
 			m.preview.GotoTop()
 			m.screen = "help"

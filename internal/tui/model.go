@@ -41,7 +41,7 @@ var modes = []string{"default", "dsp", "auto", "afk"}
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
 	job                                 *operation
-	installIndex                        int
+	installAgents                       []string
 	helpReturn                          string
 	helpPreview                         viewport.Model
 	helpLogContent                      string
@@ -228,11 +228,7 @@ func (m *Model) open(screen string) {
 	m.question.Blur()
 	m.refresh()
 	if screen == "install" {
-		for i, key := range []string{"claude", "codex", "grok", "opencode", "kilo"} {
-			if key == m.agent {
-				m.installIndex = i
-			}
-		}
+		m.detectInstallAgents()
 	}
 	if screen == "settings" {
 		m.focusSettings()
@@ -280,6 +276,9 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case completed:
 		m.refresh()
+		if m.screen == "install" {
+			m.detectInstallAgents()
+		}
 		if msg.err != nil {
 			m.status = msg.err.Error()
 		} else {

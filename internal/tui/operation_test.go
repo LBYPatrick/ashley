@@ -3,6 +3,8 @@ package tui
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -71,8 +73,19 @@ func TestBackgroundFailureAndCompletionAfterNavigation(t *testing.T) {
 }
 func TestInstallScreenUsesEmbeddedSkillsOnlyCommand(t *testing.T) {
 	m := newModel(t)
+	t.Setenv("HOME", m.options.Home)
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GROK_BIN_DIR", t.TempDir())
+	bin := filepath.Join(m.options.Home, ".local", "bin")
+	if err := os.MkdirAll(bin, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"claude", "codex"} {
+		if err := os.WriteFile(filepath.Join(bin, name), []byte("unused"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	m.open("install")
-	key(m, "left")
 	var got []string
 	m.options.Background = func(_ context.Context, args []string) (string, error) {
 		got = args
@@ -80,10 +93,10 @@ func TestInstallScreenUsesEmbeddedSkillsOnlyCommand(t *testing.T) {
 	}
 	cmd := m.operationKey("enter")
 	m.Update(cmd())
-	if !reflect.DeepEqual(got, []string{"install", "--agent", "all", "--skills-only"}) {
+	if !reflect.DeepEqual(got, []string{"install", "--skills-only", "--agent", "claude", "--agent", "codex"}) {
 		t.Fatal(got)
 	}
-	if !strings.Contains(ansi.Strip(m.View()), "Skills installed for all") {
+	if !strings.Contains(ansi.Strip(m.View()), "Skills installed for Claude Code, OpenAI Codex") {
 		t.Fatal("missing install result")
 	}
 	exportRegressionView(t, "install-result", m.View())
@@ -129,4 +142,18 @@ func TestHelpRestoresDraftAndPaletteScroll(t *testing.T) {
 		t.Fatal("last command hidden")
 	}
 	exportRegressionView(t, "palette", m.View())
+}
+
+func TestInstallWithoutDetectedAgentsDoesNotRun(t *testing.T) {
+	m := newModel(t)
+	t.Setenv("HOME", m.options.Home)
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GROK_BIN_DIR", t.TempDir())
+	m.open("install")
+	if cmd := m.operationKey("enter"); cmd != nil || m.job != nil {
+		t.Fatal("installation started without detected agents")
+	}
+	if !strings.Contains(m.status, "No supported agents detected") {
+		t.Fatal(m.status)
+	}
 }

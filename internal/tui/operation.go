@@ -52,12 +52,20 @@ func (m *Model) startOperation(kind string) tea.Cmd {
 	args := []string{"generate", "--output", destination}
 	if kind == "install" {
 		destination = filepath.Join(m.options.Home, ".ashley", "generated")
-		args = []string{"install", "--agent", m.installTarget(), "--skills-only"}
+		m.detectInstallAgents()
+		if len(m.installAgents) == 0 {
+			m.status = "No supported agents detected. Set up an agent CLI, then try again."
+			return nil
+		}
+		args = []string{"install", "--skills-only"}
+		for _, key := range m.installAgents {
+			args = append(args, "--agent", key)
+		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	job := &operation{kind: kind, busy: true, destination: destination, cancel: cancel}
 	if kind == "install" {
-		job.target = m.installTarget()
+		job.target = m.installLabels()
 	}
 	m.job = job
 	m.screenScroll = 0
@@ -89,25 +97,28 @@ func (m *Model) startOperation(kind string) tea.Cmd {
 		return operationFinished{job, sessions.DisplayLog(output), err, time.Since(start)}
 	}
 }
-func (m *Model) installTarget() string {
-	keys := append(agents.Keys(), "all")
-	return keys[min(m.installIndex, len(keys)-1)]
+func (m *Model) detectInstallAgents() {
+	m.installAgents = nil
+	for _, key := range agents.Keys() {
+		if _, err := agents.FindBinary(agents.Get(key).Binary); err == nil {
+			m.installAgents = append(m.installAgents, key)
+		}
+	}
+}
+func (m *Model) installLabels() string {
+	labels := make([]string, 0, len(m.installAgents))
+	for _, key := range m.installAgents {
+		labels = append(labels, agents.Get(key).Label)
+	}
+	return strings.Join(labels, ", ")
 }
 func (m *Model) operationKey(key string) tea.Cmd {
 	switch key {
 	case "enter", "r":
 		return m.startOperation(m.screen)
-	case "left", "right":
-		if m.screen == "install" && (m.job == nil || !m.job.busy) {
-			d := 1
-			if key == "left" {
-				d = -1
-			}
-			m.installIndex = (m.installIndex + d + 6) % 6
-		}
 	case "i":
 		if m.screen == "install" && (m.job == nil || !m.job.busy) {
-			return m.execute("install", "--agent", m.installTarget())
+			return m.execute("install", "--agent", m.agent)
 		}
 	case "up", "pgup":
 		m.screenScroll = max(0, m.screenScroll-3)
@@ -122,13 +133,11 @@ func (m *Model) operationText() string {
 	action := "Enter Generate   ·   Esc Back"
 	if m.screen == "install" {
 		title = "Install skills"
-		label := m.installTarget()
-		if label != "all" {
-			label = agents.Get(label).Label
-		} else {
-			label = "All five agents"
+		label := m.installLabels()
+		if label == "" {
+			label = "None — set up an agent CLI to get started."
 		}
-		description = "Link your skills to a coding agent. Existing custom skills are preserved.\n\nAgent:  " + label + "   ← → change"
+		description = "Install skills for every detected coding agent. Existing custom skills are preserved.\n\nDetected:  " + label + "\n\nI sets up " + agents.Get(m.agent).Label + " (chosen in Settings)."
 		action = "Enter Install skills   ·   I Set up agent CLI   ·   Esc Back"
 	}
 	text := title + "\n\n" + description

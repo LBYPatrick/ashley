@@ -624,7 +624,14 @@ def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation)
     (config / "theme.json").write_text('{"mode":"dark","preset":"blue"}')
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
-    # No checkout, toolchain, interpreter, shell, or external agent executable.
+    # Detection-only executable fixtures must never be invoked. No runtime tools.
+    if operation == "install":
+        agent_bin = tmp_path / ".local/bin"
+        agent_bin.mkdir(parents=True)
+        for agent in ("claude", "codex", "grok", "opencode", "kilo"):
+            fixture = agent_bin / agent
+            fixture.write_text("not an executable format; detection only")
+            fixture.chmod(0o755)
     env = {
         "HOME": str(tmp_path),
         "PATH": "",
@@ -657,8 +664,8 @@ def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation)
         os.write(master, b"\x1b[B" * (3 if operation == "generate" else 4) + b"\r")
         if operation == "install":
             wait_for(b"Install skills")
-            os.write(master, b"\x1b[D\r")  # All agents, skills only.
-            wait_for(b"Skills installed for all")
+            os.write(master, b"\r")  # All detected agents, skills only.
+            wait_for(b"Skills installed for Claude Code")
             for directory in (
                 ".claude",
                 ".codex",

@@ -249,8 +249,9 @@ Run `ash` to launch the hub:
 | **Settings** | Coding agent, theme & colour | — |
 
 Generate runs in the background and keeps its destination and result visible;
-press `R` to regenerate. Install lets you choose an agent with Left/Right and
-install embedded skills with Enter. Press `I` to also set up the agent CLI.
+press `R` to regenerate. Install detects supported agent executables on PATH and in native install
+locations; Enter installs embedded skills for every detected agent. Press `I`
+to set up the agent selected in Settings.
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse

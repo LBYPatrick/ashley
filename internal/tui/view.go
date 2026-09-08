@@ -107,7 +107,7 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "generate":
 		text = "esc Back  r Generate again  ↑↓ Scroll"
 	case "install":
-		text = "esc Back  enter Install skills  ←→ Agent  i Set up CLI"
+		text = "esc Back  enter Install detected  i Set up CLI"
 	case "help", "log":
 		text = "esc Back  pgup/pgdown Scroll"
 	}
