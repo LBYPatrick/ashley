@@ -92,15 +92,15 @@ func (f *frame) scrollbar(r rect, virtual, position int, a appearance) {
 		style := a.base
 		glyph := ' '
 		if index >= start/8 && index < end/8 {
-			style = a.base.Background(lipgloss.Color(blendColor(a.accent, a.bg, .005)))
+			style = a.base.Background(lipgloss.Color(blendColor(a.accent, a.bg, .25)))
 		}
 		if index == start/8 && bars[7-start%8] != ' ' {
 			glyph = bars[7-start%8]
-			style = a.base.Foreground(lipgloss.Color(blendColor(a.accent, a.bg, .005)))
+			style = a.base.Foreground(lipgloss.Color(blendColor(a.accent, a.bg, .25)))
 		}
 		if index == end/8 && bars[7-end%8] != ' ' {
 			glyph = bars[7-end%8]
-			style = a.base.Foreground(lipgloss.Color(blendColor(a.accent, a.bg, .005))).Reverse(true)
+			style = a.base.Foreground(lipgloss.Color(blendColor(a.accent, a.bg, .25))).Reverse(true)
 		}
 		f.put(r.x, r.y+index, style.Render(strings.Repeat(string(glyph), r.w)))
 	}

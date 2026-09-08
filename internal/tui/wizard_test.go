@@ -117,7 +117,7 @@ func TestGuidedCreatorBackMouseResizeAndAdvancedEditor(t *testing.T) {
 	}
 	wizardText(m, "Mouse creation")
 	wizardPress(m, tea.KeyCtrlN)
-	m.Update(tea.MouseMsg{X: 2, Y: 5, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
+	m.Update(tea.MouseMsg{X: m.readingRect().x + 1, Y: 9, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
 	if !w.selected[w.files[0]] {
 		t.Fatal("mouse did not toggle resource")
 	}

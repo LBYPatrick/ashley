@@ -606,3 +606,91 @@ def test_first_install_agent_selection_in_terminal(binary, tmp_path, answer, exp
             process.kill()
             process.wait(timeout=5)
         os.close(master)
+
+
+@pytest.mark.parametrize("operation", ["generate", "install"])
+def test_tui_operations_use_only_the_shipped_binary(binary, tmp_path, operation):
+    import fcntl
+    import pty
+    import select
+    import struct
+    import termios
+    import time
+
+    standalone = tmp_path / "ash"
+    shutil.copy2(binary, standalone)
+    config = tmp_path / ".ashley"
+    config.mkdir()
+    (config / "theme.json").write_text('{"mode":"dark","preset":"blue"}')
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+    # No checkout, toolchain, interpreter, shell, or external agent executable.
+    env = {
+        "HOME": str(tmp_path),
+        "PATH": "",
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor",
+        "XDG_DATA_HOME": str(tmp_path / "data"),
+    }
+    process = subprocess.Popen(
+        [str(standalone)],
+        cwd=tmp_path,
+        env=env,
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+    )
+    os.close(slave)
+    output = b""
+
+    def wait_for(text):
+        nonlocal output
+        deadline = time.monotonic() + 8
+        while text not in output and time.monotonic() < deadline:
+            if select.select([master], [], [], 0.05)[0]:
+                output += os.read(master, 65536)
+            assert process.poll() is None, output.decode(errors="replace")
+        assert text in output, output.decode(errors="replace")
+
+    try:
+        wait_for(b"Ashley")
+        os.write(master, b"\x1b[B" * (3 if operation == "generate" else 4) + b"\r")
+        if operation == "install":
+            wait_for(b"Install skills")
+            os.write(master, b"\x1b[D\r")  # All agents, skills only.
+            wait_for(b"Skills installed for all")
+            for directory in (
+                ".claude",
+                ".codex",
+                ".grok",
+                ".config/opencode",
+                ".kilo",
+            ):
+                path = tmp_path / directory / "skills/a-feat/SKILL.md"
+                assert path.is_file()
+                assert len(path.read_text()) > 1000
+                assert path.resolve().is_relative_to(config / "generated")
+        else:
+            wait_for(b"Skills generated")
+            assert (tmp_path / "generated/a-feat/SKILL.md").is_file()
+            assert (tmp_path / "generated/a-debug/SKILL.md").is_file()
+        # Quick operations keep the same alternate screen instead of flashing
+        # command output on the shell and losing the result.
+        assert output.count(b"\x1b[?1049h") == 1
+        assert b"\x1b[?1049l" not in output
+        assert not (tmp_path / ".venv").exists()
+        os.write(master, b"\x03")
+        deadline = time.monotonic() + 3
+        while process.poll() is None and time.monotonic() < deadline:
+            if select.select([master], [], [], 0.05)[0]:
+                try:
+                    os.read(master, 65536)
+                except OSError:
+                    break
+        process.wait(timeout=1)
+        assert process.returncode == 0
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+        os.close(master)

@@ -45,12 +45,13 @@ func (m *Model) createKey(msg tea.KeyMsg) tea.Cmd {
 	case "ctrl+s":
 		m.saveCreated()
 		return nil
-	case "ctrl+p":
+	case "ctrl+r":
 		_, _, preview, err := m.createdDefinition()
 		if err != nil {
 			m.status = err.Error()
 		} else {
-			m.preview.SetContent(preview)
+			m.logContent = preview
+			m.sizeLogPreview()
 			m.screen = "create-preview"
 		}
 		return nil

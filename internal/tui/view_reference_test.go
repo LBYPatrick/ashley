@@ -16,8 +16,8 @@ import (
 	"github.com/muesli/termenv"
 )
 
-// Settings intentionally has its own redesigned layout and interaction tests.
-func TestOriginalPythonScreenLayouts(t *testing.T) {
+// Check information and wayfinding independently of the previous Python geometry.
+func TestScreenHierarchyAndContent(t *testing.T) {
 	if os.Getenv("ASHLEY_UI_EXPORT") != "" {
 		previous := lipgloss.ColorProfile()
 		lipgloss.SetColorProfile(termenv.TrueColor)
@@ -38,17 +38,21 @@ func TestOriginalPythonScreenLayouts(t *testing.T) {
 			if !strings.Contains(rows[0], "Ashley v"+ashley.Version()) {
 				t.Fatal("missing original header", rows[0])
 			}
-			for index := range rows {
-				rows[index] = strings.TrimRight(rows[index], " ")
+			expected := map[string][]string{
+				"hub":      {"Home", "Generate", "Install", "Skill Browser"},
+				"vibe":     {"Skills", "Overview", "Workflow", "Run mode"},
+				"sessions": {"Sessions", "No sessions found.", "Log (last 50 lines)"},
+				"history":  {"History", "Page 1/1", "No history yet.", "Search history"},
+				"stats":    {"Analytics", "Total invocations", "No invocations recorded yet."},
+				"create":   {"Create skill", "Step 1/4", "Name", "Description", "Extends"},
 			}
-			actual := strings.Join(rows[1:], "\n") + "\n"
-			expected, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "ui", "python", screen+".txt"))
-			if err != nil {
-				t.Fatal(err)
+			plain := ansi.Strip(rendered)
+			for _, field := range expected[screen] {
+				if !strings.Contains(plain, field) {
+					t.Fatalf("%s missing %q\n%s", screen, field, plain)
+				}
 			}
-			if actual != string(expected) {
-				t.Fatalf("%s differs from original Python layout\n%s", screen, actual)
-			}
+
 		})
 	}
 }

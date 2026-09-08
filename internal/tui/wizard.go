@@ -11,6 +11,7 @@ import (
 	"github.com/LBYPatrick/ashley/internal/skills"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type creatorWizard struct {
@@ -183,7 +184,8 @@ func (m *Model) wizardPreview() bool {
 		return false
 	}
 	m.preview.Width = max(20, m.width-6)
-	m.preview.SetContent(content)
+	m.logContent = content
+	m.preview.SetContent(ansi.Wrap(content, m.readingRect().w, ""))
 	m.preview.GotoTop()
 	return true
 }

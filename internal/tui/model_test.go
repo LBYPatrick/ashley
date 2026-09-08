@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -94,15 +95,29 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 		t.Fatal(m.screen)
 	}
 	m.cursor = 3
-	key(m, "enter")
-	if !reflect.DeepEqual(args, []string{"generate"}) {
+	m.options.Background = func(_ context.Context, argv []string) (string, error) {
+		args = argv
+		return "generated/a-feat/SKILL.md", nil
+	}
+	cmd := m.activate()
+	if m.screen != "generate" || cmd == nil {
+		t.Fatal("Generate did not open its result page")
+	}
+	m.Update(cmd())
+	if len(args) < 1 || args[0] != "generate" || m.job.busy {
 		t.Fatal(args)
 	}
+	key(m, "esc")
 	m.cursor = 4
 	key(m, "enter")
-	if !reflect.DeepEqual(args, []string{"install"}) {
+	if m.screen != "install" {
+		t.Fatal("Install did not open")
+	}
+	key(m, "i")
+	if !reflect.DeepEqual(args, []string{"install", "--agent", m.agent}) {
 		t.Fatal(args)
 	}
+
 }
 func TestSettingsPersistAllChoices(t *testing.T) {
 	m := newModel(t)
@@ -233,6 +248,12 @@ func TestCreatorValidatesPreviewsAndSavesCustomSkill(t *testing.T) {
 	if err != nil || name != "custom" || !strings.Contains(preview, "Done") {
 		t.Fatal(name, preview, err)
 	}
+	m.wizard = nil
+	key(m, "ctrl+r")
+	if m.screen != "create-preview" || !strings.Contains(m.logContent, "Done") {
+		t.Fatal("JSON preview shortcut did not open the assembled skill")
+	}
+	key(m, "esc")
 	m.saveCreated()
 	path := filepath.Join(m.options.Home, ".ashley", "skills", "custom.jsonc")
 	data, err := os.ReadFile(path)
@@ -379,7 +400,7 @@ func TestClipboardCopiesPromptAndReportsUnavailableCommand(t *testing.T) {
 		t.Fatal("clipboard altered multiline text", message.err, err)
 	}
 	m.Update(message)
-	if m.status != "Completed." {
+	if m.status != "✓ Completed successfully." {
 		t.Fatal(m.status)
 	}
 	t.Setenv("PATH", t.TempDir())

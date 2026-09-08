@@ -248,6 +248,10 @@ Run `ash` to launch the hub:
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
 
+Generate runs in the background and keeps its destination and result visible;
+press `R` to regenerate. Install lets you choose an agent with Left/Right and
+install embedded skills with Enter. Press `I` to also set up the agent CLI.
+
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
 required, so it works over SSH/mosh.
@@ -273,6 +277,12 @@ All read the same generated `SKILL.md` packages. Claude and Grok use slash
 commands, Codex uses `$` mentions, and Ashley asks OpenCode and Kilo to load
 the named skill. Kilo installation requires Node.js/npm; its bootstrap uses
 `npm install -g @kilocode/cli`.
+
+The shipped executable embeds all built-in skill definitions, components, and
+resources. `ash install --all --skills-only` assembles them into
+`~/.ashley/generated` and links them into the agents’ user directories, without
+a source checkout, network access, or Go/Python tooling. Agent CLI setup may
+require its vendor’s network installer.
 
 Installing from `--root` imports complete custom packages from `generated/`,
 including supporting files and executable scripts, into `~/.ashley/generated`.

@@ -10,9 +10,10 @@ Run `make gate` from the repository root for the complete suite.
 
 Fixtures are test inputs, not disposable build outputs. Regenerate them only
 when an intended behavior change has been reviewed, using `make ui-reference`
-or `uv run python tests/reference/capture_parity.py`. Settings has a redesigned
-Go layout with its own responsive and interaction tests; it no longer uses a
-Python screen snapshot.
+or `uv run python tests/reference/capture_parity.py`. The redesigned Go screens have responsive geometry, content, and interaction
+tests; Python screen snapshots remain historical references. Real-terminal
+integration tests also copy only the binary into an isolated directory with
+an empty PATH and verify generation and installation for all five agents.
 
 Put optional visual exports under `test-results/`, for example:
 

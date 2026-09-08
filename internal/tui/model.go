@@ -2,6 +2,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -29,6 +30,7 @@ type Options struct {
 	Catalog            skills.Catalog
 	Home, Root, Screen string
 	Execute            func([]string) tea.Cmd
+	Background         func(context.Context, []string) (string, error)
 }
 type completed struct{ err error }
 type tick time.Time
@@ -38,6 +40,11 @@ var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
+	job                                 *operation
+	installIndex                        int
+	helpReturn                          string
+	helpPreview                         viewport.Model
+	helpLogContent                      string
 	wizard                              *creatorWizard
 	sessionAlive                        map[string]bool
 	sessionLog                          string
@@ -97,6 +104,7 @@ func New(options Options) (*Model, error) {
 	m.refresh()
 	if m.screen == "create" {
 		m.startCreator()
+		m.sizeCreatorEditor()
 	}
 	return m, nil
 }
@@ -219,11 +227,19 @@ func (m *Model) open(screen string) {
 	m.filter.Blur()
 	m.question.Blur()
 	m.refresh()
+	if screen == "install" {
+		for i, key := range []string{"claude", "codex", "grok", "opencode", "kilo"} {
+			if key == m.agent {
+				m.installIndex = i
+			}
+		}
+	}
 	if screen == "settings" {
 		m.focusSettings()
 	}
 	if screen == "create" {
 		m.startCreator()
+		m.sizeCreatorEditor()
 	}
 }
 
@@ -245,19 +261,29 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if m.screen == "settings" {
 			m.keepSettingVisible()
 		}
-		if m.screen == "log" {
+		if m.screen == "log" || m.screen == "help" || m.screen == "create-preview" {
 			m.sizeLogPreview()
 		}
-		if m.wizard != nil {
-			m.wizard.input.SetWidth(max(20, msg.Width-8))
-			m.wizard.input.SetHeight(max(3, msg.Height-17))
+		if m.screen == "create" {
+			m.sizeCreatorEditor()
+			m.keepCreatorVisible()
+		}
+	case operationFinished:
+		if m.job == msg.job {
+			m.job.busy = false
+			m.job.output = msg.output
+			m.job.err = msg.err
+			m.job.elapsed = msg.elapsed
+			if m.screen != m.job.kind {
+				m.status = "Task finished. Open " + m.job.kind + " to see the result."
+			}
 		}
 	case completed:
 		m.refresh()
 		if msg.err != nil {
 			m.status = msg.err.Error()
 		} else {
-			m.status = "Completed."
+			m.status = "✓ Completed successfully."
 		}
 	case tick:
 		if m.screen == "sessions" {
@@ -296,6 +322,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if m.screen == "create" && key != "ctrl+c" {
 			cmd := m.createKey(msg)
 			m.keepCreatorVisible()
+			m.sizeCreatorEditor()
 			return m, cmd
 		}
 		if m.screen == "create-preview" && key == "esc" {
@@ -303,7 +330,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if key == "ctrl+c" {
-			return m, tea.Quit
+			return m, m.quit()
 		}
 		if m.focus != "" {
 			if key == "tab" {
@@ -358,6 +385,18 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.settingsKey(key)
 		}
 		if key == "esc" {
+			if m.screen == "help" {
+				m.screen = m.helpReturn
+				m.preview = m.helpPreview
+				m.logContent = m.helpLogContent
+				if m.screen == "log" || m.screen == "create-preview" {
+					m.sizeLogPreview()
+				}
+				if m.screen == "create" {
+					m.sizeCreatorEditor()
+				}
+				return m, nil
+			}
 			if m.screen == "log" {
 				m.open("sessions")
 				return m, nil
@@ -369,13 +408,16 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if m.screen == "hub" {
-				return m, tea.Quit
+				return m, m.quit()
 			}
 			m.open("hub")
 			return m, nil
 		}
 		if key == "q" && (m.screen == "hub" || (m.options.Screen == m.screen && (m.screen == "history" || m.screen == "sessions"))) {
-			return m, tea.Quit
+			return m, m.quit()
+		}
+		if m.screen == "generate" || m.screen == "install" {
+			return m, m.operationKey(key)
 		}
 		switch key {
 		case "up", "k":
@@ -438,7 +480,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				if key == "pgup" {
 					delta = -delta
 				}
-				m.screenScroll = max(0, m.screenScroll+delta)
+				m.screenScroll = max(0, min(m.statsMaxScroll(), m.screenScroll+delta))
 				return m, nil
 			}
 			var cmd tea.Cmd
@@ -454,9 +496,12 @@ func (m *Model) activate() tea.Cmd {
 		key := strings.ToLower(hub[m.cursor])
 		switch key {
 		case "generate":
-			return m.execute("generate")
+			m.open(key)
+			if m.job == nil || m.job.kind != "generate" {
+				return m.startOperation("generate")
+			}
 		case "install":
-			return m.execute("install")
+			m.open(key)
 		default:
 			m.open(key)
 		}

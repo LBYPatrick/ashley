@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Group regression tests, reference fixtures, release tooling, and migration documentation into dedicated folders; expand `make clean` to remove development artifacts.
 
+### Changed
+
+- Polish every TUI page with consistent spacing, bounded reading columns, clearer focus, responsive creator forms, and a compact command palette; preserve analytics gradients and session details.
+- Keep Generate and skills-only Install inside the TUI with persistent results, destinations, retry actions, and cancellable background work.
+- Verify embedded skill installation for all five agents using only the shipped binary with no language tools on PATH.
+
 ### Fixed
 
 - Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.

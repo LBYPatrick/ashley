@@ -78,7 +78,7 @@ func (m *Model) settingsView(f *frame, a appearance) {
 			}
 		}
 		if control.row == 4 {
-			style = a.selected.Foreground(lipgloss.Color("#161616"))
+			style = a.base.Background(lipgloss.Color(a.accent)).Foreground(lipgloss.Color("#161616")).Bold(true)
 		}
 		content.fill(r, style)
 		marker := " "
@@ -176,44 +176,6 @@ func abs(v int) int {
 	}
 	return v
 }
-func (m *Model) creatorView(f *frame, a appearance) {
-	if m.wizard == nil {
-		f.text(rect{2, 2, f.width - 4, f.height - 4}, m.editor.View(), a.base, 0)
-		return
-	}
-	w := m.wizard
-	if w.stage != 0 {
-		f.text(rect{2, 2, f.width - 4, f.height - 4}, m.wizardView(), a.base, m.screenScroll)
-		return
-	}
-	content := newFrame(f.width, 45, a.base)
-	content.put(2, 3, a.title.Render("Step 1/4 — Basics"))
-	content.put(2, 6, a.base.Bold(true).Render("Skill Name"))
-	content.put(2, 7, a.muted.Render("Lowercase, no spaces (e.g., 'lint-fix')"))
-	content.put(2, 13, a.base.Bold(true).Render("Description"))
-	content.put(2, 18, a.base.Bold(true).Render("Extends (optional)"))
-	names, _ := m.options.Catalog.Names()
-	content.text(rect{2, 19, f.width - 4, 2}, "Available: "+strings.Join(names, ", "), a.muted, 0)
-	placeholders := []string{"my-skill", "What this skill does (shown in skill list)", "(leave empty for standalone)", ""}
-	for index, y := range []int{9, 14, 22, 29} {
-		value := w.basics[index]
-		if index == w.field {
-			value = w.input.Value()
-		}
-		content.input(rect{2, y, f.width - 4, 3}, value, placeholders[index], index == w.field, a)
-	}
-	content.put(2, 26, a.base.Bold(true).Render("Preamble"))
-	content.put(2, 27, a.muted.Render("System prompt intro for the agent"))
-	content.put(2, 34, a.selected.Render("  Next →  "))
-	content.put(15, 34, a.selected.Render("  Save  "))
-	for y := 1; y < f.height-1; y++ {
-		index := y + m.screenScroll
-		if index < content.height {
-			f.put(0, y, content.row(index))
-		}
-	}
-}
-
 func (m *Model) focusSettings() {
 	m.settingsRow, m.settingsColumn = 0, 0
 	for i, key := range agents.Keys() {
@@ -224,18 +186,19 @@ func (m *Model) focusSettings() {
 	}
 }
 func (m *Model) keepCreatorVisible() {
-	if m.wizard == nil {
-		return
-	}
-	if m.wizard.stage != 0 {
+	if m.wizard == nil || m.wizard.stage != 0 {
 		m.screenScroll = 0
 		return
 	}
-	y := []int{9, 14, 22, 29}[m.wizard.field]
+	y := []int{8, 13, 18, 23}[m.wizard.field]
+	bottom := y + 3
+	if m.wizard.field == 3 {
+		bottom = y + 5
+	}
 	if y-m.screenScroll < 2 {
 		m.screenScroll = max(0, y-2)
 	}
-	if y+3-m.screenScroll > m.height-2 {
-		m.screenScroll = max(0, y+3-m.height+2)
+	if bottom-m.screenScroll > m.height-3 {
+		m.screenScroll = max(0, bottom-m.height+3)
 	}
 }

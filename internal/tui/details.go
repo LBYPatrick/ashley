@@ -13,7 +13,8 @@ import (
 	"github.com/titanous/json5"
 )
 
-var featureTitles = []string{"▸  Vibe — Skill Browser", "⇢  Sessions — Detached Runs", "◷  History — Invocation Log", "⚙  Generate — Rebuild Skills", "↓  Install — Deploy Skills", "+  Create — New Skill", "◆  Stats — Analytics", "✎  Settings — Preferences"}
+var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Generate", "Install", "Create skill", "Analytics", "Settings"}
+
 var featureDescriptions = []string{
 	"Browse skills, preview workflows, and launch your coding agent with a skill prompt.",
 	"Manage background agent sessions. Attach, view logs, or kill running sessions.",
@@ -21,7 +22,7 @@ var featureDescriptions = []string{
 	"Regenerate all skill markdown files from JSONC definitions.",
 	"Generate skills and install them into your coding agent's skills directory.",
 	"Build a new skill interactively with a step-by-step wizard.",
-	"View skill usage analytics and run-duration insights.",
+	"See which skills and coding agents you use most.",
 	"Choose the default coding agent, light or dark mode, and a colour preset.",
 }
 
@@ -84,23 +85,15 @@ func (m *Model) detailText() string {
 		if question == "" {
 			question = "(no question)"
 		}
-		r := []rune(question)
-		if len(r) > 80 {
-			question = string(r[:80]) + "..."
-		}
 		started := s.StartedAt
 		if len(started) > 19 {
 			started = started[:19]
 		}
 		started = strings.ReplaceAll(started, "T", " ")
 		text := fmt.Sprintf("Session %s\n\nStatus:     %s\nSkill:      %s\nQuestion:   %s\nStarted:    %s UTC\nElapsed:    %s\nDirectory:  %s", s.ID, state, s.Skill, question, started, s.Elapsed(time.Now()), s.CWD)
-		if m.options.Screen == "sessions" {
-			text += "\nPermission: " + s.PermissionMode
-		}
+		text += "\nAgent:      " + agents.Get(s.Agent).Label + "\nPermission: " + s.PermissionMode
 		text += "\ntmux:       " + s.TmuxSession
-		if m.options.Screen == "sessions" {
-			text += "\nLog:        " + s.LogFile
-		}
+		text += "\nLog:        " + s.LogFile
 		return text
 	case "history":
 		if len(m.historyRows) == 0 {

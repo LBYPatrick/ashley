@@ -9,8 +9,17 @@ func settingsRows() [][]string {
 }
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.paletteOpen {
-		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y >= 8 {
-			index := (msg.Y - 8) / 2
+		r := m.paletteBounds()
+		visible := max(1, r.h-7)
+		start := max(0, m.paletteCursor-visible+1)
+		if msg.Button == tea.MouseButtonWheelDown {
+			m.paletteCursor = min(max(0, len(m.paletteItems())-1), m.paletteCursor+1)
+		}
+		if msg.Button == tea.MouseButtonWheelUp {
+			m.paletteCursor = max(0, m.paletteCursor-1)
+		}
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.X >= r.x+2 && msg.X < r.x+r.w-2 && msg.Y >= r.y+5 && msg.Y < r.y+5+visible {
+			index := start + msg.Y - r.y - 5
 			if index < len(m.paletteItems()) {
 				m.paletteCursor = index
 				return m.paletteKey(tea.KeyMsg{Type: tea.KeyEnter})
@@ -39,40 +48,16 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		return nil
 	}
 	if m.screen == "create" {
-		if m.wizard != nil && m.wizard.stage == 0 {
-			if wheel {
-				m.screenScroll = max(0, min(max(0, 38-m.height), m.screenScroll+delta*3))
-				return nil
-			}
-			if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
-				y := msg.Y + m.screenScroll
-				for index, top := range []int{9, 14, 22, 29} {
-					if y >= top && y < top+3 {
-						m.wizard.collect()
-						m.wizard.field = index
-						m.wizard.loadField()
-						m.keepCreatorVisible()
-						return nil
-					}
-				}
-				if y == 34 {
-					if msg.X < 14 {
-						return m.wizardKey(tea.KeyMsg{Type: tea.KeyCtrlN})
-					}
-					return m.wizardKey(tea.KeyMsg{Type: tea.KeyCtrlS})
-				}
-			}
-			return nil
+		return m.creatorMouse(msg)
+	}
+	if m.screen == "generate" || m.screen == "install" {
+		if wheel {
+			m.screenScroll = max(0, min(m.operationMaxScroll(), m.screenScroll+delta*3))
 		}
-		if m.wizard != nil {
-			return m.wizardMouse(msg)
-		}
-		var cmd tea.Cmd
-		m.editor, cmd = m.editor.Update(msg)
-		return cmd
+		return nil
 	}
 	if m.screen == "stats" && wheel {
-		m.screenScroll = max(0, m.screenScroll+delta*3)
+		m.screenScroll = max(0, min(m.statsMaxScroll(), m.screenScroll+delta*3))
 		return nil
 	}
 	l := m.layout()
@@ -82,7 +67,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 			m.logOffset = max(0, min(m.maxLogOffset(), m.logOffset+delta*3))
 			return nil
 		}
-		if l.right.contains(msg.X, msg.Y) || m.screen == "log" || m.screen == "create-preview" {
+		if l.right.contains(msg.X, msg.Y) || m.screen == "log" || m.screen == "help" || m.screen == "create-preview" {
 			var cmd tea.Cmd
 			m.preview, cmd = m.preview.Update(msg)
 			return cmd
@@ -104,6 +89,10 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		return m.filter.Focus()
 	}
 	if m.screen == "vibe" && l.mode.contains(msg.X, msg.Y) {
+		if l.mode.w < 70 {
+			m.mode = (m.mode + 1) % 4
+			return nil
+		}
 		x := l.mode.x + 9
 		for index, width := range []int{11, 8, 9, 8} {
 			if msg.X >= x && msg.X < x+width {

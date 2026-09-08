@@ -11,7 +11,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-var paletteCommands = [][2]string{{"Keys", "Show help for the focused widget and a summary of available keys"}, {"Maximize", "Maximize the focused widget"}, {"Quit", "Quit the application as soon as possible"}, {"Screenshot", "Save an SVG 'screenshot' of the current screen"}, {"Theme", "Change the current theme"}}
+var paletteCommands = [][2]string{
+	{"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Generate", "Rebuild prompts and review the result"}, {"Install", "Install embedded skills into your user directories"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+}
 
 func (m *Model) paletteItems() [][2]string {
 	var items [][2]string
@@ -22,20 +24,32 @@ func (m *Model) paletteItems() [][2]string {
 	}
 	return items
 }
+func (m *Model) paletteBounds() rect {
+	width := min(76, max(12, m.width-6))
+	return rect{(max(20, m.width) - width) / 2, 2, width, min(max(6, m.height-4), 18)}
+}
 func (m *Model) paletteView(f *frame, a appearance) {
+	r := m.paletteBounds()
 	items := m.paletteItems()
-	height := min(f.height-4, 6+len(items)*2)
-	f.fill(rect{0, 3, f.width, height}, a.panel)
-	f.put(0, 3, a.title.Render(strings.Repeat("▔", f.width)))
-	f.input(rect{4, 4, f.width - 5, 3}, m.paletteQuery, "Search for commands…", true, a)
-	f.put(2, 5, a.panel.Render("🔎"))
-	for index, item := range items {
+	f.fill(r, a.panel)
+	f.box(r, a.border)
+	f.input(rect{r.x + 2, r.y + 1, r.w - 4, 3}, m.paletteQuery, "Search for commands…", true, a)
+	visible := max(1, r.h-7)
+	start := max(0, m.paletteCursor-visible+1)
+	for i := start; i < min(len(items), start+visible); i++ {
 		style := a.panel
-		if index == m.paletteCursor {
+		marker := "  "
+		if i == m.paletteCursor {
 			style = a.selected
+			marker = "› "
 		}
-		f.put(2, 8+index*2, style.Render(ansi.Truncate(item[0], f.width-4, "")))
-		f.put(2, 9+index*2, a.panel.Render(ansi.Truncate(item[1], f.width-4, "")))
+		label := ansi.Truncate(marker+items[i][0], r.w-6, "")
+		f.put(r.x+3, r.y+5+i-start, style.Render(label+strings.Repeat(" ", max(0, r.w-6-ansi.StringWidth(label)))))
+	}
+	if len(items) == 0 {
+		f.put(r.x+3, r.y+5, a.muted.Render("No matching commands"))
+	} else {
+		f.put(r.x+3, r.y+r.h-2, a.muted.Render(ansi.Truncate(items[m.paletteCursor][1], r.w-6, "…")))
 	}
 }
 func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
@@ -43,7 +57,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 	case "esc", "ctrl+p":
 		m.paletteOpen = false
 	case "ctrl+c":
-		return tea.Quit
+		return m.quit()
 	case "up":
 		m.paletteCursor = max(0, m.paletteCursor-1)
 	case "down":
@@ -63,14 +77,28 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		m.paletteOpen = false
 		switch choice {
 		case "Quit":
-			return tea.Quit
-		case "Theme":
-			m.open("settings")
+			return m.quit()
+		case "Home", "Skills", "Sessions", "History", "Generate", "Install", "Create", "Analytics", "Theme":
+			screens := map[string]string{"Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Generate": "generate", "Install": "install", "Create": "create", "Analytics": "stats", "Theme": "settings"}
+			m.open(screens[choice])
+			if choice == "Generate" && (m.job == nil || m.job.kind != "generate") {
+				return m.startOperation("generate")
+			}
 		case "Maximize":
-			m.maximized = !m.maximized
+			if m.screen == "hub" || m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" {
+				m.maximized = !m.maximized
+				m.updatePreview()
+			}
 		case "Keys":
-			m.preview.SetContent("Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save")
-			m.screen = "log"
+			if m.screen != "help" {
+				m.helpReturn = m.screen
+				m.helpPreview = m.preview
+				m.helpLogContent = m.logContent
+			}
+			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nGenerate: R rerun · Arrows scroll results\nInstall: Left/Right agent · Enter skills · I agent CLI"
+			m.sizeLogPreview()
+			m.preview.GotoTop()
+			m.screen = "help"
 		case "Screenshot":
 			name := "ashley-" + time.Now().Format("20060102-150405") + ".svg"
 			text := ansi.Strip(m.View())
