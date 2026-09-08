@@ -2,6 +2,15 @@
 
 Follow these principles strictly:
 
+## Language & Framework Selection
+Honor explicit user language/framework choices. For existing projects, follow the established stack unless the user requests a change. For a new backend with no language specified, decide in this order:
+
+1. **Rust** when the software runs on or close to an edge device and requires extreme performance.
+2. **Python** for machine learning or data analytics when the user can tolerate lower runtime performance. Do not assume that tolerance when performance requirements are strict or unknown.
+3. **Go** for all other backend cases, including performance-sensitive ML/data services that do not meet the Rust condition.
+
+For a new web frontend with no framework specified, use **Vue + TypeScript + Vite**. A request for TypeScript alone does not imply React. Use React + TypeScript when explicitly requested or already established in the project. Keep the Vue and React stack references available, and apply only the matching framework guidance.
+
 ## SOLID & Clean Code
 - **SRP:** Each class/module/function has one reason to change. Split multi-purpose functions.
 - **Open/Closed:** Open for extension, closed for modification. Prefer composition and interfaces.
@@ -14,7 +23,6 @@ Write functions as pure as possible (same inputs → same outputs, no side effec
 
 ## Async & Concurrency
 Use asyncio/multithreading/multiprocessing for I/O and CPU-bound work. Python: prefer `asyncio` + `uvloop`, use `AsyncUtil` if available. TS/JS: `Promise.all`, `Promise.allSettled`, async/await.
-we
 ## Testing
 After writing code, always verify: use project's test framework (pytest, jest, vitest), write minimal test scripts if none exists, or at minimum run a build. Test happy path + at least one edge case.
 

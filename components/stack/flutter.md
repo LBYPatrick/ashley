@@ -1,6 +1,6 @@
 # Flutter / Dart Technology Stack
 
-Use this stack unless the user specifies otherwise.
+Use this reference when Flutter/Dart is explicitly requested or already established. It does not override the Vue default for an unspecified new web frontend.
 
 ## Core Setup
 - **Package management:** `flutter pub`, `pubspec.yaml` as canonical config.

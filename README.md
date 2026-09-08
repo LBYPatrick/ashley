@@ -511,6 +511,12 @@ docs/migration/     Migration acceptance and release parity checklist
 directly, without a generated copy. Build outputs (`build/`, `dist/`, and
 `generated/`) and test caches are ignored; `make clean` removes them.
 
+For new projects without an explicit stack, coding guidance selects Rust for
+edge workloads requiring extreme performance, Python for ML/data analytics when
+lower runtime performance is acceptable, and Go otherwise. Web frontends default
+to Vue + TypeScript + Vite. Explicit choices and existing stacks take precedence;
+both Vue and React component references remain bundled.
+
 Skills are JSONC files referencing reusable components and code resources. The generator assembles them into self-contained markdown prompts with all resources inlined. Project detection provides tech stack context to Jinja2 templates for conditional content.
 
 ---

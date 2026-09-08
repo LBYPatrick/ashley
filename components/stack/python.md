@@ -1,6 +1,6 @@
 # Python Technology Stack
 
-Use this stack unless the user specifies otherwise.
+Use this reference when Python is explicitly requested, already established, or selected by the backend decision rules in General Coding Guidelines. Python is not the general backend default.
 
 - **Package management:** Astral/uv for deps, venvs, scripts. `pyproject.toml` as canonical config.
 - **Runtime:** asyncio + uvloop for event loop. `async`/`await` for I/O. `aiomultiprocess`/`multiprocessing` for CPU-bound.

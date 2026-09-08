@@ -114,8 +114,8 @@
   "bundled": {
     "brainstorm": {
       "output": "generated/a-brainstorm/SKILL.md",
-      "sha256": "75ef1d7c6b9542b8f654f38fe8f898c3002bda5574b3c36efd10f9e41987f06e",
-      "prompt_sha256": "400eb3e8f3478462d2ded4b4a698a98ad3a96566394e0125262f16dff1e80ff8"
+      "sha256": "d9def91953f4f8120d01c1d3dd66e0cc0a888bd0e283dad53c0912a39047760b",
+      "prompt_sha256": "b3a1d17bf40d484a871ca24ba244568fb504e156de3a2f5cc5ab58eee66e8987"
     },
     "changelog": {
       "output": "generated/a-changelog/SKILL.md",
@@ -129,13 +129,13 @@
     },
     "claudemd": {
       "output": "generated/a-claudemd/SKILL.md",
-      "sha256": "a654a4fe202f2dcf214ce41ca540f716e4663d19346930de63b61d31b8788eea",
-      "prompt_sha256": "f72467e6c0953165a93852557b1c3d9895c559b826d06e3bbca4f6da6ce68159"
+      "sha256": "f26a1ca8546956eec95d8e14a7acef12a7d0d23d27963f8aa2bca54921f8c304",
+      "prompt_sha256": "9682c78a2f988964b10160c6d2ca824d13a861703675b038c8be117478ebfc18"
     },
     "coding": {
       "output": "generated/a-coding/SKILL.md",
-      "sha256": "fc4298ebe6fc90fb33c181e1e961411afd67a5e3244e8f003297027edc32a017",
-      "prompt_sha256": "0a22a8c0146cc175e0a1f8c7d5def35d2d519b7d7e1a62b23c885c85dbac03ba"
+      "sha256": "fabf6f340f79e0a655ffee8aad0701173a22063fa4ad4883344bef5859a65314",
+      "prompt_sha256": "65455d90255778daad31f2483c05e4a160667663c43b2b4ef220930928296a35"
     },
     "commit": {
       "output": "generated/a-commit/SKILL.md",
@@ -144,23 +144,23 @@
     },
     "debug": {
       "output": "generated/a-debug/SKILL.md",
-      "sha256": "d7655137f890b221b8a15241c5388f5d6403eb55090f297790a08347758bc0a0",
-      "prompt_sha256": "fb8a5793bbef89fea30f830cf11314df910830cfd2f4e230a3653c210620336c"
+      "sha256": "4ef0f62bb1f1430aa96c12f11d2475a64d8716b72afbfef1a00aed3696aac8d5",
+      "prompt_sha256": "845a263826e4f3d6f9cf62bb69c4d5e9f5248ff032c8045ec14ca27e7dff3007"
     },
     "feat": {
       "output": "generated/a-feat/SKILL.md",
-      "sha256": "cbafdf69d1576ed7d8d25099d12cb56c291b6a047fe60ec885b1353d655841d2",
-      "prompt_sha256": "9d96a80203004cf82eb8457e3f670c65717c30eed335fff8a69c8a882a7e04f9"
+      "sha256": "868962adbc84f95817a64bfb98c8ce1aa7c4cd23c1ad14600f59df657ba32811",
+      "prompt_sha256": "ff34291c290949f2ee14cf92ab999b928b97f75035e1d84bfe08dc5c9a64fa56"
     },
     "optimize": {
       "output": "generated/a-optimize/SKILL.md",
-      "sha256": "1391332c536425ddbda699d54bc95b39c9c60e707bed949920c95b9289306a85",
-      "prompt_sha256": "e267f394dacf06321e690690a990a12a1cfb6f850aca3fcb705f8b0469dac0f9"
+      "sha256": "b5f4a070639743936c00d1719e72846883f384308f2f67b37539f0ce4f8fb010",
+      "prompt_sha256": "1022ca56d107617ed21a92515a0474653bb2a8c12b0a48f9b415bdaa5b8a66b4"
     },
     "pretty": {
       "output": "generated/a-pretty/SKILL.md",
-      "sha256": "501cbf1bc4308ba87a7cb9b8fff226032ad41b00df9fa55bbdc0891058a6a048",
-      "prompt_sha256": "22062cf2bfd37a79fcf24e0924dea9a72bfb12d8febaed7ecbab4475608a4051"
+      "sha256": "450c0a4828ec475c2d3a88e29a643399722a04ffaa3b85b6ecf0822e9c3b559a",
+      "prompt_sha256": "460b05d3db026599e69b3a91b9d7418800f588f642d7fa3394db368949e55801"
     },
     "readme": {
       "output": "generated/a-readme/SKILL.md",
@@ -174,13 +174,13 @@
     },
     "refactor": {
       "output": "generated/a-refactor/SKILL.md",
-      "sha256": "e67632ffba08a8f4206fbea683d274a22d3c390e375b2dc0d0242aa448a3b3d0",
-      "prompt_sha256": "3a428199e088a7622a632be433990df4716c0dc1c52cf91b28d2b8e2c1bc50eb"
+      "sha256": "5d447e538581bb997419f93c8b24aaf550a6b804128fbbd4c1f94ae0a2b0dfcd",
+      "prompt_sha256": "cff5c5d40e005dc5175fbf8322a103d919381eda06e63d1dea9d505f61fa3466"
     },
     "scaffold": {
       "output": "generated/a-scaffold/SKILL.md",
-      "sha256": "ef773e9a209ccfbe7ccd11d2329a98afe6e37657fbf0dec328913a91d0293294",
-      "prompt_sha256": "ddc45d05bee411b732218b5a825f6d23ccf3cc5adf5120ab936a015f2ffec03b"
+      "sha256": "8ac30c57e91770a5545593855a0b8758a759f9de72e8aac4b308d3ed020d0fb7",
+      "prompt_sha256": "8637a2dad6f75bce5d94462740c90b86d159a24a395068eaca9c6443629550f8"
     }
   },
   "templates": [

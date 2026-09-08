@@ -14,6 +14,7 @@
     "components/formatter-typescript.md",
     "components/stack/python.md",
     "components/stack/typescript.md",
+    "components/stack/vue.md",
     "components/stack/flutter.md",
     "components/scaffold-makefile.md"
   ],

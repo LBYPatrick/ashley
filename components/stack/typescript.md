@@ -1,6 +1,6 @@
-# TypeScript / JavaScript Technology Stack
+# React + TypeScript Technology Stack
 
-Use this stack unless the user specifies otherwise.
+Use this reference when React is explicitly requested or already used in the project. For an unspecified new web frontend, use the Vue + TypeScript + Vite stack in `components/stack/vue.md`.
 
 - **Package management:** pnpm.
 - **Build tool:** Vite. **NEVER** install PostCSS, autoprefixer, or `@tailwindcss/postcss`. TailwindCSS via `@tailwindcss/vite` plugin only. No `postcss.config.*`.
