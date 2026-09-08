@@ -392,9 +392,9 @@ def test_interactive_screens_start_and_restore_terminal(
             while time.monotonic() < deadline:
                 if select.select([master], [], [], 0.05)[0]:
                     settings_output += os.read(master, 65536)
-                if b"Primary colour / preset" in settings_output:
+                if b"Accent color" in settings_output:
                     break
-            assert b"Primary colour / preset" in settings_output, settings_output
+            assert b"Accent color" in settings_output, settings_output
             assert len(settings_output) < 100_000
             os.write(master, b"\x1b")
             restored = b""

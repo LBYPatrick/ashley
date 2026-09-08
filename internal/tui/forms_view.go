@@ -15,100 +15,88 @@ type settingControl struct {
 	key, label  string
 }
 
+// Settings use a readable column even in an ultrawide terminal.
+func (m *Model) settingsBounds() rect {
+	width := min(86, max(20, m.width)-4)
+	return rect{(max(20, m.width) - width) / 2, 2, width, 28}
+}
 func (m *Model) settingsControls() []settingControl {
-	width := max(20, m.width) - 2
-	if m.height < 38 {
-		width -= 2
-	}
-	inner := max(9, width-8)
-	var result []settingControl
+	b := m.settingsBounds()
+	x, inner := b.x+2, b.w-4
+	var controls []settingControl
 	for index, key := range agents.Keys() {
-		col := index % 3
-		x := 5 + col*inner/3
-		y := 10 + index/3*3
-		w := (col+1)*inner/3 - col*inner/3 - 1
-		result = append(result, settingControl{rect{x, y, max(3, w), 3}, 0, index, key, agents.Get(key).Label})
+		controls = append(controls, settingControl{rect{x, 9 + index, inner, 1}, 0, index, key, agents.Get(key).Label})
 	}
-	result = append(result, settingControl{rect{5, 19, 12, 3}, 1, 0, "dark", "Dark"}, settingControl{rect{19, 19, 13, 3}, 1, 1, "light", "Light"})
+	modeWidth := min(12, (inner-2)/2)
+	controls = append(controls, settingControl{rect{x, 18, modeWidth, 1}, 1, 0, "dark", "Dark"}, settingControl{rect{x + modeWidth + 2, 18, modeWidth, 1}, 1, 1, "light", "Light"})
+	// Narrow terminals use fewer columns; semantic keys stay stable on resize.
+	columns := min(5, max(1, (inner+2)/15))
 	for index, p := range config.Presets() {
-		col := index % 5
-		x := 5 + col*(inner-4)/5 + col
-		w := (col+1)*(inner-4)/5 - col*(inner-4)/5
-		result = append(result, settingControl{rect{x, 24 + index/5*4, max(3, w), 3}, 2 + index/5, col, p.Key, strings.Title(p.Key)})
+		col := index % columns
+		width := (inner - (columns-1)*2) / columns
+		controls = append(controls, settingControl{rect{x + col*(width+2), 23 + index/columns*2, width, 1}, 2 + index/5, index % 5, p.Key, strings.Title(p.Key)})
 	}
-	label := "Save & Close"
-	if m.firstRun {
-		label = "Done"
-	}
-	result = append(result, settingControl{rect{5, 31, len(label) + 10, 3}, 4, 0, "done", label})
-	return result
+	bottom := 23 + (9/columns)*2
+	controls = append(controls, settingControl{rect{x + max(0, inner-12), bottom + 3, min(12, inner), 1}, 4, 0, "done", "Done"})
+	return controls
+}
+func (m *Model) settingsContentHeight() int {
+	controls := m.settingsControls()
+	return controls[len(controls)-1].y + 3
 }
 func (m *Model) settingsView(f *frame, a appearance) {
-	// Draw the full scrollable card first; then clip it into the content area.
-	content := newFrame(f.width, 38, a.base)
-	cardwidth := f.width - 2
-	if m.height < 38 {
-		cardwidth -= 2
-	}
-	content.box(rect{1, 2, cardwidth, 34}, a.border)
-	intro := "Adjust Ashley's preferences. Changes apply instantly."
+	content := newFrame(f.width, m.settingsContentHeight(), a.base)
+	b := m.settingsBounds()
+	x, inner := b.x+2, b.w-4
+	title := "Settings"
+	subtitle := "Make Ashley feel like yours. Changes save automatically."
 	if m.firstRun {
-		intro = "Welcome to Ashley — pick your agent and a look to get started."
+		title = "Welcome to Ashley"
+		subtitle = "Choose your coding agent and appearance to get started."
 	}
-	content.text(rect{5, 4, max(1, cardwidth-8), 3}, intro+"\nArrows move · Enter selects · Esc saves & exits", a.muted, 0)
-	content.put(5, 8, a.title.Render("Coding agent"))
-	content.put(5, 17, a.title.Render("Mode"))
-	content.put(5, 22, a.title.Render("Primary colour / preset"))
+	content.put(x, 2, a.base.Bold(true).Render(title))
+	content.text(rect{x, 4, inner, 2}, subtitle, a.muted, 0)
+	for _, section := range []struct {
+		y     int
+		label string
+	}{{7, "Coding agent"}, {16, "Appearance"}, {21, "Accent color"}} {
+		content.put(x, section.y, a.base.Bold(true).Render(section.label))
+	}
+	surface := a.base.Background(lipgloss.Color(terminalColor(themeValues[m.theme.Mode+"-"+m.theme.Preset]["surface-lighten-1"])))
 	for _, control := range m.settingsControls() {
 		r := control.rect
-		style := a.base.Background(lipgloss.Color(themeValues[m.theme.Mode+"-"+m.theme.Preset]["surface-lighten-1"]))
-		label := control.label
 		selected := control.key == m.agent || control.key == m.theme.Mode || control.key == m.theme.Preset
-		if control.row < 2 {
-			mark := "○ "
-			if selected {
-				mark = "● "
-				style = a.selected
-			}
-			label = mark + label
+		focused := control.row == m.settingsRow && control.column == m.settingsColumn
+		style := surface
+		if focused {
+			style = style.Background(lipgloss.Color(blendColor(a.accent, a.bg, .18)))
 		}
-		if control.row == 2 || control.row == 3 {
-			for _, p := range config.Presets() {
-				if p.Key == control.key {
-					style = style.Background(lipgloss.Color(terminalColor(p.Primary))).Foreground(lipgloss.Color("#FFFFFF"))
-					if p.Primary != p.Accent {
-						content.fill(rect{r.x, r.y, 1, r.h}, a.base.Background(lipgloss.Color(terminalColor(p.Accent))))
-					}
-				}
-			}
-			if selected {
-				label = "✓ " + label
+		if selected {
+			style = style.Foreground(lipgloss.Color(a.accent)).Bold(true)
+			if m.theme.Mode == "light" {
+				style = style.Foreground(lipgloss.Color(a.fg))
 			}
 		}
 		if control.row == 4 {
-			style = a.selected
+			style = a.selected.Foreground(lipgloss.Color("#161616"))
 		}
 		content.fill(r, style)
-		if control.row == 2 || control.row == 3 {
-			for _, p := range config.Presets() {
-				if p.Key == control.key && p.Primary != p.Accent {
-					content.fill(rect{r.x, r.y, 1, r.h}, a.base.Background(lipgloss.Color(terminalColor(p.Primary))).Foreground(lipgloss.Color(terminalColor(p.Accent))))
-					for y := r.y; y < r.y+r.h; y++ {
-						content.put(r.x, y, a.base.Background(lipgloss.Color(terminalColor(p.Primary))).Foreground(lipgloss.Color(terminalColor(p.Accent))).Render("█"))
-					}
-				}
-			}
+		marker := " "
+		if focused {
+			marker = "›"
 		}
-		label = ansi.Truncate(label, max(1, r.w-2), "…")
-		content.put(r.x+max(0, (r.w-ansi.StringWidth(label))/2), r.y+1, style.Bold(true).Render(label))
-		if selected && control.row >= 2 && control.row <= 3 {
-			outline := style.Foreground(lipgloss.Color(a.fg))
-			content.put(r.x, r.y, outline.Render("█"+strings.Repeat("▀", max(0, r.w-2))+"█"))
-			content.put(r.x, r.y+2, outline.Render("█"+strings.Repeat("▄", max(0, r.w-2))+"█"))
-			content.put(r.x, r.y+1, outline.Render("█"))
-			content.put(r.x+r.w-1, r.y+1, outline.Render("█"))
-		} else if control.row == m.settingsRow && control.column == m.settingsColumn {
-			content.box(r, style.Foreground(lipgloss.Color(a.fg)))
+		content.put(r.x, r.y, style.Render(marker))
+		left := r.x + 2
+		if control.row == 2 || control.row == 3 {
+			preset := config.Presets()[(control.row-2)*5+control.column]
+			content.put(left, r.y, style.Foreground(lipgloss.Color(terminalColor(preset.Primary))).Render("█"))
+			content.put(left+1, r.y, style.Foreground(lipgloss.Color(terminalColor(preset.Accent))).Render("█"))
+			left += 3
+		}
+		label := ansi.Truncate(control.label, max(1, r.x+r.w-left-2), "…")
+		content.put(left, r.y, style.Render(label))
+		if selected {
+			content.put(r.x+r.w-2, r.y, style.Render("✓"))
 		}
 	}
 	for y := 1; y < f.height-1; y++ {
@@ -117,8 +105,8 @@ func (m *Model) settingsView(f *frame, a appearance) {
 			f.put(0, y, content.row(source))
 		}
 	}
-	if m.height < 38 {
-		f.scrollbar(rect{f.width - 2, 1, 2, f.height - 2}, 36, m.screenScroll, a)
+	if content.height > f.height {
+		f.scrollbar(rect{b.x + b.w, 1, 1, f.height - 2}, content.height-2, m.screenScroll, a)
 	}
 }
 func (m *Model) keepSettingVisible() {
@@ -132,6 +120,61 @@ func (m *Model) keepSettingVisible() {
 			}
 		}
 	}
+	m.screenScroll = max(0, min(max(0, m.settingsContentHeight()-m.height), m.screenScroll))
+}
+
+// Directional focus follows the positions on screen, including wrapped grids.
+func (m *Model) moveSettingFocus(key string) {
+	controls := m.settingsControls()
+	current := 0
+	for i, c := range controls {
+		if c.row == m.settingsRow && c.column == m.settingsColumn {
+			current = i
+			break
+		}
+	}
+	target := current
+	if key == "tab" {
+		target = (current + 1) % len(controls)
+	} else if key == "shift+tab" {
+		target = (current + len(controls) - 1) % len(controls)
+	} else {
+		from := controls[current]
+		best := int(^uint(0) >> 1)
+		for i, c := range controls {
+			dx, dy := c.x-from.x, c.y-from.y
+			score := best
+			switch key {
+			case "up":
+				if dy < 0 {
+					score = -dy*1000 + abs(dx)
+				}
+			case "down":
+				if dy > 0 {
+					score = dy*1000 + abs(dx)
+				}
+			case "left":
+				if dy == 0 && dx < 0 {
+					score = -dx
+				}
+			case "right":
+				if dy == 0 && dx > 0 {
+					score = dx
+				}
+			}
+			if score < best {
+				best = score
+				target = i
+			}
+		}
+	}
+	m.settingsRow, m.settingsColumn = controls[target].row, controls[target].column
+}
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }
 func (m *Model) creatorView(f *frame, a appearance) {
 	if m.wizard == nil {
@@ -172,14 +215,11 @@ func (m *Model) creatorView(f *frame, a appearance) {
 }
 
 func (m *Model) focusSettings() {
-	for row, keys := range settingsRows() {
-		if row == 2 || row == 3 {
-			for column, key := range keys {
-				if key == m.theme.Preset {
-					m.settingsRow, m.settingsColumn = row, column
-					return
-				}
-			}
+	m.settingsRow, m.settingsColumn = 0, 0
+	for i, key := range agents.Keys() {
+		if key == m.agent {
+			m.settingsColumn = i
+			break
 		}
 	}
 }

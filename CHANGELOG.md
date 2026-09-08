@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.
+
 - Fix the Go Settings freeze and panel styling spills by composing terminal cells instead of duplicating ANSI sequences.
 - Restore the original Stats lightness gradients and rounded bar lengths.
 - Fix session log rendering with live tmux screen capture, archived redraw handling, and scrolling based on wrapped viewport lines.

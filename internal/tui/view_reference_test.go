@@ -16,13 +16,14 @@ import (
 	"github.com/muesli/termenv"
 )
 
+// Settings intentionally has its own redesigned layout and interaction tests.
 func TestOriginalPythonScreenLayouts(t *testing.T) {
 	if os.Getenv("ASHLEY_UI_EXPORT") != "" {
 		previous := lipgloss.ColorProfile()
 		lipgloss.SetColorProfile(termenv.TrueColor)
 		t.Cleanup(func() { lipgloss.SetColorProfile(previous) })
 	}
-	for _, screen := range []string{"hub", "vibe", "sessions", "history", "stats", "settings", "create"} {
+	for _, screen := range []string{"hub", "vibe", "sessions", "history", "stats", "create"} {
 		t.Run(screen, func(t *testing.T) {
 			m := newModel(t)
 			m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})

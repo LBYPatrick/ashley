@@ -143,7 +143,7 @@ func (m *Model) footer(f *frame, a appearance) {
 			text = "q Quit  / Search  r Refresh  d Delete  n Next  p Prev"
 		}
 	case "settings":
-		text = "esc Back"
+		text = "esc Done  ↑↓←→ Move  enter Select  tab Next"
 	case "stats":
 		text = "esc Back  r Refresh"
 	case "create", "create-preview":

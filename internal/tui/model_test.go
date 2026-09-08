@@ -107,14 +107,15 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 func TestSettingsPersistAllChoices(t *testing.T) {
 	m := newModel(t)
 	m.open("settings")
-	key(m, "up")
-	key(m, "up")
-	key(m, "right")
+	key(m, "down")
 	key(m, "enter")
 	if m.agent != "codex" {
 		t.Fatal(m.agent)
 	}
-	key(m, "down")
+	for range 4 {
+		key(m, "tab")
+	}
+	key(m, "right")
 	key(m, "enter")
 	if m.theme.Mode != "light" {
 		t.Fatal(m.theme)
@@ -273,15 +274,15 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 		t.Fatal(m.screen)
 	}
 	m.open("settings")
-	click(45, 11)
+	clickSetting(t, m, "codex")
 	if m.agent != "codex" {
 		t.Fatal(m.agent)
 	}
-	click(24, 20)
+	clickSetting(t, m, "light")
 	if m.theme.Mode != "light" {
 		t.Fatal(m.theme)
 	}
-	click(47, 25)
+	clickSetting(t, m, "purple")
 	if m.theme.Preset != "purple" {
 		t.Fatal(m.theme)
 	}

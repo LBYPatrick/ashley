@@ -242,6 +242,9 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.SetWidth(max(20, msg.Width-8))
 		m.editor.SetHeight(max(3, msg.Height-10))
 		m.updatePreview()
+		if m.screen == "settings" {
+			m.keepSettingVisible()
+		}
 		if m.screen == "log" {
 			m.sizeLogPreview()
 		}
@@ -470,14 +473,8 @@ func (m *Model) activate() tea.Cmd {
 func (m *Model) settingsKey(key string) tea.Cmd {
 	rows := settingsRows()
 	switch key {
-	case "up":
-		m.settingsRow = max(0, m.settingsRow-1)
-	case "down", "tab":
-		m.settingsRow = min(len(rows)-1, m.settingsRow+1)
-	case "left":
-		m.settingsColumn = max(0, m.settingsColumn-1)
-	case "right":
-		m.settingsColumn = min(len(rows[m.settingsRow])-1, m.settingsColumn+1)
+	case "up", "down", "left", "right", "tab", "shift+tab":
+		m.moveSettingFocus(key)
 	case "enter", " ":
 		value := rows[m.settingsRow][min(m.settingsColumn, len(rows[m.settingsRow])-1)]
 		switch m.settingsRow {

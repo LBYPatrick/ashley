@@ -25,10 +25,10 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	}
 	if m.screen == "settings" {
 		if wheel {
-			m.screenScroll = max(0, min(max(0, 38-m.height), m.screenScroll+delta*3))
+			m.screenScroll = max(0, min(max(0, m.settingsContentHeight()-m.height), m.screenScroll+delta*3))
 			return nil
 		}
-		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y > 0 && msg.Y < m.height-1 {
 			for _, control := range m.settingsControls() {
 				if control.contains(msg.X, msg.Y+m.screenScroll) {
 					m.settingsRow, m.settingsColumn = control.row, control.column
