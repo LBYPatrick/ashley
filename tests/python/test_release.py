@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
-    "release_tools", ROOT / "scripts/release.py"
+    "release_tools", ROOT / "scripts/release/version.py"
 )
 release = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(release)
@@ -21,14 +21,14 @@ def release_root(tmp_path):
         "VERSION",
         "README.md",
         "pyproject.toml",
-        "docs/go-migration-status.json",
+        "docs/migration/status.json",
     ):
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text((ROOT / name).read_text())
 
     # Exercise an incomplete migration independently of the repository's status.
-    status_path = tmp_path / "docs/go-migration-status.json"
+    status_path = tmp_path / "docs/migration/status.json"
     status = json.loads(status_path.read_text())
     status_path.write_text(json.dumps(dict.fromkeys(status, False)))
     return tmp_path
@@ -38,7 +38,7 @@ def test_stable_requires_all_features(release_root):
     release.prepare(release_root, "1.0.0")
     with pytest.raises(ValueError, match="full feature parity"):
         release.check(release_root, "v1.0.0")
-    status_path = release_root / "docs/go-migration-status.json"
+    status_path = release_root / "docs/migration/status.json"
     status = json.loads(status_path.read_text())
     status_path.write_text(json.dumps(dict.fromkeys(status, True)))
     assert release.check(release_root, "v1.0.0") == "1.0.0"

@@ -31,7 +31,7 @@ Ashley now runs as a standalone Go executable. All CLI entry points and the
 interactive screens have Go implementations verified by the migration acceptance
 suite. Existing YAML settings, JSON preferences, and SQLite history are
 preserved. The Python implementation remains a development-only test reference.
-Evidence is recorded in [the migration acceptance](docs/go-migration-assessment.md).
+Evidence is recorded in [the migration acceptance](docs/migration/assessment.md).
 
 ```bash
 make build
@@ -481,14 +481,24 @@ ash --version                    Print version
 ## Architecture
 
 ```
-skills/          JSONC skill definitions (name, components, resources, workflow)
-components/      Reusable markdown instruction blocks
-res/             Code templates and reference docs
-cmd/ash/         Native executable entry point
-internal/        Go CLI, TUI, generation, sessions, history, and updates
-src/ashley/      Python reference implementation (development tests only)
-generated/       Output: assembled SKILL.md files (always inlined)
+skills/             JSONC skill definitions
+components/         Reusable markdown instruction blocks
+res/                Code templates and reference docs
+cmd/ash/            Native executable entry point
+internal/           Go CLI, TUI, generation, sessions, history, and updates
+src/ashley/         Python reference implementation (development only)
+tests/python/       Python reference and release-tool regression tests
+tests/integration/  Compiled binary, package, and installer tests
+tests/fixtures/     Reviewed regression reference outputs
+tests/reference/    Developer tools for capturing reference fixtures
+scripts/release/    Packaging, version validation, and publishing
+scripts/dev/        Local development helpers
+docs/migration/     Migration acceptance and release parity checklist
 ```
+
+`assets.go` stays at the module root so Go can embed the shared skill sources
+directly, without a generated copy. Build outputs (`build/`, `dist/`, and
+`generated/`) and test caches are ignored; `make clean` removes them.
 
 Skills are JSONC files referencing reusable components and code resources. The generator assembles them into self-contained markdown prompts with all resources inlined. Project detection provides tech stack context to Jinja2 templates for conditional content.
 
@@ -516,7 +526,7 @@ make format         # Format Go, Python reference tests, and shell scripts
 | `make list` | List skill definitions |
 | `make format` | Run Go, Python, and shell formatters |
 | `make test` | Python reference tests, Go race/coverage tests, parity, and binary integration |
-| `make clean` | Remove generated files |
+| `make clean` | Remove build outputs, release archives, generated skills, and test caches |
 | `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
 | `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |
 

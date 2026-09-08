@@ -1,7 +1,7 @@
 #!/bin/bash
 # Maintainer workflow: validate, gate, commit version files, push/tag and draft.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 version="${V:-$(tr -d '[:space:]' < VERSION)}"
 tag="v$version"
 branch="$(git branch --show-current)"
@@ -20,8 +20,8 @@ if git show-ref --verify --quiet "refs/tags/$tag"; then
     echo "$tag already exists; choose a new version." >&2
     exit 1
 fi
-uv run python scripts/release.py prepare "$version"
-uv run python scripts/release.py check "$tag"
+uv run python scripts/release/version.py prepare "$version"
+uv run python scripts/release/version.py check "$tag"
 make gate
 [[ "${YES:-}" == 1 ]] || { echo "Checks passed. Run make publish V=$version YES=1 to publish."; exit 0; }
 git add VERSION pyproject.toml README.md

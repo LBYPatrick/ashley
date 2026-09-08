@@ -9,7 +9,7 @@ The source remains public; release downloads contain the `ash` executable and
 LICENSE. End users must not need a checkout, Go, Python, or uv to run Ashley.
 
 1. Read `CHANGELOG.md`, the commits since the latest tag, and
-   `docs/go-migration-status.json`. Stable binaries require every parity item
+   `docs/migration/status.json`. Stable binaries require every parity item
    to be complete and tested. While migration is incomplete, only an explicitly
    described experimental prerelease is eligible; do not mark features complete
    merely to bypass the release check.

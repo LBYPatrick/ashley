@@ -9,7 +9,7 @@ import os
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 async def capture():
@@ -17,13 +17,12 @@ async def capture():
         AshleyApp,
         HistoryScreen,
         SessionsScreen,
-        SettingsScreen,
         StatsScreen,
         VibeScreen,
     )
     from ashley.tui.create_app import CreateScreen
 
-    directory = ROOT / "testdata/ui/python"
+    directory = ROOT / "tests/fixtures/ui/python"
     directory.mkdir(parents=True, exist_ok=True)
     app = AshleyApp()
     async with app.run_test(size=(100, 30)) as pilot:
@@ -33,7 +32,6 @@ async def capture():
             ("sessions", SessionsScreen),
             ("history", HistoryScreen),
             ("stats", StatsScreen),
-            ("settings", SettingsScreen),
             ("create", CreateScreen),
         ):
             if screen:

@@ -15,7 +15,7 @@ from ashley.agents import AGENTS
 from ashley.detect import detect_project
 from ashley.prompt import generate_prompt
 
-FIXTURE = PROJECT_ROOT / "testdata" / "parity" / "python.json"
+FIXTURE = PROJECT_ROOT / "tests" / "fixtures" / "parity" / "python.json"
 
 
 def digest(text: str) -> str:
@@ -224,7 +224,7 @@ def main() -> None:
     if args.check:
         if not FIXTURE.is_file() or FIXTURE.read_text() != text:
             raise SystemExit(
-                "Python parity fixtures are stale; review changes and run scripts/go_parity.py"
+                "Python parity fixtures are stale; review changes and run tests/reference/capture_parity.py"
             )
         print("Python parity fixtures match current behavior.")
     else:

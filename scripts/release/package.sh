@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build one self-contained release archive. No interpreter or checkout is shipped.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 platform="${1:-$(go env GOOS)}"
 arch="${2:-$(go env GOARCH)}"
 case "$platform/$arch" in

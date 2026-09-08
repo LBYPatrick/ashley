@@ -9,24 +9,24 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture
 def publisher(tmp_path):
     for name in (
-        "scripts/publish.sh",
-        "scripts/release.py",
+        "scripts/release/publish.sh",
+        "scripts/release/version.py",
         "VERSION",
         "README.md",
         "pyproject.toml",
-        "docs/go-migration-status.json",
+        "docs/migration/status.json",
     ):
         dest = tmp_path / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / name, dest)
     # Publishing refusal cases must not depend on the live migration checklist.
-    status_path = tmp_path / "docs/go-migration-status.json"
+    status_path = tmp_path / "docs/migration/status.json"
     status = json.loads(status_path.read_text())
     status_path.write_text(json.dumps(dict.fromkeys(status, False)))
     tools = tmp_path / "tools"
@@ -75,7 +75,7 @@ elif name == "make":
 def run_publish(publisher, **overrides):
     root, env, log = publisher
     result = subprocess.run(
-        ["bash", str(root / "scripts/publish.sh")],
+        ["bash", str(root / "scripts/release/publish.sh")],
         env={**env, **overrides},
         capture_output=True,
         text=True,

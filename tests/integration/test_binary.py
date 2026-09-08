@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 VERSION = (ROOT / "VERSION").read_text().strip()
 
 
@@ -147,7 +147,7 @@ def test_corrupt_download_keeps_existing_install(release_archive, tmp_path):
 
 def test_package_contains_only_binary_and_license(binary):
     subprocess.run(
-        ["bash", str(ROOT / "scripts/package.sh")],
+        ["bash", str(ROOT / "scripts/release/package.sh")],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -475,7 +475,12 @@ def test_local_install_replaces_launcher_link_without_modifying_checkout(
     destination.mkdir()
     (destination / "ash").symlink_to(source)
     result = subprocess.run(
-        ["bash", str(ROOT / "scripts/install-local.sh"), str(binary), str(destination)],
+        [
+            "bash",
+            str(ROOT / "scripts/dev/install-local.sh"),
+            str(binary),
+            str(destination),
+        ],
         capture_output=True,
         text=True,
     )

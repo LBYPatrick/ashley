@@ -23,7 +23,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          version="$(python3 scripts/release.py check "$TAG")"
+          version="$(python3 scripts/release/version.py check "$TAG")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [[ "$version" == *-* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"

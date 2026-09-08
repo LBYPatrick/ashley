@@ -36,7 +36,7 @@ type fixtures struct {
 
 func loadFixtures(t *testing.T) fixtures {
 	t.Helper()
-	data, err := os.ReadFile("../../testdata/parity/python.json")
+	data, err := os.ReadFile("../../tests/fixtures/parity/python.json")
 	if err != nil {
 		t.Fatal(err)
 	}

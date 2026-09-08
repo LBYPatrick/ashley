@@ -11,7 +11,7 @@ import (
 )
 
 func TestPythonParity(t *testing.T) {
-	data, err := os.ReadFile("../../testdata/parity/python.json")
+	data, err := os.ReadFile("../../tests/fixtures/parity/python.json")
 	if err != nil {
 		t.Fatal(err)
 	}

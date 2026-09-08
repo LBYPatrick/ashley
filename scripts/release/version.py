@@ -7,7 +7,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 VERSION_RE = re.compile(
     r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(alpha|beta|rc)\.(0|[1-9]\d*))?"
 )
@@ -50,7 +50,7 @@ def check(root: Path, tag: str) -> str:
         != f"img.shields.io/badge/version-{version.replace('-', '--')}-blue"
     ):
         raise ValueError("Tag and README version badge disagree")
-    status = json.loads((root / "docs/go-migration-status.json").read_text())
+    status = json.loads((root / "docs/migration/status.json").read_text())
     if (
         not isinstance(status, dict)
         or not status

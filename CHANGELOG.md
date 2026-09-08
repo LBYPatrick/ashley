@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Grok Build, OpenCode, and Kilo Code support across installation, invocation, pipelines, settings, and upgrades.
 - Add `ash install --all` for all five agents while retaining `--both` for Claude Code and Codex.
 
+### Changed
+
+- Group regression tests, reference fixtures, release tooling, and migration documentation into dedicated folders; expand `make clean` to remove development artifacts.
+
 ### Fixed
 
 - Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.

@@ -42,7 +42,7 @@ func TestOriginalPythonScreenLayouts(t *testing.T) {
 				rows[index] = strings.TrimRight(rows[index], " ")
 			}
 			actual := strings.Join(rows[1:], "\n") + "\n"
-			expected, err := os.ReadFile(filepath.Join("..", "..", "testdata", "ui", "python", screen+".txt"))
+			expected, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "ui", "python", screen+".txt"))
 			if err != nil {
 				t.Fatal(err)
 			}

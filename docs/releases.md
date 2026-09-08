@@ -3,7 +3,7 @@
 Ashley remains open source. Release users download a compiled executable;
 source checkouts, language toolchains and dependency resolution belong only
 on developer/CI machines. Feature acceptance is recorded in
-[go-migration-assessment.md](go-migration-assessment.md). The default `ash` command
+[migration acceptance](migration/assessment.md). The default `ash` command
 runs Go, including the interactive screens, agent execution, history, sessions,
 installation and updates. Python remains a development reference used by the
 test suite.
@@ -22,10 +22,10 @@ test suite.
 | `make go-dist` | All four macOS/Linux × arm64/amd64 release packages |
 | `make package PLATFORM=linux ARCH=amd64` | One selected binary archive plus checksum |
 
-`testdata/parity/python.json` freezes Python outputs for every bundled skill and
+`tests/fixtures/parity/python.json` freezes Python outputs for every bundled skill and
 prompt, custom inheritance/globs/resources, representative Jinja templates and
 project detection. To intentionally change reference behavior, review the Python
-change, run `uv run python scripts/go_parity.py`, and inspect the fixture diff.
+change, run `uv run python tests/reference/capture_parity.py`, and inspect the fixture diff.
 Do not regenerate fixtures just to make failing Go tests pass.
 
 The gate runs on macOS and Linux in GitHub Actions. Local verification only runs
