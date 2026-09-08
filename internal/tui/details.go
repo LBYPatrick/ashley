@@ -10,8 +10,6 @@ import (
 
 	"github.com/LBYPatrick/ashley/internal/agents"
 	"github.com/LBYPatrick/ashley/internal/history"
-	"github.com/LBYPatrick/ashley/internal/sessions"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/titanous/json5"
 )
 
@@ -144,11 +142,12 @@ func (m *Model) refreshSessionDetails() {
 	}
 	m.sessionLog = ""
 	if len(m.sessionRows) > 0 {
-		content, err := sessions.ReadLog(m.sessionRows[m.cursor], 50)
+		s := m.sessionRows[m.cursor]
+		content, err := m.manager().Preview(s, 50, m.sessionAlive[s.ID])
 		if err != nil {
 			content = err.Error()
 		}
-		m.sessionLog = ansi.Strip(content)
+		m.sessionLog = content
 		if strings.TrimSpace(m.sessionLog) == "" {
 			m.sessionLog = "(empty log)"
 		}

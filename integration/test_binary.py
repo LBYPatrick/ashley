@@ -341,7 +341,10 @@ def test_detached_run_records_real_exit_and_completion_hooks(binary, tmp_path):
 @pytest.mark.parametrize(
     "command", [[], ["vibe"], ["sessions"], ["history", "browse"], ["create"]]
 )
-def test_interactive_screens_start_and_restore_terminal(binary, tmp_path, command):
+@pytest.mark.parametrize("monochrome", [True, False])
+def test_interactive_screens_start_and_restore_terminal(
+    binary, tmp_path, command, monochrome
+):
     import fcntl
     import pty
     import select
@@ -361,6 +364,9 @@ def test_interactive_screens_start_and_restore_terminal(binary, tmp_path, comman
         "XDG_DATA_HOME": str(tmp_path / "data"),
         "NO_COLOR": "1",
     }
+    if not monochrome:
+        env.pop("NO_COLOR", None)
+    env["COLORTERM"] = "truecolor"
     process = subprocess.Popen(
         [str(binary), *command],
         cwd=tmp_path,
@@ -378,6 +384,27 @@ def test_interactive_screens_start_and_restore_terminal(binary, tmp_path, comman
                 output += os.read(master, 65536)
             assert process.poll() is None, output.decode(errors="replace")
         assert b"Ashley" in output, output.decode(errors="replace")
+        if not command:
+            # Reproduce the reported hub -> Settings Enter freeze in a real PTY.
+            os.write(master, b"\x1b[B" * 7 + b"\r")
+            settings_output = b""
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                if select.select([master], [], [], 0.05)[0]:
+                    settings_output += os.read(master, 65536)
+                if b"Primary colour / preset" in settings_output:
+                    break
+            assert b"Primary colour / preset" in settings_output, settings_output
+            assert len(settings_output) < 100_000
+            os.write(master, b"\x1b")
+            restored = b""
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                if select.select([master], [], [], 0.05)[0]:
+                    restored += os.read(master, 65536)
+                if b"Skill Browser" in restored:
+                    break
+            assert b"Skill Browser" in restored, restored
         if command == ["create"]:
             # Complete the real guided form using terminal key events.
             os.write(

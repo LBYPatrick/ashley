@@ -41,6 +41,7 @@ type Model struct {
 	wizard                              *creatorWizard
 	sessionAlive                        map[string]bool
 	sessionLog                          string
+	logContent                          string
 	logOffset                           int
 	paletteOpen                         bool
 	paletteQuery                        string
@@ -184,7 +185,8 @@ func (m *Model) updatePreview() {
 	m.preview.Width = l.detail.w
 	m.preview.Height = l.detail.h
 	if m.screen == "sessions" {
-		m.preview.Height = max(3, l.detail.h-7)
+		detail, _, _ := m.sessionPanels()
+		m.preview.Height = detail.h
 	}
 	m.preview.SetContent(ansi.Wrap(m.detailText(), max(1, l.detail.w), ""))
 	m.preview.GotoTop()
@@ -240,6 +242,9 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.SetWidth(max(20, msg.Width-8))
 		m.editor.SetHeight(max(3, msg.Height-10))
 		m.updatePreview()
+		if m.screen == "log" {
+			m.sizeLogPreview()
+		}
 		if m.wizard != nil {
 			m.wizard.input.SetWidth(max(20, msg.Width-8))
 			m.wizard.input.SetHeight(max(3, msg.Height-17))
@@ -538,7 +543,9 @@ func (m *Model) recordAction(key string) tea.Cmd {
 				m.status = err.Error()
 			} else {
 				m.screen = "log"
-				m.preview.SetContent(text)
+				m.logContent = sessions.DisplayLog(text)
+				m.sizeLogPreview()
+				m.preview.GotoTop()
 			}
 		case "K":
 			err := m.manager().Kill(s)

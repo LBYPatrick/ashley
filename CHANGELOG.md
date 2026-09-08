@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix the Go Settings freeze and panel styling spills by composing terminal cells instead of duplicating ANSI sequences.
+- Restore the original Stats lightness gradients and rounded bar lengths.
+- Fix session log rendering with live tmux screen capture, archived redraw handling, and scrolling based on wrapped viewport lines.
 - Restore the original Python terminal layouts, information panels, inline session logs, theme swatches and grayscale selection styling in the Go UI; add cross-language screen snapshots and resize regression checks.
 
 - Capture mouse-wheel scrolling in Ashley tmux sessions instead of forwarding arrow keys to coding agents, including when reattaching existing sessions.

@@ -24,7 +24,7 @@ func (m *Model) paletteItems() [][2]string {
 }
 func (m *Model) paletteView(f *frame, a appearance) {
 	items := m.paletteItems()
-	height := min(len(f.rows)-4, 6+len(items)*2)
+	height := min(f.height-4, 6+len(items)*2)
 	f.fill(rect{0, 3, f.width, height}, a.panel)
 	f.put(0, 3, a.title.Render(strings.Repeat("▔", f.width)))
 	f.input(rect{4, 4, f.width - 5, 3}, m.paletteQuery, "Search for commands…", true, a)

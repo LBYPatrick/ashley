@@ -2,8 +2,6 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/x/ansi"
-	"strings"
 )
 
 func settingsRows() [][]string {
@@ -79,8 +77,9 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	}
 	l := m.layout()
 	if wheel {
-		if m.screen == "sessions" && l.right.contains(msg.X, msg.Y) && msg.Y >= l.detail.y+min(len(strings.Split(ansi.Wrap(m.detailText(), l.detail.w, ""), "\n")), max(3, l.detail.h-7))+1 {
-			m.logOffset = max(0, min(max(0, len(strings.Split(m.sessionLog, "\n"))-3), m.logOffset+delta*3))
+		_, log, _ := m.sessionPanels()
+		if m.screen == "sessions" && log.contains(msg.X, msg.Y) {
+			m.logOffset = max(0, min(m.maxLogOffset(), m.logOffset+delta*3))
 			return nil
 		}
 		if l.right.contains(msg.X, msg.Y) || m.screen == "log" || m.screen == "create-preview" {

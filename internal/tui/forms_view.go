@@ -111,14 +111,14 @@ func (m *Model) settingsView(f *frame, a appearance) {
 			content.box(r, style.Foreground(lipgloss.Color(a.fg)))
 		}
 	}
-	for y := 1; y < len(f.rows)-1; y++ {
+	for y := 1; y < f.height-1; y++ {
 		source := y + m.screenScroll
-		if source < len(content.rows) {
-			f.put(0, y, content.rows[source])
+		if source < content.height {
+			f.put(0, y, content.row(source))
 		}
 	}
 	if m.height < 38 {
-		f.scrollbar(rect{f.width - 2, 1, 2, len(f.rows) - 2}, 36, m.screenScroll, a)
+		f.scrollbar(rect{f.width - 2, 1, 2, f.height - 2}, 36, m.screenScroll, a)
 	}
 }
 func (m *Model) keepSettingVisible() {
@@ -135,12 +135,12 @@ func (m *Model) keepSettingVisible() {
 }
 func (m *Model) creatorView(f *frame, a appearance) {
 	if m.wizard == nil {
-		f.text(rect{2, 2, f.width - 4, len(f.rows) - 4}, m.editor.View(), a.base, 0)
+		f.text(rect{2, 2, f.width - 4, f.height - 4}, m.editor.View(), a.base, 0)
 		return
 	}
 	w := m.wizard
 	if w.stage != 0 {
-		f.text(rect{2, 2, f.width - 4, len(f.rows) - 4}, m.wizardView(), a.base, m.screenScroll)
+		f.text(rect{2, 2, f.width - 4, f.height - 4}, m.wizardView(), a.base, m.screenScroll)
 		return
 	}
 	content := newFrame(f.width, 45, a.base)
@@ -163,10 +163,10 @@ func (m *Model) creatorView(f *frame, a appearance) {
 	content.put(2, 27, a.muted.Render("System prompt intro for the agent"))
 	content.put(2, 34, a.selected.Render("  Next →  "))
 	content.put(15, 34, a.selected.Render("  Save  "))
-	for y := 1; y < len(f.rows)-1; y++ {
+	for y := 1; y < f.height-1; y++ {
 		index := y + m.screenScroll
-		if index < len(content.rows) {
-			f.put(0, y, content.rows[index])
+		if index < content.height {
+			f.put(0, y, content.row(index))
 		}
 	}
 }

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -150,7 +151,7 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "log":
 		text = "esc Back  pgup/pgdown Scroll"
 	}
-	y := len(f.rows) - 1
+	y := f.height - 1
 	f.fill(rect{0, y, f.width, 1}, a.panel)
 	f.put(1, y, a.panel.Render(ansi.Truncate(text, max(1, f.width-13), "…")))
 	f.put(max(0, f.width-12), y, a.panel.Render("▏^p palette"))
@@ -212,13 +213,13 @@ func (m *Model) View() string {
 	case "create":
 		m.creatorView(f, a)
 	case "create-preview", "log":
-		r := rect{1, 2, f.width - 2, len(f.rows) - 4}
+		r := rect{1, 2, f.width - 2, f.height - 4}
 		f.box(r, a.border)
 		f.text(rect{4, 4, r.w - 6, r.h - 3}, m.preview.View(), a.base, 0)
 	}
 	if m.status != "" && m.status != "Completed." { // Notifications occupy chrome, never replace a detail panel.
 		text := ansi.Truncate(m.status, max(1, f.width-4), "…")
-		f.put(max(1, f.width-ansi.StringWidth(text)-2), len(f.rows)-2, a.panel.Render(text))
+		f.put(max(1, f.width-ansi.StringWidth(text)-2), f.height-2, a.panel.Render(text))
 	}
 	m.footer(f, a)
 	if m.paletteOpen {
@@ -230,10 +231,10 @@ func (m *Model) browserView(f *frame, a appearance) {
 	l := m.layout()
 	embeddedHistory := m.screen == "history" && m.options.Screen != "history"
 	if embeddedHistory {
-		for y := 1; y < len(f.rows)-4; y++ {
+		for y := 1; y < f.height-4; y++ {
 			f.put(l.left.w-1, y, a.border.Render("│"))
 		}
-		f.put(0, len(f.rows)-4, a.border.Render(strings.Repeat("─", f.width)))
+		f.put(0, f.height-4, a.border.Render(strings.Repeat("─", f.width)))
 	} else {
 		f.box(l.left, a.border)
 		f.box(l.right, a.border)
@@ -306,13 +307,11 @@ func (m *Model) browserView(f *frame, a appearance) {
 	}
 	detail := m.detailText()
 	if m.screen == "sessions" {
-		lines := strings.Split(ansi.Wrap(detail, l.detail.w, ""), "\n")
-		detailHeight := min(len(lines), max(3, l.detail.h-7))
-		f.text(rect{l.detail.x, l.detail.y, l.detail.w, detailHeight}, detail, a.base, m.preview.YOffset)
-		log := rect{l.right.x + 4, l.detail.y + detailHeight + 1, max(4, l.right.w-8), max(4, l.right.y+l.right.h-l.detail.y-detailHeight-4)}
+		detailRect, log, body := m.sessionPanels()
+		f.text(detailRect, detail, a.base, m.preview.YOffset)
 		f.box(log, a.border)
-		f.put(log.x+3, log.y+1, a.title.Render(ansi.Truncate("Log (last 50 lines)", log.w-5, "")))
-		f.text(rect{log.x + 3, log.y + 3, max(1, log.w-6), max(1, log.h-4)}, m.sessionLog, a.base, m.logOffset)
+		f.put(log.x+3, log.y+1, a.title.Render(ansi.Truncate("Log (last 50 lines)", max(1, log.w-5), "")))
+		f.text(body, m.sessionLog, a.base, min(m.logOffset, m.maxLogOffset()))
 	} else {
 		f.text(l.detail, detail, a.base, m.preview.YOffset)
 		// Headings use the same accent as the original rich-text panels.
@@ -361,23 +360,35 @@ func (m *Model) browserView(f *frame, a appearance) {
 	}
 }
 func (m *Model) statsView(f *frame, a appearance) {
-	r := rect{1, 2, f.width - 2, len(f.rows) - 4}
+	r := rect{1, 2, f.width - 2, f.height - 4}
 	f.box(r, a.border)
-	text := "◆ Analytics\n\n" + fmt.Sprintf("  Total invocations   %d", m.stats.Total)
+	text := a.title.Render("◆ Analytics") + "\n\n  " + a.muted.Render("Total invocations") + "   " + a.base.Bold(true).Render(fmt.Sprint(m.stats.Total))
+	heading := a.title.Foreground(lipgloss.Color(terminalColor(themeValues[m.theme.Mode+"-"+m.theme.Preset]["accent-lighten-1"])))
+	accent := themeValues[m.theme.Mode+"-"+m.theme.Preset]["accent"]
 	if len(m.stats.TopSkills) == 0 {
-		text += "\n\nNo invocations recorded yet."
+		text += "\n\n" + a.muted.Render("No invocations recorded yet.")
 	} else {
-		text += "\n\nTop skills"
-		peak := m.stats.TopSkills[0].Count
+		text += "\n\n" + heading.Render("Top skills")
+		peak := 0
 		for _, v := range m.stats.TopSkills {
-			text += fmt.Sprintf("\n  %-12s %s %d", v.Name, strings.Repeat("█", max(1, v.Count*24/max(1, peak))), v.Count)
+			peak = max(peak, v.Count)
+		}
+		shades := accentGradient(accent, len(m.stats.TopSkills))
+		for i, v := range m.stats.TopSkills {
+			width := max(1, int(math.RoundToEven(float64(v.Count)/float64(max(1, peak))*24)))
+			text += "\n  " + a.base.Bold(true).Render(fmt.Sprintf("%-12s", v.Name)) + " " + a.base.Foreground(lipgloss.Color(shades[i])).Render(strings.Repeat("█", width)) + " " + a.muted.Render(fmt.Sprint(v.Count))
 		}
 	}
 	if len(m.stats.ByAgent) > 0 {
-		text += "\n\nBy agent"
-		peak := m.stats.ByAgent[0].Count
+		text += "\n\n" + heading.Render("By agent")
+		peak := 0
 		for _, v := range m.stats.ByAgent {
-			text += fmt.Sprintf("\n  %-14s %s %d", agents.Get(v.Name).Label, strings.Repeat("█", max(1, v.Count*24/max(1, peak))), v.Count)
+			peak = max(peak, v.Count)
+		}
+		shades := accentGradient(accent, len(m.stats.ByAgent))
+		for i, v := range m.stats.ByAgent {
+			width := max(1, int(math.RoundToEven(float64(v.Count)/float64(max(1, peak))*24)))
+			text += "\n  " + a.base.Bold(true).Render(fmt.Sprintf("%-14s", agents.Get(v.Name).Label)) + " " + a.base.Foreground(lipgloss.Color(shades[i])).Render(strings.Repeat("█", width)) + " " + a.muted.Render(fmt.Sprint(v.Count))
 		}
 	}
 	f.text(rect{5, 4, max(1, r.w-8), r.h - 3}, text, a.base, m.screenScroll)

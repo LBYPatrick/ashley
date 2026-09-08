@@ -90,7 +90,7 @@ func TestRealSessionLifecycle(t *testing.T) {
 	}
 	t.Cleanup(func() { run([]string{"kill-server"}, "") })
 	m := Manager{Dir: t.TempDir(), Run: run}
-	s, err := m.Create(Session{Skill: "raw", CWD: t.TempDir(), Agent: "codex"}, []string{"printf", "first output\nlast line\n"})
+	s, err := m.Create(Session{Skill: "raw", CWD: t.TempDir(), Agent: "codex"}, []string{"printf", "first output\nworking\r\x1b[2Kcomplete\nlast line\n"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +111,10 @@ func TestRealSessionLifecycle(t *testing.T) {
 	}
 	if !strings.Contains(log, "first output") || !strings.Contains(log, "last line") {
 		t.Fatal("lost startup log", log)
+	}
+	preview, err := m.Preview(s, 50, true)
+	if err != nil || !strings.Contains(preview, "complete") || strings.Contains(preview, "working") {
+		t.Fatal("live preview did not capture the rendered terminal", preview, err)
 	}
 	if _, err := m.Resolve(s.ID[:4]); err != nil {
 		t.Fatal(err)

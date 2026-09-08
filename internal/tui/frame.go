@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/cellbuf"
 )
 
 type rect struct{ x, y, w, h int }
@@ -13,20 +14,20 @@ type rect struct{ x, y, w, h int }
 func (r rect) contains(x, y int) bool { return x >= r.x && x < r.x+r.w && y >= r.y && y < r.y+r.h }
 
 type frame struct {
-	rows  []string
-	width int
-	base  lipgloss.Style
+	cells  *cellbuf.Buffer
+	height int
+	width  int
+	base   lipgloss.Style
 }
 
 func newFrame(w, h int, base lipgloss.Style) *frame {
-	f := &frame{width: max(1, w), base: base}
-	for range max(1, h) {
-		f.rows = append(f.rows, base.Render(strings.Repeat(" ", f.width)))
-	}
+	f := &frame{width: max(1, w), height: max(1, h), base: base}
+	f.cells = cellbuf.NewBuffer(f.width, f.height)
+	f.fill(rect{0, 0, f.width, f.height}, base)
 	return f
 }
 func (f *frame) put(x, y int, text string) {
-	if y < 0 || y >= len(f.rows) || x >= f.width {
+	if y < 0 || y >= f.height || x >= f.width {
 		return
 	}
 	if x < 0 {
@@ -35,7 +36,9 @@ func (f *frame) put(x, y int, text string) {
 	}
 	text = ansi.Truncate(text, f.width-x, "")
 	width := ansi.StringWidth(text)
-	f.rows[y] = ansi.Cut(f.rows[y], 0, x) + text + ansi.Cut(f.rows[y], x+width, f.width)
+	// Compose terminal cells, never concatenate retained ANSI prefixes. Repeated
+	// overlays otherwise multiply invisible styles and can stall an entire frame.
+	cellbuf.SetContentRect(f.cells, text, cellbuf.Rect(x, y, width, 1))
 }
 func (f *frame) fill(r rect, style lipgloss.Style) {
 	for y := r.y; y < r.y+r.h; y++ {
@@ -62,7 +65,17 @@ func (f *frame) text(r rect, text string, style lipgloss.Style, offset int) {
 		f.put(r.x, r.y+index-max(0, offset), style.Render(lines[index]))
 	}
 }
-func (f *frame) String() string { return strings.Join(f.rows, "\n") }
+func (f *frame) row(y int) string {
+	_, line := cellbuf.RenderLine(f.cells, y)
+	return line + strings.Repeat(" ", max(0, f.width-ansi.StringWidth(line)))
+}
+func (f *frame) String() string {
+	rows := make([]string, f.height)
+	for y := range rows {
+		rows[y] = f.row(y)
+	}
+	return strings.Join(rows, "\n")
+}
 
 // scrollbar reproduces Textual's eighth-cell thumb sizing and end caps.
 func (f *frame) scrollbar(r rect, virtual, position int, a appearance) {
