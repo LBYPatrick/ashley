@@ -22,10 +22,11 @@ import (
 
 // Installer manages persistent generated skills without a source checkout.
 type Installer struct {
-	Home    string
-	Getenv  func(string) string
-	Catalog skills.Catalog
-	Log     io.Writer
+	Home       string
+	LegacyRoot string
+	Getenv     func(string) string
+	Catalog    skills.Catalog
+	Log        io.Writer
 }
 
 // Result counts installed links and preserved conflicts.
@@ -217,6 +218,15 @@ func (i Installer) owned(path string) bool {
 		target = resolved
 	}
 	target = filepath.Clean(target)
+	if i.LegacyRoot != "" {
+		legacy := filepath.Join(i.LegacyRoot, "generated")
+		if resolved, err := filepath.EvalSymlinks(legacy); err == nil {
+			legacy = resolved
+		}
+		if rel, err := filepath.Rel(legacy, target); err == nil && filepath.IsLocal(rel) && rel != "." {
+			return true
+		}
+	}
 	rel, err := filepath.Rel(i.generated(), target)
 	if err == nil && filepath.IsLocal(rel) {
 		return true

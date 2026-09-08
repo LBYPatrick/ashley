@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -52,7 +53,27 @@ func installOptions(args []string) (keys []string, skillsOnly, check bool, err e
 	return keys, skillsOnly, check, nil
 }
 func installCommand(command string, args []string, catalog skills.Catalog, stdout, stderr io.Writer) error {
-	keys, skillsOnly, check, err := installOptions(args)
+	legacyRoot := ""
+	var options []string
+	for index := 0; index < len(args); index++ {
+		if args[index] != "--legacy-root" {
+			options = append(options, args[index])
+			continue
+		}
+		index++
+		if command != "install" || index >= len(args) || args[index] == "" {
+			return fmt.Errorf("--legacy-root requires a checkout path and is only supported by install")
+		}
+		var err error
+		legacyRoot, err = filepath.Abs(args[index])
+		if err != nil {
+			return err
+		}
+		if info, err := os.Stat(filepath.Join(legacyRoot, "skills")); err != nil || !info.IsDir() {
+			return fmt.Errorf("invalid legacy Ashley checkout: %s", legacyRoot)
+		}
+	}
+	keys, skillsOnly, check, err := installOptions(options)
 	if err != nil {
 		return err
 	}
@@ -66,7 +87,7 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	if err != nil {
 		return err
 	}
-	installer := install.Installer{Home: home, Catalog: catalog, Log: stdout}
+	installer := install.Installer{Home: home, Catalog: catalog, Log: stdout, LegacyRoot: legacyRoot}
 	if command == "uninstall" {
 		result, err := installer.Uninstall(keys)
 		if err != nil {

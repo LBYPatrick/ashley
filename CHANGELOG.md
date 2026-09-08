@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a Python-to-Go migration script with verified release downloads or offline binary input, legacy launcher backup, custom skill import, and replacement only after successful setup.
+
 - Replace the Python runtime with a standalone Go executable, preserving skill generation, custom templates, configuration, history, pipelines, lifecycle hooks, tmux sessions and all interactive screens.
 - Add a guided skill creator with workflow/resource selection and advanced JSON editing; retain complete custom skill packages without a source checkout.
 - Add a full Makefile gate covering Python regressions, Go parity/race/coverage checks, binary smoke tests, and release installer tests.

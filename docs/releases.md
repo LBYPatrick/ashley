@@ -55,6 +55,16 @@ can set `ASHLEY_REPO=owner/repository`. A corrupt download or wrong binary versi
 leaves the previous executable intact. The remote installer downloads release
 binaries; `make install` builds and copies a standalone executable locally.
 
+## Python migration rollout
+
+Merge `scripts/migrate-python.sh` with the native runtime before directing users
+to it. Publish a native release with all four archives and checksums first;
+legacy Python tags have no binary assets. The migration command and offline
+`--binary` path are documented in the [README](../README.md#migrating-from-python).
+The script uses `ash install --legacy-root CHECKOUT --skills-only` to recognize
+links owned by that particular old checkout, import user files, and replace the
+launcher after setup succeeds. It never invokes the old Python environment.
+
 ## Publishing
 
 The repository skill lives at `.agents/skills/publish-release/SKILL.md`, with a

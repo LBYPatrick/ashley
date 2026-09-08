@@ -25,59 +25,18 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 
 ---
 
-## Go migration (`feat/exp-go`)
+## Native binary
 
-Ashley now runs as a standalone Go executable. All CLI entry points and the
-interactive screens have Go implementations verified by the migration acceptance
-suite. Existing YAML settings, JSON preferences, and SQLite history are
-preserved. The Python implementation remains a development-only test reference.
-Evidence is recorded in [the migration acceptance](docs/migration/assessment.md).
+Ashley ships as one Go executable for macOS and Linux on arm64 and amd64.
+Skills, components, and resources are embedded: users need no Go, Python, uv,
+or source checkout. Coding-agent CLIs and tmux remain separate dependencies.
+The project stays open source; Python is retained only as a development test
+reference.
 
-```bash
-make build
-./build/ash-go -i
-./build/ash-go list
-./build/ash-go agent
-./build/ash-go install --all --skills-only  # install prompts without installing CLIs
-./build/ash-go history stats
-./build/ash-go run --codex --detached feat "Add login"
-./build/ash-go prompt feat "Add login"
-./build/ash-go generate --output /tmp/ashley-skills
-./build/ash-go --root /path/to/custom-ashley prompt --project /path/to/project feat
-./build/ash-go update --check # inspect the latest stable release
-make gate                  # full local/CI test and build gate
-make go-dist               # four binary archives + SHA-256 checksums
-```
-
-The binary runs without Go, Python, uv, or a source checkout. Release archives
-contain only `ash` and `LICENSE`; external coding-agent CLIs and tmux remain
-separate dependencies. The repository stays
-open source. Once binary releases are available, `scripts/install.sh` downloads
-the matching release, verifies its checksum/version, and replaces the executable
-atomically. It does not clone or compile source or resolve language dependencies.
-
-
-`ash-go update` downloads a matching binary release, validates its archive and
-SHA-256 checksum, checks the executable version, and atomically replaces the
-running executable. It refreshes installed prompts using the new binary and
-upgrades tracked agents unless `--skip-tools` or `SKIP_TOOL=1` is set. Use
-`--version X.Y.Z` for a specific release, or `--install-dir ~/.local/bin` to
-replace an old launcher symlink while leaving its checkout intact. For explicit developer-checkout updates, use
-`ash-go --root /path/to/ashley update --branch feat/example`; this requires a
-clean Git checkout and Go, and leaves user installations on the binary path.
-
-Development and CI still use Go and uv/Python to test the port against the
-reference application. `make test` runs the complete current suite, including
-Python regressions, Go race tests with a 70% coverage floor, parity fixtures,
-and binary/package/installer integration tests. `make gate` also checks formatting,
-static analysis, and GitHub Actions workflows.
-
-Releases follow the Shelf workflow: use the repository's
-[publish-release skill](.agents/skills/publish-release/SKILL.md) and
-`make publish V=X.Y.Z NOTES=/path/to/notes.md YES=1`. A `v*` tag triggers tests on
-macOS/Linux and builds all four macOS/Linux arm64/amd64 archives. The draft goes
-live only after all packages and checksums are present. Incomplete migrations
-can only produce explicitly labeled prereleases. See [release development](docs/releases.md).
+Existing YAML settings, JSON preferences, SQLite history, and tmux sessions
+remain compatible. See [Migrating from Python](#migrating-from-python) for the
+launcher replacement and custom-skill import procedure. Development and release
+commands are documented in [binary release development](docs/releases.md).
 
 ## Quick Start
 
@@ -105,6 +64,55 @@ The installer asks which coding agent to set up. Skip the question with a flag:
 ```bash
 curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, --opencode, --kilo, --all
 ```
+
+### Migrating from Python
+
+Use the migration script instead of running the old `make install`. Once the
+first native release is published and this script is on `main`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/migrate-python.sh -o /tmp/ashley-migrate.sh
+bash /tmp/ashley-migrate.sh
+```
+
+It downloads and verifies the release, finds the old checkout through the
+launcher symlink or `~/.ashley/repo` (`ASHLEY_DIR` is also supported), and imports
+its skill definitions, components, resources, and generated packages into
+`~/.ashley`. Existing files in that user directory win over imported files.
+Imported source files become local overrides of the embedded defaults, preserving
+customizations; remove an override when you want to use the bundled version.
+The script generates and installs skills for configured/detected agents without
+installing or upgrading their CLIs, then atomically replaces `~/.local/bin/ash`.
+
+For a custom checkout or install location:
+
+```bash
+bash /tmp/ashley-migrate.sh --source ~/code/ashley --install-dir ~/.local/bin --codex
+# Pin a published native release with --version X.Y.Z.
+```
+
+Before the first release, or for an offline migration, use a trusted native
+binary built by CI or extracted from a verified release archive:
+
+```bash
+bash scripts/migrate-python.sh --binary /path/to/ash
+```
+
+The old launcher and any pre-existing user skill directories are backed up under
+`~/.ashley/migrations/python-to-go-*`. Settings, SQLite history, session logs,
+the old checkout/virtualenv, and shared Python/uv installations are retained.
+If download, verification, or skill setup fails, the launcher stays unchanged;
+any imported skill files and their backups remain available for inspection.
+The script rejects symlinked skill data directories/files rather than copying
+through them. If no agent is found, select one explicitly with `--codex`,
+`--claude`, or `--all`.
+
+Start a new shell (or run `hash -r`), then check `ash --version`, `ash history show`,
+and `ash list`. After verifying your custom skills and old history, you can
+remove the old checkout and its `.venv`; the Go installation no longer needs them.
+Do not run the old checkout's `make uninstall`, which would remove the new links.
+To restore the previous launcher, retain its old checkout, remove the new
+launcher, and copy the saved `ash` back with `cp -Pp BACKUP/ash ~/.local/bin/ash`.
 
 <details>
 <summary>Build from source (developers)</summary>
@@ -471,7 +479,7 @@ ash agent [name]                 Show or set the default coding agent
 ash upgrade [names] [--all]      Detect + upgrade the agent CLIs (--check to report only)
 ash install [--claude|--codex|--grok|--opencode|--kilo|--all]   Generate + install skills
 ash uninstall                    Remove skills
-ash update [--branch NAME]       Pull latest + reinstall + upgrade agent CLIs
+ash update [--version VERSION]  Install verified binary release + refresh skills
 ash --version                    Print version
 ```
 
@@ -545,7 +553,7 @@ make format         # Format Go, Python reference tests, and shell scripts
 | `make format` | Run Go, Python, and shell formatters |
 | `make test` | Python reference tests, Go race/coverage tests, parity, and binary integration |
 | `make clean` | Remove build outputs, release archives, generated skills, and test caches |
-| `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
+| `make update` | Update an explicit developer checkout |
 | `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |
 
 ---
