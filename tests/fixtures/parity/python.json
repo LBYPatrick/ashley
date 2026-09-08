@@ -1,0 +1,929 @@
+{
+  "agents": [
+    {
+      "key": "claude",
+      "label": "Claude Code",
+      "binary": "claude",
+      "home_env": "CLAUDE_CONFIG_DIR",
+      "home_dir": ".claude",
+      "install_script": "install_claude.sh",
+      "self_update_args": [
+        "update"
+      ],
+      "docs_url": "https://claude.ai/download",
+      "skill_trigger": "/",
+      "system_prompt_flag": "--append-system-prompt",
+      "dsp_flags": [
+        "--dangerously-skip-permissions"
+      ],
+      "auto_flags": [
+        "--permission-mode",
+        "auto"
+      ],
+      "prompt_flag": null
+    },
+    {
+      "key": "codex",
+      "label": "OpenAI Codex",
+      "binary": "codex",
+      "home_env": "CODEX_HOME",
+      "home_dir": ".codex",
+      "install_script": "install_codex.sh",
+      "self_update_args": [
+        "update"
+      ],
+      "docs_url": "https://developers.openai.com/codex",
+      "skill_trigger": "$",
+      "system_prompt_flag": null,
+      "dsp_flags": [
+        "--dangerously-bypass-approvals-and-sandbox"
+      ],
+      "auto_flags": [
+        "--sandbox",
+        "workspace-write",
+        "--ask-for-approval",
+        "never"
+      ],
+      "prompt_flag": null
+    },
+    {
+      "key": "grok",
+      "label": "Grok Build",
+      "binary": "grok",
+      "home_env": "GROK_HOME",
+      "home_dir": ".grok",
+      "install_script": "install_grok.sh",
+      "self_update_args": [
+        "update"
+      ],
+      "docs_url": "https://docs.x.ai/build/overview",
+      "skill_trigger": "/",
+      "system_prompt_flag": null,
+      "dsp_flags": [
+        "--always-approve"
+      ],
+      "auto_flags": [
+        "--permission-mode",
+        "auto"
+      ],
+      "prompt_flag": null
+    },
+    {
+      "key": "opencode",
+      "label": "OpenCode",
+      "binary": "opencode",
+      "home_env": "OPENCODE_CONFIG_DIR",
+      "home_dir": ".config/opencode",
+      "install_script": "install_opencode.sh",
+      "self_update_args": [
+        "upgrade"
+      ],
+      "docs_url": "https://opencode.ai/docs/",
+      "skill_trigger": "Use the skill ",
+      "system_prompt_flag": null,
+      "dsp_flags": [
+        "--auto"
+      ],
+      "auto_flags": [
+        "--auto"
+      ],
+      "prompt_flag": "--prompt"
+    },
+    {
+      "key": "kilo",
+      "label": "Kilo Code",
+      "binary": "kilo",
+      "home_env": "",
+      "home_dir": ".kilo",
+      "install_script": "install_kilo.sh",
+      "self_update_args": [
+        "upgrade"
+      ],
+      "docs_url": "https://kilo.ai/docs/code-with-ai/platforms/cli",
+      "skill_trigger": "Use the skill ",
+      "system_prompt_flag": null,
+      "dsp_flags": [
+        "--auto"
+      ],
+      "auto_flags": [
+        "--auto"
+      ],
+      "prompt_flag": "--prompt"
+    }
+  ],
+  "bundled": {
+    "brainstorm": {
+      "output": "generated/a-brainstorm/SKILL.md",
+      "sha256": "d9def91953f4f8120d01c1d3dd66e0cc0a888bd0e283dad53c0912a39047760b",
+      "prompt_sha256": "b3a1d17bf40d484a871ca24ba244568fb504e156de3a2f5cc5ab58eee66e8987"
+    },
+    "changelog": {
+      "output": "generated/a-changelog/SKILL.md",
+      "sha256": "f0df77fc012e8862bd38b667648b2aee6cac26db40dc67ab631dbb199b5f19bb",
+      "prompt_sha256": "ad5718ea3fcc7c1324e37095bfe495f6d6d3e1761fc068d0162897ac556440b8"
+    },
+    "ci": {
+      "output": "generated/a-ci/SKILL.md",
+      "sha256": "9a8555cfc65e2c71464dacf7e35018a0171f64a29f71b46b2e3025b8224a0dd5",
+      "prompt_sha256": "b4622ca8df3ea600cc290079b072d62b5c286566ce97781737505c4810a7cde2"
+    },
+    "claudemd": {
+      "output": "generated/a-claudemd/SKILL.md",
+      "sha256": "f26a1ca8546956eec95d8e14a7acef12a7d0d23d27963f8aa2bca54921f8c304",
+      "prompt_sha256": "9682c78a2f988964b10160c6d2ca824d13a861703675b038c8be117478ebfc18"
+    },
+    "coding": {
+      "output": "generated/a-coding/SKILL.md",
+      "sha256": "fabf6f340f79e0a655ffee8aad0701173a22063fa4ad4883344bef5859a65314",
+      "prompt_sha256": "65455d90255778daad31f2483c05e4a160667663c43b2b4ef220930928296a35"
+    },
+    "commit": {
+      "output": "generated/a-commit/SKILL.md",
+      "sha256": "cf9a778a124551d796d5c3502d7270736684ad169814189cc86e6ba0ab8d1511",
+      "prompt_sha256": "e7710847f155aef3f3e4dfeea5aaba7efc905af5c0a7fe6f72d32e61353c736f"
+    },
+    "debug": {
+      "output": "generated/a-debug/SKILL.md",
+      "sha256": "4ef0f62bb1f1430aa96c12f11d2475a64d8716b72afbfef1a00aed3696aac8d5",
+      "prompt_sha256": "845a263826e4f3d6f9cf62bb69c4d5e9f5248ff032c8045ec14ca27e7dff3007"
+    },
+    "feat": {
+      "output": "generated/a-feat/SKILL.md",
+      "sha256": "868962adbc84f95817a64bfb98c8ce1aa7c4cd23c1ad14600f59df657ba32811",
+      "prompt_sha256": "ff34291c290949f2ee14cf92ab999b928b97f75035e1d84bfe08dc5c9a64fa56"
+    },
+    "optimize": {
+      "output": "generated/a-optimize/SKILL.md",
+      "sha256": "b5f4a070639743936c00d1719e72846883f384308f2f67b37539f0ce4f8fb010",
+      "prompt_sha256": "1022ca56d107617ed21a92515a0474653bb2a8c12b0a48f9b415bdaa5b8a66b4"
+    },
+    "pretty": {
+      "output": "generated/a-pretty/SKILL.md",
+      "sha256": "450c0a4828ec475c2d3a88e29a643399722a04ffaa3b85b6ecf0822e9c3b559a",
+      "prompt_sha256": "460b05d3db026599e69b3a91b9d7418800f588f642d7fa3394db368949e55801"
+    },
+    "readme": {
+      "output": "generated/a-readme/SKILL.md",
+      "sha256": "c01f269550b6b892694243a86c31e279760e3e707ee86dfbe510eb3f6fd92af1",
+      "prompt_sha256": "7c3a6982de00d0db8b79de38a9564b42484c7cacf3f1190ba9bdf29693ee5e77"
+    },
+    "rebase": {
+      "output": "generated/a-rebase/SKILL.md",
+      "sha256": "6131ad917edbce242a80e1683f6220e3482dcef2978b464b6caec7e148700624",
+      "prompt_sha256": "6c0da64c211a19e02aeb650afeae07bd737dd7402911174217dc1db90d584f14"
+    },
+    "refactor": {
+      "output": "generated/a-refactor/SKILL.md",
+      "sha256": "5d447e538581bb997419f93c8b24aaf550a6b804128fbbd4c1f94ae0a2b0dfcd",
+      "prompt_sha256": "cff5c5d40e005dc5175fbf8322a103d919381eda06e63d1dea9d505f61fa3466"
+    },
+    "scaffold": {
+      "output": "generated/a-scaffold/SKILL.md",
+      "sha256": "8ac30c57e91770a5545593855a0b8758a759f9de72e8aac4b308d3ed020d0fb7",
+      "prompt_sha256": "8637a2dad6f75bce5d94462740c90b86d159a24a395068eaca9c6443629550f8"
+    }
+  },
+  "templates": [
+    {
+      "source": "{% if project.python %}Python{% else %}Other{% endif %}\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "Python\n"
+    },
+    {
+      "source": "{{ project.name | upper }}\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "DEMO\n"
+    },
+    {
+      "source": "{{ project.missing }}\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "\n"
+    },
+    {
+      "source": "{{ project.python }} {{ project.react }}\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "True False\n"
+    },
+    {
+      "source": "{% for item in project.languages %}{{ loop.index }}:{{ item }};{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "1:a;2:b;"
+    },
+    {
+      "source": "{{ project.missing | default('fallback') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "fallback"
+    },
+    {
+      "source": "{% set greeting = 'hello' %}{{ greeting }} {{ project.name }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "hello demo"
+    },
+    {
+      "source": "{% macro greet(name) %}Hello {{ name }}{% endmacro %}{{ greet(project.name) }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "Hello demo"
+    },
+    {
+      "source": "{%- if project.python -%}\ntrimmed\n{%- endif -%}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "trimmed"
+    },
+    {
+      "source": "{{ '<tag>&' }}\n\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "<tag>&\n\n"
+    },
+    {
+      "source": "{{ project.languages | join(', ') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "a, b"
+    },
+    {
+      "source": "{{ {'a': 1, 'b': 2} | length }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "2"
+    },
+    {
+      "source": "{% if project.react %}React{% elif project.python %}Python{% endif %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "Python"
+    },
+    {
+      "source": "{{ project.name is string }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "True"
+    },
+    {
+      "source": "{% if broken %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "{% if broken %}"
+    },
+    {
+      "source": "plain text\n",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "plain text\n"
+    },
+    {
+      "source": "{% for k, v in {'b': 2, 'a': 1}.items() %}{{ k }}={{ v }};{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "b=2;a=1;"
+    },
+    {
+      "source": "{{ project.name.startswith('de') }} {{ project.name.replace('de', 'DE') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "True DEmo"
+    },
+    {
+      "source": "{{ project.languages | map('upper') | join(',') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "A,B"
+    },
+    {
+      "source": "{{ [1, 2, 3] | select('odd') | join(',') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "1,3"
+    },
+    {
+      "source": "{{ [3, 1, 2] | sort | join(',') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "1,2,3"
+    },
+    {
+      "source": "{{ project.missing is defined }} {{ project.missing is undefined }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "False True"
+    },
+    {
+      "source": "{% set ns = namespace(total=0) %}{% for n in [1,2,3] %}{% set ns.total = ns.total + n %}{% endfor %}{{ ns.total }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "6"
+    },
+    {
+      "source": "{% for n in range(3) %}{{ n }}{% else %}empty{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "012"
+    },
+    {
+      "source": "{% for n in [] %}unused{% else %}empty{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "empty"
+    },
+    {
+      "source": "{{ 7 // 2 }} {{ 7 % 2 }} {{ 'x' ~ 3 }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "3 1 x3"
+    },
+    {
+      "source": "{{ ' abc ' | trim | capitalize }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "Abc"
+    },
+    {
+      "source": "{{ {'b':2,'a':1} | dictsort | length }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "2"
+    },
+    {
+      "source": "{% for key, value in {'b':2,'a':1}|dictsort %}{{ key }}={{ value }};{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "a=1;b=2;"
+    },
+    {
+      "source": "{% for k in {'b':2,'a':1}.keys() %}{{ k }};{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "b;a;"
+    },
+    {
+      "source": "{% for v in {'b':2,'a':1}.values() %}{{ v }};{% endfor %}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "2;1;"
+    },
+    {
+      "source": "{{ 'aaa'.replace('a','x',2) }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "xxa"
+    },
+    {
+      "source": "{{ {'a':1}.get('missing', 'fallback') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "fallback"
+    },
+    {
+      "source": "{{ project.name.upper() }} {{ project.name.endswith('mo') }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "DEMO True"
+    },
+    {
+      "source": "{{ 'hello\nworld' | indent(2) }}",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "hello\n  world"
+    },
+    {
+      "source": "first\r\n{{ project.name }}\r\nlast\r",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": "first\ndemo\nlast\n"
+    }
+  ],
+  "custom_files": {
+    "skills/base.jsonc": "{\"name\": \"a-base\", \"description\": \"base\", \"output\": \"generated/a-base/SKILL.md\", \"components\": [\"components/one.md\"], \"resources\": [\"res/tool.py\"]}",
+    "skills/middle.jsonc": "{\"name\": \"a-middle\", \"description\": \"middle\", \"output\": \"generated/a-middle/SKILL.md\", \"extends\": \"base\", \"components+\": [\"components/nested/**/*.md\"]}",
+    "skills/custom.jsonc": "{\n            // JSON5 features used in custom skill definitions\n            name: 'a-custom', description: 'custom',\n            output: 'generated/a-custom/SKILL.md', extends: 'middle',\n            'components+': ['components/missing.md', 'absent/*.md'],\n            'resources+': ['res/absent.ts'],\n            preamble: 'Custom preamble', epilogue: 'Finish here',\n        }",
+    "skills/replace.jsonc": "{\"name\": \"a-replace\", \"description\": \"replace\", \"output\": \"generated/a-replace/SKILL.md\", \"extends\": \"custom\", \"components\": [], \"resources\": [], \"epilogue\": \"ignored\", \"checklist\": [\"Done\"]}",
+    "components/one.md": "{% if project.python %}Use Python{% endif %}\n",
+    "components/nested/b.md": "Second\n",
+    "components/nested/a.md": "First {{ project.name }}\n",
+    "components/nested/deeper/c.md": "Third\n",
+    "res/tool.py": "print('hello')  \n\n"
+  },
+  "custom": [
+    {
+      "name": "custom",
+      "context": null,
+      "output": "generated/a-custom/SKILL.md",
+      "expected": "---\nname: a-custom\ndescription: custom\n---\n\nCustom preamble\n\n---\n\n{% if project.python %}Use Python{% endif %}\n\n\n\nFirst {{ project.name }}\n\n\n\nSecond\n\n\n\nThird\n\n\n\n<!-- WARNING: Component not found: components/missing.md -->\n\n<!-- WARNING: No files matched pattern: absent/*.md -->\n\n<!-- WARNING: Resource not found: res/absent.ts -->\n\n---\n\n## Reference Resources\n\nUse these code templates as reference when implementing:\n\n### `tool.py`\n\n```python\nprint('hello')\n```\n\n---\n\nFinish here\n"
+    },
+    {
+      "name": "custom",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "output": "generated/a-custom/SKILL.md",
+      "expected": "---\nname: a-custom\ndescription: custom\n---\n\nCustom preamble\n\n---\n\nUse Python\n\n\n\nFirst demo\n\n\n\nSecond\n\n\n\nThird\n\n\n\n<!-- WARNING: Component not found: components/missing.md -->\n\n<!-- WARNING: No files matched pattern: absent/*.md -->\n\n<!-- WARNING: Resource not found: res/absent.ts -->\n\n---\n\n## Reference Resources\n\nUse these code templates as reference when implementing:\n\n### `tool.py`\n\n```python\nprint('hello')\n```\n\n---\n\nFinish here\n"
+    },
+    {
+      "name": "replace",
+      "context": null,
+      "output": "generated/a-replace/SKILL.md",
+      "expected": "---\nname: a-replace\ndescription: replace\n---\n\n---\n\n---\n\n## Completion Checklist\n\n- [ ] Done\n"
+    },
+    {
+      "name": "replace",
+      "context": {
+        "python": true,
+        "react": false,
+        "name": "demo",
+        "languages": [
+          "a",
+          "b"
+        ]
+      },
+      "output": "generated/a-replace/SKILL.md",
+      "expected": "---\nname: a-replace\ndescription: replace\n---\n\n---\n\n---\n\n## Completion Checklist\n\n- [ ] Done\n"
+    }
+  ],
+  "projects": [
+    {
+      "files": {},
+      "expected": {
+        "python": false,
+        "typescript": false,
+        "javascript": false,
+        "go": false,
+        "rust": false,
+        "java": false,
+        "dart": false,
+        "c": false,
+        "cpp": false,
+        "shell": false,
+        "react": false,
+        "nextjs": false,
+        "vue": false,
+        "svelte": false,
+        "fastapi": false,
+        "django": false,
+        "flask": false,
+        "express": false,
+        "flutter": false,
+        "docker": false,
+        "makefile": false,
+        "git": false,
+        "ci_github": false,
+        "ci_gitlab": false,
+        "npm": false,
+        "pnpm": false,
+        "yarn": false,
+        "uv": false,
+        "pip": false,
+        "cargo": false,
+        "name": "project",
+        "has_tests": false,
+        "has_readme": false
+      }
+    },
+    {
+      "files": {
+        "pyproject.toml": "[project]\ndependencies=[\"FastAPI\", \"django\", \"flask\"]",
+        "uv.lock": "",
+        "requirements.txt": "",
+        "README.md": "",
+        "tests/test.py": ""
+      },
+      "expected": {
+        "python": true,
+        "typescript": false,
+        "javascript": false,
+        "go": false,
+        "rust": false,
+        "java": false,
+        "dart": false,
+        "c": false,
+        "cpp": false,
+        "shell": false,
+        "react": false,
+        "nextjs": false,
+        "vue": false,
+        "svelte": false,
+        "fastapi": true,
+        "django": true,
+        "flask": true,
+        "express": false,
+        "flutter": false,
+        "docker": false,
+        "makefile": false,
+        "git": false,
+        "ci_github": false,
+        "ci_gitlab": false,
+        "npm": false,
+        "pnpm": false,
+        "yarn": false,
+        "uv": true,
+        "pip": true,
+        "cargo": false,
+        "name": "project",
+        "has_tests": true,
+        "has_readme": true
+      }
+    },
+    {
+      "files": {
+        "package.json": "{\"name\":\"web\",\"dependencies\":{\"next\":\"*\",\"vue\":\"*\",\"express\":\"*\"},\"devDependencies\":{\"typescript\":\"*\",\"svelte\":\"*\"}}",
+        "pnpm-lock.yaml": "",
+        "yarn.lock": "",
+        "package-lock.json": ""
+      },
+      "expected": {
+        "python": false,
+        "typescript": true,
+        "javascript": true,
+        "go": false,
+        "rust": false,
+        "java": false,
+        "dart": false,
+        "c": false,
+        "cpp": false,
+        "shell": false,
+        "react": true,
+        "nextjs": true,
+        "vue": true,
+        "svelte": true,
+        "fastapi": false,
+        "django": false,
+        "flask": false,
+        "express": true,
+        "flutter": false,
+        "docker": false,
+        "makefile": false,
+        "git": false,
+        "ci_github": false,
+        "ci_gitlab": false,
+        "npm": false,
+        "pnpm": true,
+        "yarn": false,
+        "uv": false,
+        "pip": false,
+        "cargo": false,
+        "name": "web",
+        "has_tests": false,
+        "has_readme": false
+      }
+    },
+    {
+      "files": {
+        "package.json": "{bad",
+        "tsconfig.json": "{}",
+        "package-lock.json": ""
+      },
+      "expected": {
+        "python": false,
+        "typescript": true,
+        "javascript": true,
+        "go": false,
+        "rust": false,
+        "java": false,
+        "dart": false,
+        "c": false,
+        "cpp": false,
+        "shell": false,
+        "react": false,
+        "nextjs": false,
+        "vue": false,
+        "svelte": false,
+        "fastapi": false,
+        "django": false,
+        "flask": false,
+        "express": false,
+        "flutter": false,
+        "docker": false,
+        "makefile": false,
+        "git": false,
+        "ci_github": false,
+        "ci_gitlab": false,
+        "npm": true,
+        "pnpm": false,
+        "yarn": false,
+        "uv": false,
+        "pip": false,
+        "cargo": false,
+        "name": "project",
+        "has_tests": false,
+        "has_readme": false
+      }
+    },
+    {
+      "files": {
+        "go.mod": "module demo",
+        "Cargo.toml": "",
+        "pom.xml": "",
+        "pubspec.yaml": "flutter:",
+        "CMakeLists.txt": "",
+        "Makefile": "",
+        "Dockerfile": "",
+        ".git": "gitdir: elsewhere",
+        ".github/workflows/ci.yml": "",
+        ".gitlab-ci.yml": "",
+        "scripts/test.sh": "",
+        "spec/test": ""
+      },
+      "expected": {
+        "python": false,
+        "typescript": false,
+        "javascript": false,
+        "go": true,
+        "rust": true,
+        "java": true,
+        "dart": true,
+        "c": false,
+        "cpp": true,
+        "shell": true,
+        "react": false,
+        "nextjs": false,
+        "vue": false,
+        "svelte": false,
+        "fastapi": false,
+        "django": false,
+        "flask": false,
+        "express": false,
+        "flutter": true,
+        "docker": true,
+        "makefile": true,
+        "git": true,
+        "ci_github": true,
+        "ci_gitlab": true,
+        "npm": false,
+        "pnpm": false,
+        "yarn": false,
+        "uv": false,
+        "pip": false,
+        "cargo": true,
+        "name": "project",
+        "has_tests": true,
+        "has_readme": false
+      }
+    }
+  ]
+}

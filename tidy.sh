@@ -18,11 +18,16 @@ uv run ruff check --select I,F401 --fix .
 uv run ruff format .
 
 # Shell scripts: format
-if compgen -G "scripts/*.sh" >/dev/null 2>&1; then
-    uv run -m beautysh scripts/*.sh
-fi
+while IFS= read -r -d '' script; do
+    uv run -m beautysh "$script"
+done < <(find scripts -type f -name '*.sh' -print0)
 if [ -f "tidy.sh" ]; then
     uv run -m beautysh tidy.sh
+fi
+
+# Format the native runtime alongside the Python development reference.
+if [ -f "go.mod" ] && command -v gofmt >/dev/null 2>&1; then
+    gofmt -w assets.go cmd internal
 fi
 
 echo "Formatting complete."

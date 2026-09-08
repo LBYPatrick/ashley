@@ -29,3 +29,14 @@ uv.lock
 
 # Misc
 *.log
+
+# Go coverage and build output
+/coverage.out
+/build-coverage.out
+
+# Development test caches, coverage reports, and visual exports
+.pytest_cache/
+.coverage
+.coverage.*
+/htmlcov/
+/test-results/

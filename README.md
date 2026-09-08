@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-≥3.13-3776AB?logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/Go-native_binary-00ADD8?logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License" /></a>
 </p>
@@ -25,14 +25,26 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 
 ---
 
+## Native binary
+
+Ashley ships as one Go executable for macOS and Linux on arm64 and amd64.
+Skills, components, and resources are embedded: users need no Go, Python, uv,
+or source checkout. Coding-agent CLIs and tmux remain separate dependencies.
+The project stays open source; Python is retained only as a development test
+reference.
+
+Existing YAML settings, JSON preferences, SQLite history, and tmux sessions
+remain compatible. See [Migrating from Python](#migrating-from-python) for the
+launcher replacement and custom-skill import procedure. Development and release
+commands are documented in [binary release development](docs/releases.md).
+
 ## Quick Start
 
 ### Prerequisites
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Python | ≥ 3.13 | |
-| [uv](https://docs.astral.sh/uv/) | latest | Python package manager |
+| macOS or Linux | arm64 or amd64 | A matching prebuilt release; no language runtime needed |
 | Claude Code, Codex, Grok Build, OpenCode, or Kilo Code | latest | For running skills — installed for you |
 | [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
 
@@ -42,7 +54,10 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | bash
 ```
 
-Clones to `~/.ashley/repo`, installs dependencies, generates skills, symlinks them into your agent's skills directory, and adds `ash` to `~/.local/bin`.
+Downloads and verifies the matching release binary into `~/.local/bin/ash`,
+then installs skills and the selected agent. No checkout, Python, uv, or Go
+toolchain is installed. Binary release assets must be published before using
+this installation path; use the developer build below to try this branch.
 
 The installer asks which coding agent to set up. Skip the question with a flag:
 
@@ -50,8 +65,57 @@ The installer asks which coding agent to set up. Skip the question with a flag:
 curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, --opencode, --kilo, --all
 ```
 
+### Migrating from Python
+
+Use the migration script instead of running the old `make install`. Once the
+first native release is published and this script is on `main`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/migrate-python.sh -o /tmp/ashley-migrate.sh
+bash /tmp/ashley-migrate.sh
+```
+
+It downloads and verifies the release, finds the old checkout through the
+launcher symlink or `~/.ashley/repo` (`ASHLEY_DIR` is also supported), and imports
+its skill definitions, components, resources, and generated packages into
+`~/.ashley`. Existing files in that user directory win over imported files.
+Imported source files become local overrides of the embedded defaults, preserving
+customizations; remove an override when you want to use the bundled version.
+The script generates and installs skills for configured/detected agents without
+installing or upgrading their CLIs, then atomically replaces `~/.local/bin/ash`.
+
+For a custom checkout or install location:
+
+```bash
+bash /tmp/ashley-migrate.sh --source ~/code/ashley --install-dir ~/.local/bin --codex
+# Pin a published native release with --version X.Y.Z.
+```
+
+Before the first release, or for an offline migration, use a trusted native
+binary built by CI or extracted from a verified release archive:
+
+```bash
+bash scripts/migrate-python.sh --binary /path/to/ash
+```
+
+The old launcher and any pre-existing user skill directories are backed up under
+`~/.ashley/migrations/python-to-go-*`. Settings, SQLite history, session logs,
+the old checkout/virtualenv, and shared Python/uv installations are retained.
+If download, verification, or skill setup fails, the launcher stays unchanged;
+any imported skill files and their backups remain available for inspection.
+The script rejects symlinked skill data directories/files rather than copying
+through them. If no agent is found, select one explicitly with `--codex`,
+`--claude`, or `--all`.
+
+Start a new shell (or run `hash -r`), then check `ash --version`, `ash history show`,
+and `ash list`. After verifying your custom skills and old history, you can
+remove the old checkout and its `.venv`; the Go installation no longer needs them.
+Do not run the old checkout's `make uninstall`, which would remove the new links.
+To restore the previous launcher, retain its old checkout, remove the new
+launcher, and copy the saved `ash` back with `cp -Pp BACKUP/ash ~/.local/bin/ash`.
+
 <details>
-<summary>Manual install</summary>
+<summary>Build from source (developers)</summary>
 
 ```bash
 git clone https://github.com/LBYPatrick/ashley.git
@@ -66,9 +130,9 @@ make install
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASHLEY_DIR` | `~/.ashley/repo` | Install location |
-| `ASHLEY_REPO_URL` | `https://github.com/LBYPatrick/ashley.git` | Override repo URL |
-| `ASHLEY_USE_CN` | unset | Use China-accessible mirrors (`1` to enable) |
+| `ASHLEY_INSTALL_DIR` | `~/.local/bin` | Binary installation directory |
+| `ASHLEY_REPO` | `LBYPatrick/ashley` | GitHub release repository |
+| `ASHLEY_VERSION` | latest stable | Specific binary release version |
 | `ASHLEY_NO_COLOR` | unset | Disable colored output (`1` to enable) |
 | `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, `grok`, `opencode`, `kilo`, `both`, or `all`) |
 
@@ -77,8 +141,9 @@ make install
 ### Uninstall
 
 ```bash
-cd ~/.ashley/repo && make uninstall
-rm -rf ~/.ashley
+ash uninstall
+rm ~/.local/bin/ash
+# Your settings, custom skills, logs, and history are retained.
 ```
 
 ---
@@ -185,14 +250,27 @@ Run `ash` to launch the hub:
 | **Vibe** | Skill browser — preview, pick a run mode, and launch | `ash vibe` |
 | **Sessions** | Manage detached runs | `ash sessions` |
 | **History** | Browse invocation log | `ash history browse` |
-| **Generate** | Rebuild skill files | `ash generate` |
-| **Install** | Deploy skills to your agent's skills dir | `ash install` |
+| **Sync** | Generate skills, then install for all detected agents | — |
+| **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
+
+Sync detects supported agent executables on PATH and in native install locations,
+then generates skills into `~/.ashley/generated` before installing links for every
+detected agent. Every activation runs the complete sync again. The full per-file and per-agent
+log stays visible; use PgUp/PgDn or Home/End to scroll, and `R` to rerun.
+Press `I` to set up the agent selected in Settings. Standalone `ash generate` and
+`ash install` commands remain available for scripts and explicit CLI use.
 
 On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
 required, so it works over SSH/mosh.
+
+The creator guides you through basics, component/resource selection, workflow,
+and preview. Use Tab to change fields, Ctrl+N to advance, Esc to go back, and
+Ctrl+S to save. In the workflow step, Ctrl+A adds a step, Ctrl+D removes it,
+and Ctrl+Left/Right switches steps. Ctrl+E opens the advanced JSON editor.
+New definitions live in `~/.ashley/skills` (or `--root/skills` for a checkout).
 
 Inside **Vibe** you can pick a run mode before launching — **Normal** (standard
 permission prompts), **DSP** (skip all permission checks), **AUTO** (auto-accept
@@ -209,6 +287,16 @@ All read the same generated `SKILL.md` packages. Claude and Grok use slash
 commands, Codex uses `$` mentions, and Ashley asks OpenCode and Kilo to load
 the named skill. Kilo installation requires Node.js/npm; its bootstrap uses
 `npm install -g @kilocode/cli`.
+
+The shipped executable embeds all built-in skill definitions, components, and
+resources. `ash install --all --skills-only` assembles them into
+`~/.ashley/generated` and links them into the agents’ user directories, without
+a source checkout, network access, or Go/Python tooling. Agent CLI setup may
+require its vendor’s network installer.
+
+Installing from `--root` imports complete custom packages from `generated/`,
+including supporting files and executable scripts, into `~/.ashley/generated`.
+They remain usable without the checkout; later installs preserve local edits.
 
 ```bash
 ash install --codex        # install skills for Codex
@@ -306,6 +394,11 @@ resilience. Without
 `--detached`, Ashley attaches to it immediately (exiting cleans it up); with
 `--detached`, it runs in the background for you to manage later.
 
+Ashley enables mouse scrolling for its sessions: wheel up opens tmux
+scrollback instead of sending arrow keys to the agent. Press `q` (or `Esc`
+in vi copy mode) to return to typing. Existing sessions receive this fix
+when reattached with `ash attach`. Other tmux sessions keep their settings.
+
 ```bash
 ash run feat "Add OAuth support"            # runs in tmux, attaches immediately
 ash run --detached feat "Add OAuth support" # background session
@@ -386,7 +479,7 @@ ash agent [name]                 Show or set the default coding agent
 ash upgrade [names] [--all]      Detect + upgrade the agent CLIs (--check to report only)
 ash install [--claude|--codex|--grok|--opencode|--kilo|--all]   Generate + install skills
 ash uninstall                    Remove skills
-ash update [--branch NAME]       Pull latest + reinstall + upgrade agent CLIs
+ash update [--version VERSION]  Install verified binary release + refresh skills
 ash --version                    Print version
 ```
 
@@ -396,6 +489,7 @@ ash --version                    Print version
 |------|-------------|
 | `-dsp` / `--dangerously-skip-permissions` | Skip all permission checks |
 | `--auto` | Auto-accept safe tools |
+| `--normal` | Use normal permissions, overriding the configured default |
 | `-afk` / `--away-from-keyboard` | Fully autonomous, implies `-dsp` |
 | `--detached` | Run in background tmux session |
 | `-c` / `--claude` | Use Claude Code for this run |
@@ -407,12 +501,30 @@ ash --version                    Print version
 ## Architecture
 
 ```
-skills/          JSONC skill definitions (name, components, resources, workflow)
-components/      Reusable markdown instruction blocks
-res/             Code templates and reference docs
-src/ashley/      Python package (generator, CLI, TUI, hooks, pipelines)
-generated/       Output: assembled SKILL.md files (always inlined)
+skills/             JSONC skill definitions
+components/         Reusable markdown instruction blocks
+res/                Code templates and reference docs
+cmd/ash/            Native executable entry point
+internal/           Go CLI, TUI, generation, sessions, history, and updates
+src/ashley/         Python reference implementation (development only)
+tests/python/       Python reference and release-tool regression tests
+tests/integration/  Compiled binary, package, and installer tests
+tests/fixtures/     Reviewed regression reference outputs
+tests/reference/    Developer tools for capturing reference fixtures
+scripts/release/    Packaging, version validation, and publishing
+scripts/dev/        Local development helpers
+docs/migration/     Migration acceptance and release parity checklist
 ```
+
+`assets.go` stays at the module root so Go can embed the shared skill sources
+directly, without a generated copy. Build outputs (`build/`, `dist/`, and
+`generated/`) and test caches are ignored; `make clean` removes them.
+
+For new projects without an explicit stack, coding guidance selects Rust for
+edge workloads requiring extreme performance, Python for ML/data analytics when
+lower runtime performance is acceptable, and Go otherwise. Web frontends default
+to Vue + TypeScript + Vite. Explicit choices and existing stacks take precedence;
+both Vue and React component references remain bundled.
 
 Skills are JSONC files referencing reusable components and code resources. The generator assembles them into self-contained markdown prompts with all resources inlined. Project detection provides tech stack context to Jinja2 templates for conditional content.
 
@@ -426,7 +538,7 @@ cd ashley
 uv sync --group dev
 make generate       # Regenerate skills
 make test           # Run tests
-make format         # Run ruff formatter
+make format         # Format Go, Python reference tests, and shell scripts
 ```
 
 ### Makefile Targets
@@ -434,14 +546,14 @@ make format         # Run ruff formatter
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all targets |
-| `make install` | Generate, install skills, symlink CLI (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
+| `make install` | Build native CLI and install skills (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
 | `make uninstall` | Remove skills and CLI |
 | `make generate` | Regenerate skill markdown files |
 | `make list` | List skill definitions |
-| `make format` | Run ruff formatter |
-| `make test` | Run pytest |
-| `make clean` | Remove generated files |
-| `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
+| `make format` | Run Go, Python, and shell formatters |
+| `make test` | Python reference tests, Go race/coverage tests, parity, and binary integration |
+| `make clean` | Remove build outputs, release archives, generated skills, and test caches |
+| `make update` | Update an explicit developer checkout |
 | `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |
 
 ---

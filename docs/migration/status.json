@@ -1,0 +1,11 @@
+{
+  "skills_and_prompts": true,
+  "project_detection": true,
+  "custom_template_compatibility": true,
+  "agents_installation_and_upgrades": true,
+  "configuration_and_preferences": true,
+  "runs_pipelines_hooks_and_tmux": true,
+  "history_sessions_and_analytics": true,
+  "all_interactive_screens": true,
+  "binary_self_update_and_source_migration": true
+}

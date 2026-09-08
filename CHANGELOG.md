@@ -9,12 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a Python-to-Go migration script with verified release downloads or offline binary input, legacy launcher backup, custom skill import, and replacement only after successful setup.
+
+- Replace the Python runtime with a standalone Go executable, preserving skill generation, custom templates, configuration, history, pipelines, lifecycle hooks, tmux sessions and all interactive screens.
+- Add a guided skill creator with workflow/resource selection and advanced JSON editing; retain complete custom skill packages without a source checkout.
+- Add a full Makefile gate covering Python regressions, Go parity/race/coverage checks, binary smoke tests, and release installer tests.
+- Add binary archives, checksum-verified installation, a publish-release skill, and GitHub Actions for macOS/Linux release builds; require full parity before stable binary releases.
 - Add Grok Build, OpenCode, and Kilo Code support across installation, invocation, pipelines, settings, and upgrades.
 - Add `ash install --all` for all five agents while retaining `--both` for Claude Code and Codex.
 
+### Changed
+
+- Merge TUI Generate and Install into Sync: generate persistent skills, then install links for all detected agents with one retained result.
+
+- Select Rust for edge workloads requiring extreme performance, Python for ML/data work with acceptable runtime tradeoffs, and Go for other unspecified backends. Default new web frontends to Vue + TypeScript + Vite while retaining React references.
+
+- Install TUI skills for all detected coding agents automatically, and explain when no supported agent is installed.
+
+- Group regression tests, reference fixtures, release tooling, and migration documentation into dedicated folders; expand `make clean` to remove development artifacts.
+
+### Changed
+
+- Polish every TUI page with consistent spacing, bounded reading columns, clearer focus, responsive creator forms, and a compact command palette; preserve analytics gradients and session details.
+- Keep Generate and skills-only Install inside the TUI with persistent results, destinations, retry actions, and cancellable background work.
+- Verify embedded skill installation for all five agents using only the shipped binary with no language tools on PATH.
+
 ### Fixed
 
+- Run generation and installation on every Sync activation, and retain the complete per-file and per-agent log with page and Home/End scrolling.
+
+- Expand Skills, Sessions, and History to the terminal width, adapt list columns, and align run-mode hints with the prompt field.
+
+- Rework Settings with a centered layout, compact grouped choices, small palette swatches, distinct focus and selection indicators, and responsive keyboard navigation.
+
+- Fix the Go Settings freeze and panel styling spills by composing terminal cells instead of duplicating ANSI sequences.
+- Restore the original Stats lightness gradients and rounded bar lengths.
+- Fix session log rendering with live tmux screen capture, archived redraw handling, and scrolling based on wrapped viewport lines.
+- Restore the original Python terminal layouts, information panels, inline session logs, theme swatches and grayscale selection styling in the Go UI; add cross-language screen snapshots and resize regression checks.
+
+- Capture mouse-wheel scrolling in Ashley tmux sessions instead of forwarding arrow keys to coding agents, including when reattaching existing sessions.
 - Fix npm-installed executables such as `codex.js` under the Homebrew prefix being mistaken for Homebrew formulae.
+- Respect explicit Normal permissions when automatic permissions are configured, and retain all agent selections during binary bootstrap installation.
 
 ## [0.3.0] - 2026-08-03
 

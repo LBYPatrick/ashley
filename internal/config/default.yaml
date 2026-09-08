@@ -1,0 +1,47 @@
+# Ashley Configuration
+# See: https://github.com/lbypatrick/ashley
+
+# Default settings for `ash run`
+defaults:
+  permission_mode: default  # default | auto | dsp | afk
+
+# The coding agent Ashley drives (claude | codex | grok | opencode | kilo) is stored in
+# ~/.ashley/prefs.json. Change it with `ash agent codex`, from the TUI
+# Settings screen, or per-run with `ash run -c` / `ash run -o`.
+
+# Hooks — shell commands that run before/after skill execution.
+# Global hooks apply to all skills; per-skill hooks override globals.
+#
+# Available hook points:
+#   before_run  — runs before the coding agent starts
+#   after_run   — runs after the coding agent exits (exit code in $ASHLEY_EXIT_CODE)
+#   on_error    — runs only when the coding agent exits non-zero
+#
+# Each hook value can be a string (single command) or list (multiple commands).
+# Commands run in the skill's working directory.
+# If a before_run hook exits non-zero, the skill run is aborted.
+hooks:
+  global: {}
+    # before_run: "echo 'Starting skill: $ASHLEY_SKILL'"
+    # after_run: "echo 'Finished: $ASHLEY_SKILL (exit $ASHLEY_EXIT_CODE)'"
+  skills: {}
+    # feat:
+    #   after_run: "make format"
+    # commit:
+    #   before_run: "make test"
+
+# Pipelines — named skill chains for common workflows.
+# Each pipeline is a list of skills executed sequentially.
+# The question is passed to the first skill; subsequent skills
+# receive "/a-<skill>" as the trigger.
+#
+# Use '+' syntax on the CLI: ash pipe feat+commit "add login"
+# Or define named pipelines here:
+pipelines: {}
+  # ship:
+  #   - feat
+  #   - commit
+  #   - changelog
+  # review:
+  #   - refactor
+  #   - commit

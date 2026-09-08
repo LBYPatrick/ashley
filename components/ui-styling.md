@@ -62,7 +62,9 @@ Default design language: **Material Design 3 (Material You)**. Ask the user if n
 
 Implement a proper theme system with light+dark mode support using CSS custom properties (web) or platform theming (Flutter/native):
 
-### Web (React + Tailwind)
+### Web (Vue or React + Tailwind)
+
+Use Vue for an unspecified new frontend. React-specific examples below apply only to React projects; implement equivalent behavior with Vue reactivity and transitions in Vue projects.
 Define theme tokens as CSS custom properties in `:root` and `.dark`:
 ```css
 :root {

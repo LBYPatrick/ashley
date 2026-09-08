@@ -19,11 +19,11 @@ dev = [
     "beautysh>=6.4.2",
     "commitizen>=4.12.1",
     "pytest>=8.0.0",
-    "ruff>=0.15.0",
+    "ruff==0.15.9",
 ]
 
 [project.scripts]
-ash = "ashley.cli:main"
+ash-python = "ashley.cli:main"
 
 [build-system]
 requires = ["hatchling"]
