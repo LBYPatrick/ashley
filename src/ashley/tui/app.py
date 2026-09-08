@@ -1280,9 +1280,23 @@ class SettingsScreen(Screen):
         padding: 1 0 0 0;
     }
 
-    #mode-row, #agent-row {
+    #mode-row {
         height: 3;
         padding: 1 0 0 0;
+    }
+
+    #agent-row {
+        grid-size: 3;
+        grid-rows: 3;
+        height: 7;
+        padding: 1 0 0 0;
+    }
+
+    #agent-row .mode-chip {
+        width: 1fr;
+        min-width: 0;
+        padding: 0 1;
+        margin: 0 1 0 0;
     }
 
     .mode-chip {
@@ -1378,7 +1392,7 @@ class SettingsScreen(Screen):
                 yield Static(intro, id="settings-intro")
 
                 yield Label("Coding agent", classes="settings-h")
-                with Horizontal(id="agent-row"):
+                with Grid(id="agent-row"):
                     for key in AGENTS:
                         yield AgentChip(key)
 

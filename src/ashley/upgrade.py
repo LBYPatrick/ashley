@@ -1,12 +1,8 @@
 """Detection and upgrading of the coding-agent CLIs Ashley drives.
 
-Ashley does not own Claude Code or Codex — the user may have installed
-either one with Homebrew, with the vendor's native installer, or with a
-Node package manager. This module works out where an agent's binary came
-from and upgrades it the same way it was installed, with one deliberate
-exception: Node package managers are never invoked, so anything that is
-not a Homebrew install is (re)installed with the vendor's native
-installer. A missing agent takes the same native path.
+Ashley identifies Homebrew installations from their Cellar/Caskroom paths.
+Other installations use the CLI updater with a bootstrap-script fallback.
+Kilo's bootstrap uses npm; the other backends use native installers.
 
 Detection is pure path arithmetic (:func:`brew_package_from_path`) over
 the resolved binary location; the subprocess calls that discover that
@@ -91,17 +87,15 @@ def brew_package_from_path(resolved: Path, prefix: Path) -> tuple[str, bool] | N
         A ``(package, is_cask)`` pair, or ``None`` when the path does not
         come from Homebrew.
     """
-    parts = resolved.parts
+    try:
+        parts = resolved.relative_to(prefix).parts
+    except ValueError:
+        return None
     for store, is_cask in BREW_STORES:
-        if store in parts:
-            index = parts.index(store)
-            if index + 1 < len(parts):
-                return parts[index + 1], is_cask
-
-    # A few packages drop real files straight into <prefix>/bin, where the
-    # binary name is also the package name.
-    if resolved.is_relative_to(prefix):
-        return resolved.name, False
+        if len(parts) >= 4 and parts[0] == store:
+            return parts[1], is_cask
+    # npm globals may live under Homebrew's prefix too. Their script
+    # basenames (e.g. codex.js) are not Homebrew formula names.
     return None
 
 
@@ -181,13 +175,13 @@ def upgrade_plan(status: AgentStatus) -> list[list[str]]:
 
     Homebrew installs are upgraded with ``brew``, which already skips the
     work when the package is current. An installed agent is otherwise
-    asked to update itself — both CLIs ship an ``update`` subcommand that
+    asked to update itself using its configured update subcommand, which
     checks for a new version before downloading anything, so re-running
     ``ash upgrade`` on an up-to-date agent costs one version check rather
     than a full reinstall. The native installer is the fallback, and the
     only option for an agent that is not installed at all.
 
-    npm and pnpm never appear in any of these commands.
+    Package installation details live in each backend bootstrap script.
     """
     if status.source == BREW and status.brew_package:
         cask = ["--cask"] if status.brew_cask else []

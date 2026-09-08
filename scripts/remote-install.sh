@@ -7,12 +7,12 @@ set -euo pipefail
 ASHLEY_DIR="${ASHLEY_DIR:-$HOME/.ashley/repo}"
 REPO_URL="${ASHLEY_REPO_URL:-https://github.com/LBYPatrick/ashley.git}"
 
-# Coding agent to install skills for: claude | codex | both.
+# Coding agent to install skills for: claude | codex | grok | opencode | kilo | both | all.
 # Left empty, the installer asks (or reuses an existing setup).
 AGENT="${ASHLEY_AGENT:-}"
 for arg in "$@"; do
     case "$arg" in
-        --claude | --codex | --both) AGENT="${arg#--}" ;;
+        --claude | --codex | --grok | --opencode | --kilo | --both | --all) AGENT="${arg#--}" ;;
         --agent=*) AGENT="${arg#--agent=}" ;;
         *)
             echo "Unknown option: $arg" >&2

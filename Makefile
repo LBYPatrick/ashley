@@ -7,7 +7,7 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install: ensure-uv generate ## Generate skills, install them for a coding agent, and symlink CLI (AGENT=claude|codex|both)
+install: ensure-uv generate ## Generate skills, install them for a coding agent, and symlink CLI (AGENT=claude|codex|grok|opencode|kilo|both|all)
 	@uv run python -m ashley.install $(if $(AGENT),--agent $(AGENT),)
 	@mkdir -p "$(HOME)/.local/bin"
 	@ln -sf "$(CURDIR)/bin/ash" "$(HOME)/.local/bin/ash"
@@ -39,7 +39,7 @@ clean: ## Remove generated files
 update: ## Pull latest, re-install changed skills, upgrade agent CLIs (BRANCH=main, SKIP_TOOL=1 to skip CLIs)
 	@uv run python -m ashley.update $(or $(BRANCH),main)
 
-upgrade: ## Detect and upgrade the coding-agent CLIs (AGENT=claude|codex, default: all)
+upgrade: ## Detect and upgrade the coding-agent CLIs (AGENT=<key>, default: all)
 	@uv run ash upgrade $(if $(AGENT),$(AGENT),--all)
 
 test: ## Run tests

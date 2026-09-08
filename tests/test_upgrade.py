@@ -33,10 +33,10 @@ def test_brew_package_from_caskroom_path():
     assert brew_package_from_path(resolved, BREW_PREFIX) == ("claude-code", True)
 
 
-def test_brew_package_falls_back_to_binary_name_inside_prefix():
-    """Packages that drop a real file into <prefix>/bin are still brew's."""
+def test_brew_package_does_not_guess_from_binary_name():
+    """The prefix alone does not establish Homebrew ownership."""
     resolved = BREW_PREFIX / "bin/codex"
-    assert brew_package_from_path(resolved, BREW_PREFIX) == ("codex", False)
+    assert brew_package_from_path(resolved, BREW_PREFIX) is None
 
 
 def test_brew_package_rejects_paths_outside_the_prefix():
@@ -46,10 +46,7 @@ def test_brew_package_rejects_paths_outside_the_prefix():
 
 def test_brew_package_handles_a_bare_store_directory():
     """A truncated Cellar path names no package."""
-    assert brew_package_from_path(Path("/opt/homebrew/Cellar"), BREW_PREFIX) == (
-        "Cellar",
-        False,
-    )
+    assert brew_package_from_path(Path("/opt/homebrew/Cellar"), BREW_PREFIX) is None
 
 
 # ── Detection ──
@@ -193,3 +190,25 @@ def test_no_upgrade_path_ever_uses_a_node_package_manager():
 def test_native_install_script_exists_for_every_agent():
     for spec in (CLAUDE, CODEX):
         assert (PROJECT_ROOT / "scripts" / spec.install_script).is_file()
+
+
+def test_npm_codex_under_brew_prefix_is_not_a_formula(tmp_path):
+    script = tmp_path / "lib/node_modules/@openai/codex/bin/codex.js"
+    script.parent.mkdir(parents=True)
+    script.touch()
+    link = tmp_path / "bin/codex"
+    link.parent.mkdir()
+    link.symlink_to(script)
+    with_which, with_prefix, with_version = _detected(str(link), tmp_path)
+    with with_which, with_prefix, with_version:
+        status = detect(CODEX)
+    assert status.source == NATIVE
+    assert status.brew_package is None
+    assert all(command[0] != "brew" for command in upgrade_plan(status))
+
+
+def test_unrelated_cellar_directory_is_not_homebrew():
+    assert (
+        brew_package_from_path(Path("/tmp/Cellar/codex/1/bin/codex"), BREW_PREFIX)
+        is None
+    )

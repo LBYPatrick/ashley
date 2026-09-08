@@ -104,10 +104,16 @@ PROMPT_FILE_MARKER = "__ASHLEY_PROMPT_FILE__="
 ARG_TEXT_LIMIT = 4000
 
 
-def _resolve_agent_flags(use_claude: bool, use_codex: bool) -> str | None:
+def _resolve_agent_flags(
+    use_claude: bool,
+    use_codex: bool,
+    use_grok: bool = False,
+    use_opencode: bool = False,
+    use_kilo: bool = False,
+) -> str | None:
     """Resolve the per-run ``-c``/``-o`` flags, exiting on a conflict."""
     try:
-        return select_agent(use_claude, use_codex)
+        return select_agent(use_claude, use_codex, use_grok, use_opencode, use_kilo)
     except ValueError as exc:
         click.echo(f"Error: {exc}", err=True)
         sys.exit(1)
@@ -227,6 +233,8 @@ def build_agent_invocation(
         user_text = "\n\n".join(t for t in (system_text, user_text) if t)
 
     if user_text:
+        if spec.prompt_flag:
+            args.append(spec.prompt_flag)
         args.append(_text_arg(user_text, detached))
 
     return args, permission_mode
@@ -268,6 +276,9 @@ def build_agent_invocation(
     is_flag=True,
     help="Use OpenAI Codex for this run",
 )
+@click.option("--grok", "use_grok", is_flag=True, help="Use Grok Build")
+@click.option("--opencode", "use_opencode", is_flag=True, help="Use OpenCode")
+@click.option("--kilo", "use_kilo", is_flag=True, help="Use Kilo Code")
 def run(
     skill,
     question,
@@ -277,12 +288,18 @@ def run(
     detached,
     use_claude,
     use_codex,
+    use_grok,
+    use_opencode,
+    use_kilo,
 ):
     """Launch the coding agent with a skill prompt."""
     from ashley.config import load_agent
 
     question_str = " ".join(question) if question else ""
-    agent = get_agent(_resolve_agent_flags(use_claude, use_codex) or load_agent())
+    agent = get_agent(
+        _resolve_agent_flags(use_claude, use_codex, use_grok, use_opencode, use_kilo)
+        or load_agent()
+    )
 
     # Every run is launched inside a tmux session for crash resilience.
     # Without --detached we simply attach to it immediately; with it we
@@ -352,7 +369,7 @@ def run(
         click.echo(f"    tmux:     {session.tmux_session}")
         click.echo(f"    Log:      {session.log_file}")
         click.echo()
-        click.echo(f"  \033[0;36mManage:\033[0m  ash sessions")
+        click.echo("  \033[0;36mManage:\033[0m  ash sessions")
         click.echo(f"  \033[0;36mAttach:\033[0m  ash attach {session.id}")
         click.echo(f"  \033[0;36mLogs:\033[0m    ash logs {session.id}")
         click.echo(f"  \033[0;36mKill:\033[0m    ash kill {session.id}")
@@ -422,6 +439,9 @@ def run(
     is_flag=True,
     help="Use OpenAI Codex for this run",
 )
+@click.option("--grok", "use_grok", is_flag=True, help="Use Grok Build")
+@click.option("--opencode", "use_opencode", is_flag=True, help="Use OpenCode")
+@click.option("--kilo", "use_kilo", is_flag=True, help="Use Kilo Code")
 def pipe(
     pipeline,
     question,
@@ -430,6 +450,9 @@ def pipe(
     away_from_keyboard,
     use_claude,
     use_codex,
+    use_grok,
+    use_opencode,
+    use_kilo,
 ):
     """Run a skill pipeline (e.g., ash pipe feat+commit+changelog "add login").
 
@@ -444,7 +467,9 @@ def pipe(
         dangerously_skip_permissions=dangerously_skip_permissions,
         auto_mode=auto_mode,
         away_from_keyboard=away_from_keyboard,
-        agent=_resolve_agent_flags(use_claude, use_codex),
+        agent=_resolve_agent_flags(
+            use_claude, use_codex, use_grok, use_opencode, use_kilo
+        ),
     )
     sys.exit(exit_code)
 
@@ -563,19 +588,27 @@ def config():
     is_flag=True,
     help="Install for OpenAI Codex (skip the prompt)",
 )
-@click.option("--both", is_flag=True, help="Install for both agents (skip the prompt)")
-def install(use_claude, use_codex, both):
+@click.option(
+    "--both", is_flag=True, help="Install for Claude Code and Codex (skip the prompt)"
+)
+@click.option("--grok", "use_grok", is_flag=True)
+@click.option("--opencode", "use_opencode", is_flag=True)
+@click.option("--kilo", "use_kilo", is_flag=True)
+@click.option("--all", "all_agents", is_flag=True, help="Install for all agents")
+def install(use_claude, use_codex, both, use_grok, use_opencode, use_kilo, all_agents):
     """Generate and install skills for a coding agent.
 
     Without a flag, Ashley reinstalls for whichever agents already have
     skills, and asks which agent to set up on a fresh machine.
     """
-    if both:
-        agents = list(AGENT_KEYS)
-    elif use_claude or use_codex:
-        agents = [k for k, on in (("claude", use_claude), ("codex", use_codex)) if on]
-    else:
-        agents = None
+    agents = [
+        key
+        for key, enabled in zip(
+            AGENT_KEYS,
+            (use_claude or both, use_codex or both, use_grok, use_opencode, use_kilo),
+        )
+        if enabled or all_agents
+    ] or None
 
     do_generate()
     do_install(agents)
@@ -590,7 +623,7 @@ def uninstall():
 @main.command()
 @click.argument("name", required=False)
 def agent(name):
-    """Show or set the default coding agent (claude | codex).
+    """Show or set the default coding agent (claude | codex | grok | opencode | kilo).
 
     With no argument, prints the current preference.
     """
@@ -648,10 +681,10 @@ def update(branch):
     help="Only report what is installed, upgrade nothing",
 )
 def upgrade(names, all_agents, check):
-    """Detect and upgrade the coding-agent CLIs (claude, codex).
+    """Detect and upgrade the coding-agent CLIs (claude, codex, grok, opencode, kilo).
 
     Homebrew installs are upgraded with brew; anything else — including a
-    missing agent — is installed with the vendor's native installer.
+    missing agent — uses its updater/bootstrap (npm for Kilo).
     Without arguments this covers the default agent only.
     """
     from ashley.config import load_agent

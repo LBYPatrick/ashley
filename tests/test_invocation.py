@@ -154,3 +154,23 @@ def test_build_shell_command_quotes_arguments():
     )
     assert files == []
     assert """'it'\\''s fine'""" in cmd
+
+
+@pytest.mark.parametrize("agent", ["grok", "opencode", "kilo"])
+def test_new_agent_invocation_and_permissions(agent, skills_root):
+    _install_skill(skills_root)
+    args, mode = _build(agent, skills_root, away_from_keyboard=True)
+    assert args[0] == f"/usr/bin/{agent}"
+    assert mode == "afk"
+    assert "AFK Mode" in args[-1]
+    assert "a-feat" in args[-1]
+    if agent == "grok":
+        assert args[1] == "--always-approve"
+    else:
+        assert args[1:3] == ["--auto", "--prompt"]
+    assert _build(agent, skills_root, skill="raw", question_str="")[0] == [
+        f"/usr/bin/{agent}"
+    ]
+    fallback, _ = _build(agent, skills_root / "missing")
+    assert "Workflow" in fallback[-1]
+    assert fallback[-1].endswith("add login")

@@ -167,3 +167,22 @@ def test_agent_preference_preserves_other_keys():
                 "future_setting": 42,
                 "agent": "codex",
             }
+
+
+@pytest.mark.parametrize(
+    "key, directory",
+    [("grok", ".grok"), ("opencode", ".config/opencode"), ("kilo", ".kilo")],
+)
+def test_new_agent_directories_and_selection(key, directory):
+    with patch.dict("os.environ", {}, clear=True):
+        assert skills_dir(key) == Path.home() / directory / "skills"
+    assert select_agent(**{f"use_{key}": True}) == key
+    with pytest.raises(ValueError):
+        select_agent(use_codex=True, **{f"use_{key}": True})
+
+
+def test_opencode_xdg_directory():
+    with patch.dict("os.environ", {"XDG_CONFIG_HOME": "/tmp/config"}, clear=True):
+        assert skills_dir("opencode") == Path("/tmp/config/opencode/skills")
+    with patch.dict("os.environ", {"OPENCODE_CONFIG_DIR": "/tmp/custom"}, clear=True):
+        assert skills_dir("opencode") == Path("/tmp/custom/skills")

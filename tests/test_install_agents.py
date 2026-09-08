@@ -95,7 +95,7 @@ def test_prompt_accepts_agent_name():
 
 
 def test_prompt_both_puts_the_default_first():
-    with _answer("3"), patch.object(install_mod, "load_agent", lambda: "codex"):
+    with _answer("both"), patch.object(install_mod, "load_agent", lambda: "codex"):
         assert install_mod.prompt_for_agents() == ["codex", "claude"]
 
 
@@ -103,3 +103,49 @@ def test_prompt_falls_back_to_the_saved_default():
     """An empty answer (or no terminal at all) keeps the saved preference."""
     with _answer(""), patch.object(install_mod, "load_agent", lambda: "codex"):
         assert install_mod.prompt_for_agents() == ["codex"]
+
+
+def test_parse_new_agents_and_all():
+    from ashley.agents import AGENT_KEYS
+
+    assert parse_argv(["--grok", "--opencode", "--kilo"]) == (
+        "install",
+        ["grok", "opencode", "kilo"],
+    )
+    assert parse_argv(["--all"]) == ("install", list(AGENT_KEYS))
+
+
+def test_all_prompt_preserves_saved_default():
+    with _answer("6"), patch.object(install_mod, "load_agent", lambda: "kilo"):
+        assert install_mod.prompt_for_agents() == [
+            "kilo",
+            "claude",
+            "codex",
+            "grok",
+            "opencode",
+        ]
+
+
+def test_cli_install_new_agents():
+    from click.testing import CliRunner
+
+    from ashley.cli import main
+
+    with patch("ashley.cli.do_generate"), patch("ashley.cli.do_install") as install:
+        result = CliRunner().invoke(main, ["install", "--grok", "--opencode", "--kilo"])
+        assert result.exit_code == 0, result.output
+        install.assert_called_once_with(["grok", "opencode", "kilo"])
+
+
+def test_cli_pipeline_selects_new_backend_and_rejects_conflict():
+    from click.testing import CliRunner
+
+    from ashley.cli import main
+
+    with patch("ashley.pipeline.run_pipeline", return_value=0) as pipeline:
+        result = CliRunner().invoke(main, ["pipe", "--kilo", "feat+commit", "task"])
+        assert result.exit_code == 0, result.output
+        assert pipeline.call_args.kwargs["agent"] == "kilo"
+        result = CliRunner().invoke(main, ["pipe", "--kilo", "--grok", "feat+commit"])
+        assert result.exit_code == 1
+        assert "Choose only one" in result.output

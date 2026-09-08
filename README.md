@@ -1,7 +1,7 @@
 <h1 align="center">Ashley</h1>
 
 <p align="center">
-  <strong>Interactive skill set framework for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> and <a href="https://developers.openai.com/codex">OpenAI Codex</a></strong>
+  <strong>Interactive skill set framework for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, <a href="https://developers.openai.com/codex">OpenAI Codex</a>, Grok Build, OpenCode, and Kilo Code</strong>
 </p>
 
 <p align="center">
@@ -12,10 +12,10 @@
 
 ---
 
-Ashley provides 14 composable, production-ready skills that encode software engineering best practices as structured prompts for your coding agent. Skills are assembled from reusable components and inlined resources, then installed for Claude Code (`/a-feat`) or OpenAI Codex (`$a-feat`) — the same `SKILL.md` serves both.
+Ashley provides 14 composable, production-ready skills that encode software engineering best practices as structured prompts for your coding agent. Skills are assembled from reusable components and inlined resources, then installed for Claude Code (`/a-feat`), OpenAI Codex (`$a-feat`), Grok Build, OpenCode, or Kilo Code — the same `SKILL.md` serves all five.
 
 - **14 specialized skills** — feat, refactor, debug, optimize, commit, scaffold, and more
-- **Two agent backends** — Claude Code or OpenAI Codex, switchable globally or per run
+- **Five agent backends** — Claude Code, Codex, Grok Build, OpenCode, and Kilo Code, switchable globally or per run
 - **Skill pipelines** — chain skills with `+` syntax (`feat+commit+changelog`) or named pipelines
 - **Lifecycle hooks** — run shell commands before/after any skill execution
 - **Project detection** — auto-detects tech stack for context-aware prompts
@@ -33,7 +33,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 |-------------|---------|-------|
 | Python | ≥ 3.13 | |
 | [uv](https://docs.astral.sh/uv/) | latest | Python package manager |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) *or* [Codex](https://developers.openai.com/codex) | latest | For running skills — installed for you |
+| Claude Code, Codex, Grok Build, OpenCode, or Kilo Code | latest | For running skills — installed for you |
 | [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
 
 ### One-Line Install
@@ -47,7 +47,7 @@ Clones to `~/.ashley/repo`, installs dependencies, generates skills, symlinks th
 The installer asks which coding agent to set up. Skip the question with a flag:
 
 ```bash
-curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --both
+curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, --opencode, --kilo, --all
 ```
 
 <details>
@@ -70,7 +70,7 @@ make install
 | `ASHLEY_REPO_URL` | `https://github.com/LBYPatrick/ashley.git` | Override repo URL |
 | `ASHLEY_USE_CN` | unset | Use China-accessible mirrors (`1` to enable) |
 | `ASHLEY_NO_COLOR` | unset | Disable colored output (`1` to enable) |
-| `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, or `both`) |
+| `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, `grok`, `opencode`, `kilo`, `both`, or `all`) |
 
 </details>
 
@@ -203,20 +203,27 @@ click a chip; these map to the same flags as `ash run`.
 
 ## Coding Agent
 
-Ashley drives either [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-or [OpenAI Codex](https://developers.openai.com/codex). Both read the same
-`SKILL.md` format, so the generated skills install unchanged for either one —
-Claude Code triggers them as `/a-feat`, Codex as `$a-feat`.
+Ashley supports Claude Code, Codex, [Grok Build](https://github.com/xai-org/grok-build),
+[OpenCode](https://opencode.ai/docs/), and [Kilo Code](https://kilo.ai/docs/code-with-ai/platforms/cli).
+All read the same generated `SKILL.md` packages. Claude and Grok use slash
+commands, Codex uses `$` mentions, and Ashley asks OpenCode and Kilo to load
+the named skill. Kilo installation requires Node.js/npm; its bootstrap uses
+`npm install -g @kilocode/cli`.
 
 ```bash
 ash install --codex        # install skills for Codex
-ash install --both         # install for both agents
+ash install --both         # Claude Code + Codex (backward-compatible)
+ash install --grok --opencode --kilo
+ash install --all          # all five agents
 
 ash agent                  # show the current default, its version and install source
 ash agent codex            # change the default
 
 ash run -o feat "..."      # override for one run (Codex)
 ash run -c feat "..."      # override for one run (Claude Code)
+ash run --grok feat "..."
+ash run --opencode feat "..."
+ash pipe --kilo feat+commit "..."  # same flags work for pipelines
 ```
 
 ### Keeping the agent CLIs up to date
@@ -227,22 +234,19 @@ Ashley detects how each agent CLI was installed and upgrades it the same way:
 ash upgrade --check --all  # report version + install source, change nothing
 ash upgrade                # upgrade the default agent
 ash upgrade codex          # upgrade a specific agent
-ash upgrade --all          # upgrade both
+ash upgrade --all          # upgrade all five
 ```
 
 | Detected install | Upgrade path |
 |------------------|--------------|
 | Homebrew formula | `brew upgrade <formula>` |
 | Homebrew cask | `brew upgrade --cask <cask>` |
-| Anything else, already installed | the CLI's own `update` subcommand, falling back to the native installer |
-| Not installed | the vendor's native installer |
+| Anything else, already installed | the CLI's configured updater, falling back to its bootstrap script |
+| Not installed | the vendor's installer (npm for Kilo) |
 
-Every path checks for a new version before downloading anything, so re-running
-`ash upgrade` on an up-to-date agent costs a version check rather than a full
-reinstall.
-
-npm and pnpm are never invoked — an agent installed with a Node package
-manager is migrated onto the native installer instead.
+Homebrew ownership is detected from Cellar/Caskroom paths. Files elsewhere
+under the brew prefix, including npm's `codex.js`, are not treated as formulae.
+Native installers are used for Claude, Codex, Grok, and OpenCode; Kilo uses npm.
 
 `ash update` runs this upgrade as its last step, covering whichever agents have
 Ashley skills linked. Skip it with `SKIP_TOOL`:
@@ -254,7 +258,7 @@ SKIP_TOOL=1 make update
 ```
 
 The default is saved to `~/.ashley/prefs.json` and can also be changed from the
-TUI **Settings** screen. Every run mode works on both agents:
+TUI **Settings** screen. Run modes map to the available backend controls:
 
 | Ashley mode | Claude Code | OpenAI Codex |
 |-------------|-------------|--------------|
@@ -263,10 +267,21 @@ TUI **Settings** screen. Every run mode works on both agents:
 | `--auto` | `--permission-mode auto` | `--sandbox workspace-write --ask-for-approval never` |
 | `-afk` | DSP + autonomous instructions | DSP + autonomous instructions |
 
+Grok maps `-dsp` to `--always-approve` and `--auto` to `--permission-mode auto`.
+OpenCode and Kilo map both modes to `--auto`; explicit deny rules still apply.
+For every backend, `-afk` adds autonomous instructions to the DSP mode.
+See the [Grok permission guide](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md),
+[OpenCode CLI reference](https://opencode.ai/docs/cli/), and
+[Kilo CLI reference](https://kilo.ai/docs/code-with-ai/platforms/cli-reference).
+
+
 | Agent | Skills directory |
 |-------|------------------|
 | Claude Code | `~/.claude/skills/` (or `$CLAUDE_CONFIG_DIR/skills`) |
 | OpenAI Codex | `~/.codex/skills/` (or `$CODEX_HOME/skills`) |
+| Grok Build | `~/.grok/skills/` (or `$GROK_HOME/skills`) |
+| OpenCode | `~/.config/opencode/skills/` (honours `XDG_CONFIG_HOME` and `OPENCODE_CONFIG_DIR`) |
+| Kilo Code | `~/.kilo/skills/` |
 
 ---
 
@@ -369,7 +384,7 @@ ash history clear                Delete all history
 ash history info                 Database stats
 ash agent [name]                 Show or set the default coding agent
 ash upgrade [names] [--all]      Detect + upgrade the agent CLIs (--check to report only)
-ash install [--claude|--codex]   Generate + install skills
+ash install [--claude|--codex|--grok|--opencode|--kilo|--all]   Generate + install skills
 ash uninstall                    Remove skills
 ash update [--branch NAME]       Pull latest + reinstall + upgrade agent CLIs
 ash --version                    Print version
@@ -385,6 +400,7 @@ ash --version                    Print version
 | `--detached` | Run in background tmux session |
 | `-c` / `--claude` | Use Claude Code for this run |
 | `-o` / `--codex` | Use OpenAI Codex for this run |
+| `--grok` / `--opencode` / `--kilo` | Use the named agent for this run |
 
 ---
 
@@ -418,7 +434,7 @@ make format         # Run ruff formatter
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all targets |
-| `make install` | Generate, install skills, symlink CLI (`AGENT=claude\|codex\|both`) |
+| `make install` | Generate, install skills, symlink CLI (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
 | `make uninstall` | Remove skills and CLI |
 | `make generate` | Regenerate skill markdown files |
 | `make list` | List skill definitions |
@@ -426,7 +442,7 @@ make format         # Run ruff formatter
 | `make test` | Run pytest |
 | `make clean` | Remove generated files |
 | `make update` | Pull latest + reinstall + upgrade agent CLIs (`SKIP_TOOL=1` to skip) |
-| `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=claude\|codex`) |
+| `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |
 
 ---
 

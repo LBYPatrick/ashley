@@ -48,7 +48,7 @@ def test_tracked_agents_prefers_agents_with_skills_linked():
 
 def test_tracked_agents_covers_every_linked_agent():
     with patch.object(update_mod, "has_skills", lambda key: True):
-        assert tracked_agents() == ["claude", "codex"]
+        assert tracked_agents() == ["claude", "codex", "grok", "opencode", "kilo"]
 
 
 def test_tracked_agents_falls_back_to_the_saved_default():

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add Grok Build, OpenCode, and Kilo Code support across installation, invocation, pipelines, settings, and upgrades.
+- Add `ash install --all` for all five agents while retaining `--both` for Claude Code and Codex.
+
+### Fixed
+
+- Fix npm-installed executables such as `codex.js` under the Homebrew prefix being mistaken for Homebrew formulae.
+
 ## [0.3.0] - 2026-08-03
 
 ### Added

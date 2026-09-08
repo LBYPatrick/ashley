@@ -1,9 +1,8 @@
 """Ashley Skills Installer.
 
 Symlinks generated skills into the coding agent's skills directory
-(``~/.claude/skills`` for Claude Code, ``~/.codex/skills`` for Codex) so
-they are available across all projects. Both agents read the same
-``SKILL.md`` format, so a single generated skill serves either backend.
+so they are available across all projects. All supported agents read the
+same ``SKILL.md`` format.
 """
 
 import shutil
@@ -110,14 +109,16 @@ def prompt_for_agents() -> list[str]:
     for i, (key, label) in enumerate(options, 1):
         default_mark = f" {CYAN}(default){NC}" if key == saved else ""
         print(f"  {BOLD}{i}{NC}) {label}{default_mark}")
-    print(f"  {BOLD}{len(options) + 1}{NC}) Both — install skills for each")
+    print(f"  {BOLD}{len(options) + 1}{NC}) All — install skills for each")
     print()
 
     choice = _read_choice(f"  Choice [1-{len(options) + 1}]: ")
     print()
 
-    if choice == str(len(options) + 1) or choice.lower() in ("both", "all"):
+    if choice == str(len(options) + 1) or choice.lower() == "all":
         return [saved] + [k for k, _ in options if k != saved]
+    if choice.lower() == "both":
+        return _saved_first(["claude", "codex"])
     for i, (key, _) in enumerate(options, 1):
         if choice == str(i) or choice.lower() == key:
             return [key]
@@ -281,7 +282,9 @@ def parse_argv(argv: Sequence[str]) -> tuple[str, list[str] | None]:
 
     def add(value: str) -> None:
         """Record an agent key, expanding the 'both'/'all' aliases."""
-        if value.strip().lower() in ("both", "all"):
+        if value.strip().lower() == "both":
+            keys.extend(("claude", "codex"))
+        elif value.strip().lower() == "all":
             keys.extend(AGENT_KEYS)
         else:
             keys.append(value)

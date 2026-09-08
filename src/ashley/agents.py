@@ -1,14 +1,8 @@
 """Coding-agent backends supported by Ashley.
 
-Ashley drives an external coding-agent CLI — Anthropic's Claude Code or
-OpenAI's Codex. This module is the single source of truth for everything
-that differs between them: the binary name, where each one discovers
-``SKILL.md`` packages, how Ashley's run modes map onto CLI flags, and how
-an installed skill is triggered from a prompt.
-
-Both agents read the very same skill format (a directory containing a
-``SKILL.md`` with ``name``/``description`` frontmatter), so the generated
-skills are installed unchanged for either backend.
+Ashley drives Claude Code, Codex, Grok Build, OpenCode, and Kilo Code.
+This module describes their binaries, skill locations, and invocation flags.
+All backends consume the same generated SKILL.md packages.
 
 Everything here is pure — installing binaries and persisting the user's
 preference live in :mod:`ashley.install` and :mod:`ashley.config`.
@@ -43,6 +37,7 @@ class Agent:
             into the user prompt instead).
         dsp_flags: Flags for "skip every permission check".
         auto_flags: Flags for "auto-accept edits without prompting".
+        prompt_flag: Option for the initial prompt, or None for positional text.
     """
 
     key: str
@@ -57,6 +52,7 @@ class Agent:
     system_prompt_flag: str | None
     dsp_flags: tuple[str, ...]
     auto_flags: tuple[str, ...]
+    prompt_flag: str | None = None
 
 
 CLAUDE = Agent(
@@ -93,7 +89,54 @@ CODEX = Agent(
     auto_flags=("--sandbox", "workspace-write", "--ask-for-approval", "never"),
 )
 
-AGENTS: dict[str, Agent] = {a.key: a for a in (CLAUDE, CODEX)}
+GROK = Agent(
+    key="grok",
+    label="Grok Build",
+    binary="grok",
+    home_env="GROK_HOME",
+    home_dir=".grok",
+    install_script="install_grok.sh",
+    self_update_args=("update",),
+    docs_url="https://docs.x.ai/build/overview",
+    skill_trigger="/",
+    system_prompt_flag=None,
+    dsp_flags=("--always-approve",),
+    auto_flags=("--permission-mode", "auto"),
+)
+
+OPENCODE = Agent(
+    key="opencode",
+    label="OpenCode",
+    binary="opencode",
+    home_env="OPENCODE_CONFIG_DIR",
+    home_dir=".config/opencode",
+    install_script="install_opencode.sh",
+    self_update_args=("upgrade",),
+    docs_url="https://opencode.ai/docs/",
+    skill_trigger="Use the skill ",
+    system_prompt_flag=None,
+    dsp_flags=("--auto",),
+    auto_flags=("--auto",),
+    prompt_flag="--prompt",
+)
+
+KILO = Agent(
+    key="kilo",
+    label="Kilo Code",
+    binary="kilo",
+    home_env="",
+    home_dir=".kilo",
+    install_script="install_kilo.sh",
+    self_update_args=("upgrade",),
+    docs_url="https://kilo.ai/docs/code-with-ai/platforms/cli",
+    skill_trigger="Use the skill ",
+    system_prompt_flag=None,
+    dsp_flags=("--auto",),
+    auto_flags=("--auto",),
+    prompt_flag="--prompt",
+)
+
+AGENTS: dict[str, Agent] = {a.key: a for a in (CLAUDE, CODEX, GROK, OPENCODE, KILO)}
 AGENT_KEYS: tuple[str, ...] = tuple(AGENTS)
 
 
@@ -125,6 +168,11 @@ def skills_dir(agent: "Agent | str | None") -> Path:
     spec = get_agent(agent)
     root = os.environ.get(spec.home_env)
     base = Path(root).expanduser() if root else Path.home() / spec.home_dir
+    if spec.key == "opencode" and not root:
+        base = (
+            Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+            / "opencode"
+        )
     return base / "skills"
 
 
@@ -172,24 +220,21 @@ def skill_trigger(agent: "Agent | str | None", skill: str, question: str = "") -
     return f"{trigger} {question}" if question else trigger
 
 
-def select_agent(use_claude: bool = False, use_codex: bool = False) -> str | None:
-    """Resolve the mutually exclusive ``-c`` / ``-o`` run flags.
-
-    Args:
-        use_claude: The ``-c/--claude`` flag was given.
-        use_codex: The ``-o/--codex`` flag was given.
-
-    Returns:
-        The chosen agent key, or ``None`` when neither flag was given
-        (the caller should then fall back to the saved preference).
-
-    Raises:
-        ValueError: If both flags were given.
-    """
-    if use_claude and use_codex:
-        raise ValueError("Choose either -c/--claude or -o/--codex, not both.")
-    if use_claude:
-        return CLAUDE.key
-    if use_codex:
-        return CODEX.key
-    return None
+def select_agent(
+    use_claude: bool = False,
+    use_codex: bool = False,
+    use_grok: bool = False,
+    use_opencode: bool = False,
+    use_kilo: bool = False,
+) -> str | None:
+    """Resolve mutually exclusive per-run backend flags."""
+    selected = [
+        key
+        for key, enabled in zip(
+            AGENT_KEYS, (use_claude, use_codex, use_grok, use_opencode, use_kilo)
+        )
+        if enabled
+    ]
+    if len(selected) > 1:
+        raise ValueError("Choose only one coding agent per run.")
+    return selected[0] if selected else None
