@@ -111,7 +111,7 @@ func TestGuidedCreatorBackMouseResizeAndAdvancedEditor(t *testing.T) {
 	m.open("create")
 	w := m.wizard
 	wizardText(m, "mouse")
-	m.Update(tea.MouseMsg{X: 2, Y: 5, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
+	m.Update(tea.MouseMsg{X: 5, Y: 15, Action: tea.MouseActionPress, Button: tea.MouseButtonLeft})
 	if w.field != 1 {
 		t.Fatal(w.field)
 	}

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Restore the original Python terminal layouts, information panels, inline session logs, theme swatches and grayscale selection styling in the Go UI; add cross-language screen snapshots and resize regression checks.
+
 - Capture mouse-wheel scrolling in Ashley tmux sessions instead of forwarding arrow keys to coding agents, including when reattaching existing sessions.
 - Fix npm-installed executables such as `codex.js` under the Homebrew prefix being mistaken for Homebrew formulae.
 - Respect explicit Normal permissions when automatic permissions are configured, and retain all agent selections during binary bootstrap installation.

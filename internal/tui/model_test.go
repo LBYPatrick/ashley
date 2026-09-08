@@ -69,7 +69,7 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 		t.Fatal(m.cursor)
 	}
 	for i := 0; i < 4; i++ {
-		if !strings.Contains(m.View(), modes[i]) {
+		if !strings.Contains(m.View(), []string{"Normal", "DSP", "AUTO", "AFK"}[i]) {
 			t.Fatal(m.View())
 		}
 		key(m, "m")
@@ -107,6 +107,8 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 func TestSettingsPersistAllChoices(t *testing.T) {
 	m := newModel(t)
 	m.open("settings")
+	key(m, "up")
+	key(m, "up")
 	key(m, "right")
 	key(m, "enter")
 	if m.agent != "codex" {
@@ -150,18 +152,18 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 55; i++ {
 		_, err := db.Record(history.Invocation{Skill: "feat", Question: "hello", AgentType: "codex"})
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 	m.open("history")
-	if m.total != 25 || len(m.historyRows) != 20 || !strings.Contains(m.View(), "of 25") {
+	if m.total != 55 || len(m.historyRows) != 50 || !strings.Contains(m.View(), "History (55)") {
 		t.Fatal(m.View())
 	}
 	key(m, "n")
-	if len(m.historyRows) != 5 || m.offset != 20 {
+	if len(m.historyRows) != 5 || m.offset != 50 {
 		t.Fatal(m.offset)
 	}
 	key(m, "p")
@@ -169,7 +171,7 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 		t.Fatal(m.offset)
 	}
 	key(m, "d")
-	if m.total != 24 {
+	if m.total != 54 {
 		t.Fatal(m.total)
 	}
 	key(m, "/")
@@ -179,7 +181,7 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 	}
 	key(m, "esc")
 	m.open("stats")
-	if m.stats.Total != 24 || !strings.Contains(m.View(), "OpenAI Codex") {
+	if m.stats.Total != 54 || !strings.Contains(m.View(), "OpenAI Codex") {
 		t.Fatal(m.View())
 	}
 	key(m, "r")
@@ -262,24 +264,24 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 	click := func(x, y int) {
 		m.Update(tea.MouseMsg{X: x, Y: y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
 	}
-	click(3, 4)
+	click(5, 6)
 	if m.cursor != 1 {
 		t.Fatal("session row not selected", m.cursor)
 	}
-	click(3, 4)
+	click(5, 6)
 	if m.screen != "sessions" {
 		t.Fatal(m.screen)
 	}
 	m.open("settings")
-	click(17, 3)
+	click(45, 11)
 	if m.agent != "codex" {
 		t.Fatal(m.agent)
 	}
-	click(17, 5)
+	click(24, 20)
 	if m.theme.Mode != "light" {
 		t.Fatal(m.theme)
 	}
-	click(33, 7)
+	click(47, 25)
 	if m.theme.Preset != "purple" {
 		t.Fatal(m.theme)
 	}
@@ -288,7 +290,7 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 	if m.cursor != 1 {
 		t.Fatal(m.cursor)
 	}
-	click(2, 3)
+	key(m, "/")
 	if m.focus != "filter" {
 		t.Fatal(m.focus)
 	}

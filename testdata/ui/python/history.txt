@@ -1,0 +1,29 @@
+                                                 │
+ History (0) — Page 1/1                          │  No history yet.
+                                                 │
+                                                 │  Run a skill with: ash run <skill> <question>
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+                                                 │
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▊▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▎
+ ▊  Search history (skill, question, directory)...                                                ▎
+ esc Back  / Search  d Delete  r Refresh  n Next                                        ▏^p palette

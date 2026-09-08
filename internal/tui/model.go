@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LBYPatrick/ashley/internal/agents"
 	"github.com/LBYPatrick/ashley/internal/config"
 	"github.com/LBYPatrick/ashley/internal/history"
 	"github.com/LBYPatrick/ashley/internal/sessions"
@@ -20,6 +19,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
+	"github.com/muesli/termenv"
 )
 
 // Options supplies application data and an optional custom repository.
@@ -37,6 +39,14 @@ var modes = []string{"default", "dsp", "auto", "afk"}
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
 	wizard                              *creatorWizard
+	sessionAlive                        map[string]bool
+	sessionLog                          string
+	logOffset                           int
+	paletteOpen                         bool
+	paletteQuery                        string
+	paletteCursor                       int
+	maximized                           bool
+	screenScroll                        int
 	editor                              textarea.Model
 	options                             Options
 	screen                              string
@@ -81,6 +91,7 @@ func New(options Options) (*Model, error) {
 	if !prefs.ThemeConfigured() {
 		m.screen = "settings"
 		m.firstRun = true
+		m.focusSettings()
 	}
 	m.refresh()
 	if m.screen == "create" {
@@ -118,6 +129,7 @@ func (m *Model) refresh() {
 			}
 		}
 	case "sessions":
+		m.sessionAlive = nil
 		rows, err := m.manager().All()
 		if err != nil {
 			m.status = err.Error()
@@ -133,7 +145,7 @@ func (m *Model) refresh() {
 		defer store.Close()
 		if m.screen == "history" {
 			f := history.Filter{Search: m.filter.Value()}
-			m.historyRows, err = store.Query(f, 20, m.offset)
+			m.historyRows, err = store.Query(f, 50, m.offset)
 			if err == nil {
 				m.total, err = store.Count(f)
 			}
@@ -161,31 +173,20 @@ func (m *Model) count() int {
 	return 0
 }
 func (m *Model) updatePreview() {
-	var text string
-	switch m.screen {
-	case "hub":
-		if m.cursor < len(hub) {
-			text = hub[m.cursor] + "\n\nPress Enter to open."
-		}
-	case "vibe":
-		if len(m.names) > 0 {
-			d, err := m.options.Catalog.Load(m.names[m.cursor])
-			if err == nil {
-				text = d.Name + "\n\n" + d.Description + fmt.Sprintf("\n\nComponents: %d\nResources: %d", len(d.Components), len(d.Resources))
-				if d.Workflow != nil {
-					for i, step := range d.Workflow.Steps {
-						text += fmt.Sprintf("\n%d. %s", i+1, step.Name)
-					}
-				}
-			}
-		}
-	case "history":
-		if len(m.historyRows) > 0 {
-			v := m.historyRows[m.cursor]
-			text = fmt.Sprintf("%s %s\n%s\nAgent: %s\nDirectory: %s\nPermission: %s\nDuration: %s\nSession: %s\n\n%s", v.OutcomeIcon(), v.Skill, v.TimeDisplay(), agents.Get(v.AgentType).Label, v.CWD, v.Permission, v.DurationDisplay(), v.SessionID, v.Question)
-		}
+	if m.screen != "hub" && m.screen != "vibe" && m.screen != "sessions" && m.screen != "history" {
+		return
 	}
-	m.preview.SetContent(text)
+	m.logOffset = 0
+	if m.screen == "sessions" {
+		m.refreshSessionDetails()
+	}
+	l := m.layout()
+	m.preview.Width = l.detail.w
+	m.preview.Height = l.detail.h
+	if m.screen == "sessions" {
+		m.preview.Height = max(3, l.detail.h-7)
+	}
+	m.preview.SetContent(ansi.Wrap(m.detailText(), max(1, l.detail.w), ""))
 	m.preview.GotoTop()
 }
 
@@ -208,6 +209,7 @@ func (m *Model) execute(args ...string) tea.Cmd {
 }
 func (m *Model) open(screen string) {
 	m.screen = screen
+	m.screenScroll = 0
 	m.cursor = 0
 	m.offset = 0
 	m.focus = ""
@@ -215,6 +217,9 @@ func (m *Model) open(screen string) {
 	m.filter.Blur()
 	m.question.Blur()
 	m.refresh()
+	if screen == "settings" {
+		m.focusSettings()
+	}
 	if screen == "create" {
 		m.startCreator()
 	}
@@ -234,6 +239,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.question.Width = max(10, msg.Width-20)
 		m.editor.SetWidth(max(20, msg.Width-8))
 		m.editor.SetHeight(max(3, msg.Height-10))
+		m.updatePreview()
 		if m.wizard != nil {
 			m.wizard.input.SetWidth(max(20, msg.Width-8))
 			m.wizard.input.SetHeight(max(3, msg.Height-17))
@@ -247,13 +253,42 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tick:
 		if m.screen == "sessions" {
+			selected := ""
+			if len(m.sessionRows) > 0 {
+				selected = m.sessionRows[m.cursor].ID
+			}
+			detailOffset, logOffset := m.preview.YOffset, m.logOffset
 			m.refresh()
+			for index, session := range m.sessionRows {
+				if session.ID == selected {
+					m.cursor = index
+					m.updatePreview()
+					m.preview.SetYOffset(detailOffset)
+					m.logOffset = logOffset
+					break
+				}
+			}
 		}
 		return m, m.Init()
 	case tea.KeyMsg:
 		key := msg.String()
+		if m.paletteOpen {
+			return m, m.paletteKey(msg)
+		}
+		if key == "ctrl+p" {
+			m.paletteOpen = true
+			m.paletteQuery = ""
+			m.paletteCursor = 0
+			return m, nil
+		}
+		if key == "esc" && m.maximized {
+			m.maximized = false
+			return m, nil
+		}
 		if m.screen == "create" && key != "ctrl+c" {
-			return m, m.createKey(msg)
+			cmd := m.createKey(msg)
+			m.keepCreatorVisible()
+			return m, cmd
 		}
 		if m.screen == "create-preview" && key == "esc" {
 			m.screen = "create"
@@ -370,12 +405,12 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.copyPrompt()
 			}
 			if m.screen == "history" {
-				m.offset = max(0, m.offset-20)
+				m.offset = max(0, m.offset-50)
 				m.refresh()
 			}
 		case "n":
-			if m.screen == "history" && m.offset+20 < m.total {
-				m.offset += 20
+			if m.screen == "history" && m.offset+50 < m.total {
+				m.offset += 50
 				m.refresh()
 			}
 		case "s":
@@ -390,6 +425,14 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		case "c", "l", "K", "X", "d":
 			return m, m.recordAction(key)
 		case "pgup", "pgdown":
+			if m.screen == "stats" {
+				delta := max(1, m.height-8)
+				if key == "pgup" {
+					delta = -delta
+				}
+				m.screenScroll = max(0, m.screenScroll+delta)
+				return m, nil
+			}
 			var cmd tea.Cmd
 			m.preview, cmd = m.preview.Update(msg)
 			return m, cmd
@@ -452,6 +495,7 @@ func (m *Model) settingsKey(key string) tea.Cmd {
 		return m.finishSettings()
 	}
 	m.settingsColumn = min(m.settingsColumn, len(rows[m.settingsRow])-1)
+	m.keepSettingVisible()
 	return nil
 }
 func (m *Model) finishSettings() tea.Cmd {
@@ -560,6 +604,12 @@ func (m *Model) copyText(text string) tea.Cmd {
 
 // Run opens the terminal application and restores terminal state on exit.
 func Run(options Options, output io.Writer) error {
+	// Textual retains grayscale backgrounds under NO_COLOR; keep selection visible.
+	previous := lipgloss.ColorProfile()
+	if _, set := os.LookupEnv("NO_COLOR"); set {
+		lipgloss.SetColorProfile(termenv.TrueColor)
+		defer lipgloss.SetColorProfile(previous)
+	}
 	model, err := New(options)
 	if err != nil {
 		return err

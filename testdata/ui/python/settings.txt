@@ -1,0 +1,29 @@
+
+ ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+ │                                                                                              │
+ │   Adjust Ashley's preferences. Changes apply instantly.                                      │
+ │   Arrows move · Enter selects · Esc saves & exits                                            │
+ │                                                                                              │
+ │                                                                                              │
+ │   Coding agent                                                                               │
+ │                                                                                              │
+ │                                                                                              │
+ │          ● Claude Code                ○ OpenAI Codex                ○ Grok Build             │
+ │                                                                                              │
+ │                                                                                              │
+ │            ○ OpenCode                  ○ Kilo Code                                           │
+ │                                                                                              │
+ │                                                                                              │
+ │   Mode                                                                                       │
+ │                                                                                              │
+ │                                                                                              │
+ │      ● Dark        ○ Light                                                                   │
+ │                                                                                              │
+ │   Primary colour / preset                                                                    │ ▁▁
+ │                                                                                              │
+ │   █▀▀▀▀▀▀▀▀▀▀▀▀▀▀█                                                                           │
+ │   █    ✓ Blue    █       Green            Purple            Orange             Rose          │
+ │   █▄▄▄▄▄▄▄▄▄▄▄▄▄▄█                                                                           │
+ │                                                                                              │
+ │                    █                 █                 █                 █                   │
+ esc Back                                                                               ▏^p palette

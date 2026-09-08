@@ -105,3 +105,7 @@ release-check: ## Verify release identity and full parity for stable releases (T
 
 publish: ## Gate, update versions, push/tag and draft a binary release (V=... NOTES=notes.md YES=1)
 	@V="$(V)" NOTES="$(NOTES)" YES="$(YES)" bash scripts/publish.sh
+
+.PHONY: ui-reference
+ui-reference: ## Regenerate terminal-layout fixtures from the original Python UI
+	uv run python scripts/ui_reference.py

@@ -1,0 +1,29 @@
+
+ ╭────────────────────────────────────╮ ╭─────────────────────────────────────────────────────────╮
+ │ Ashley                             │ │                                                         │
+ │                                    │ │                                                         │
+ │   ▸  Vibe — Skill Browser          │ │   ▸  Vibe — Skill Browser                               │
+ │   ⇢  Sessions — Detached Runs      │ │                                                         │
+ │   ◷  History — Invocation Log      │ │   Browse skills, preview workflows, and launch your     │
+ │   ⚙  Generate — Rebuild Skills     │ │   coding agent with a skill prompt.                     │
+ │   ↓  Install — Deploy Skills       │ │                                                         │
+ │   +  Create — New Skill            │ │   Press Enter to open                                   │
+ │   ◆  Stats — Analytics             │ │                                                         │
+ │   ✎  Settings — Preferences        │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ │                                    │ │                                                         │
+ ╰────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────╯
+
+ q Quit                                                                                 ▏^p palette
