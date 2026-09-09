@@ -18,7 +18,9 @@ func preferences(command string, args []string, stdout, stderr io.Writer) error 
 	if err != nil {
 		return err
 	}
+	p := present(stdout)
 	if command == "config" {
+		p.heading("Configuration")
 		if len(args) != 0 {
 			return fmt.Errorf("config does not accept arguments")
 		}
@@ -26,10 +28,10 @@ func preferences(command string, args []string, stdout, stderr io.Writer) error 
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(stdout, "Config:", path)
+		p.field("Config", path)
 		editor := os.Getenv("EDITOR")
 		if editor == "" {
-			fmt.Fprintln(stdout, "Edit it at:", path)
+			p.line("Set EDITOR to open this file from ash config.")
 			return nil
 		}
 		// EDITOR is a user-authored command; keep the filename a separate argument.
@@ -39,6 +41,7 @@ func preferences(command string, args []string, stdout, stderr io.Writer) error 
 		cmd.Stderr = stderr
 		return cmd.Run()
 	}
+	p.heading("Coding agent")
 	if len(args) > 1 {
 		return fmt.Errorf("agent accepts one name")
 	}
@@ -46,23 +49,24 @@ func preferences(command string, args []string, stdout, stderr io.Writer) error 
 		if err := store.SaveAgent(args[0]); err != nil {
 			return err
 		}
-		fmt.Fprintln(stdout, "Default agent:", agents.Get(args[0]).Label)
+		p.success("Default agent: " + agents.Get(args[0]).Label)
 		return nil
 	}
 	a := agents.Get(store.LoadAgent())
-	fmt.Fprintf(stdout, "Default agent: %s (%s)\n", a.Label, a.Key)
+	p.field("Default", a.Label+" ("+a.Key+")")
 	status := (upgrade.Manager{Run: upgrade.CommandRunner(io.Discard, io.Discard)}).Detect(context.Background(), a.Key)
-	fmt.Fprintf(stdout, "Version: %s (%s)\n", status.Version, status.Source)
+	p.field("Version", status.Version)
+	p.field("Source", status.Source)
 	if binary, err := agents.FindBinary(a.Binary); err == nil {
-		fmt.Fprintln(stdout, "Executable:", binary)
+		p.field("Executable", binary)
 	} else {
-		fmt.Fprintln(stdout, "Executable: not installed")
+		p.field("Executable", "Not installed · ash install --"+a.Key)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(stdout, "Skills dir:", agents.SkillsDir(a.Key, home, os.Getenv))
-	fmt.Fprintln(stdout, "Available:", strings.Join(agents.Keys(), ", "))
+	p.field("Skills", agents.SkillsDir(a.Key, home, os.Getenv))
+	p.field("Available", strings.Join(agents.Keys(), ", "))
 	return nil
 }

@@ -70,9 +70,7 @@ func TestMigrationPreservesDataAndWorksWithoutCheckout(t *testing.T) {
 		t.Fatal(e)
 	}
 	requireContains(t, s.must(dest, "prompt", "custom", "task"), "Preserve my workflow")
-	if read(t, filepath.Join(filepath.Dir(helper), "SKILL.md")) != "My edited custom prompt." {
-		t.Fatal("edited skill lost")
-	}
+	requireContains(t, read(t, filepath.Join(filepath.Dir(helper), "SKILL.md")), "Preserve my workflow")
 	override := filepath.Join(s.home, ".ashley/components/custom.md")
 	write(t, override, "Newer local edit", 0644)
 	s.must("/bin/bash", args...)

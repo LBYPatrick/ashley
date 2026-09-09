@@ -13,7 +13,7 @@ import (
 	"github.com/LBYPatrick/ashley/internal/skills"
 )
 
-func TestInstallAllAgentsAndPreserveCustomization(t *testing.T) {
+func TestInstallAllAgentsReplacesLocalEdits(t *testing.T) {
 	i := Installer{Home: t.TempDir(), Getenv: func(string) string { return "" }, Catalog: skills.Catalog{Source: ashley.Assets}}
 	prefs := config.Store{Dir: filepath.Join(i.Home, ".ashley")}
 	prefs.SaveAgent("grok")
@@ -42,18 +42,18 @@ func TestInstallAllAgentsAndPreserveCustomization(t *testing.T) {
 	if _, err := i.Install(agents.Keys()); err != nil {
 		t.Fatal(err)
 	}
-	if data, _ := os.ReadFile(custom); string(data) != "customized prompt" {
-		t.Fatal("user edit overwritten")
+	if data, _ := os.ReadFile(custom); string(data) == "customized prompt" {
+		t.Fatal("local prompt edit retained")
 	}
-	if data, _ := os.ReadFile(filepath.Join(conflict, "SKILL.md")); string(data) != "my debug" {
-		t.Fatal("custom directory overwritten")
+	if data, _ := os.ReadFile(filepath.Join(conflict, "SKILL.md")); string(data) == "my debug" {
+		t.Fatal("conflicting skill directory retained")
 	}
 	result, err = i.Uninstall(nil)
-	if err != nil || result.Removed != 69 {
+	if err != nil || result.Removed != 70 {
 		t.Fatal(result, err)
 	}
-	if _, err := os.Stat(filepath.Join(conflict, "SKILL.md")); err != nil {
-		t.Fatal("custom skill removed")
+	if _, err := os.Lstat(conflict); !os.IsNotExist(err) {
+		t.Fatal("installed link not removed")
 	}
 	if _, err := os.Stat(custom); err != nil {
 		t.Fatal("local prompt removed")
@@ -80,8 +80,11 @@ func TestLegacySourceMigrationAndUnrelatedLinks(t *testing.T) {
 		t.Fatal(target, err)
 	}
 	target, _ = os.Readlink(filepath.Join(directory, "a-commit"))
-	if target != unrelated {
-		t.Fatal("unrelated link replaced")
+	if target != filepath.Join(i.generated(), "a-commit") {
+		t.Fatal("conflicting link not replaced")
+	}
+	if data, _ := os.ReadFile(filepath.Join(unrelated, "SKILL.md")); string(data) != "custom" {
+		t.Fatal("followed conflicting symlink")
 	}
 	if _, err := i.Resolve([]string{"unknown"}); err == nil {
 		t.Fatal("invalid agent accepted")
@@ -141,7 +144,7 @@ func TestCustomPackageResourcesSurviveInstallAndUpdates(t *testing.T) {
 	for relative, expected := range map[string]string{
 		"SKILL.md":            "Use scripts/check.sh and references/guide.md",
 		"scripts/check.sh":    "#!/bin/sh\necho updated\n",
-		"references/guide.md": "local edit",
+		"references/guide.md": "upstream edit",
 		".settings":           "hidden resource",
 	} {
 		content, err := os.ReadFile(filepath.Join(packageDir, relative))

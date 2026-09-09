@@ -51,7 +51,12 @@ fi
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 curl --retry 3 -fsSL "https://raw.githubusercontent.com/$repo/main/scripts/install.sh" -o "$tmp/install.sh"
-bash "$tmp/install.sh" ${binary_args[@]+"${binary_args[@]}"}
+ASHLEY_BOOTSTRAP=1 bash "$tmp/install.sh" ${binary_args[@]+"${binary_args[@]}"}
 if [[ "$binary_only" == false ]]; then
     "$install_dir/ash" install ${agent_args[@]+"${agent_args[@]}"} ${skills_only[@]+"${skills_only[@]}"}
 fi
+
+case ":$PATH:" in
+    *":$install_dir:"*) printf '  Start Ashley  ash\n\n' ;;
+    *) printf '  Start Ashley  %q/ash\n  Add to PATH   export PATH=%q:"$PATH"\n\n' "$install_dir" "$install_dir" ;;
+esac

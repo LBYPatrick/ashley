@@ -115,14 +115,17 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 		if len(steps) == 0 {
 			return fmt.Errorf("empty pipeline")
 		}
-		fmt.Fprintf(stdout, "Pipeline: %s (%s)\n", strings.Join(steps, " → "), agents.Get(o.Agent).Label)
+		p := present(stdout)
+		p.heading("Pipeline")
+		p.field("Steps", strings.Join(steps, " → "))
+		p.field("Agent", agents.Get(o.Agent).Label)
 		for i, skill := range steps {
 			step := o
 			step.Skill = skill
 			if i > 0 {
 				step.Question = ""
 			}
-			fmt.Fprintf(stdout, "[%d/%d] Running: %s\n", i+1, len(steps), skill)
+			p.section(fmt.Sprintf("%d / %d · %s", i+1, len(steps), skill))
 			job, err := prepareJob(ctx, builder, step, cfg, cwd, dbPath, "", false, stdout, stderr)
 			if err != nil {
 				return err
@@ -131,7 +134,7 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 				return err
 			}
 		}
-		fmt.Fprintln(stdout, "Pipeline complete.")
+		p.success("Pipeline complete.")
 		return nil
 	}
 	if err := ensureTmux(stdout, stderr); err != nil {
@@ -172,7 +175,12 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 		}
 		return err
 	}
-	fmt.Fprintf(stdout, "Session started: %s\nAgent: %s\nLog: %s\nAttach: ash attach %s\n", session.ID, agents.Get(o.Agent).Label, session.LogFile, session.ID)
+	p := present(stdout)
+	p.heading("Session started")
+	p.field("Session", session.ID)
+	p.field("Agent", agents.Get(o.Agent).Label)
+	p.field("Log", session.LogFile)
+	p.field("Attach", "ash attach "+session.ID)
 	if detached {
 		return nil
 	}

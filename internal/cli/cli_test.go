@@ -43,6 +43,7 @@ func TestReadOnlyCommands(t *testing.T) {
 }
 
 func TestGenerateWithoutPythonOrSourceCheckout(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	t.Setenv("PATH", t.TempDir())
 	root := t.TempDir()
 	output, err := invoke("generate", "--output", root)

@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/LBYPatrick/ashley/internal/agents"
@@ -52,10 +51,15 @@ func installOptions(args []string) (keys []string, skillsOnly, check bool, err e
 	}
 	return keys, skillsOnly, check, nil
 }
-func installCommand(command string, args []string, catalog skills.Catalog, stdout, stderr io.Writer) error {
+func installCommand(command string, args []string, catalog skills.Catalog, stdout, stderr io.Writer) (err error) {
 	legacyRoot := ""
+	verbose := false
 	var options []string
 	for index := 0; index < len(args); index++ {
+		if args[index] == "--verbose" {
+			verbose = true
+			continue
+		}
 		if args[index] != "--legacy-root" {
 			options = append(options, args[index])
 			continue
@@ -87,13 +91,15 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	if err != nil {
 		return err
 	}
-	installer := install.Installer{Home: home, Catalog: catalog, Log: stdout, LegacyRoot: legacyRoot}
+	p := present(stdout)
+	p.heading(strings.ToUpper(command[:1]) + command[1:])
+	installer := install.Installer{Home: home, Catalog: catalog, LegacyRoot: legacyRoot}
 	if command == "uninstall" {
 		result, err := installer.Uninstall(keys)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Removed %d Ashley skill links.\n", result.Removed)
+		p.success(fmt.Sprintf("Removed %d Ashley skill links.", result.Removed))
 		return nil
 	}
 	if command == "upgrade" && len(keys) == 0 {
@@ -110,13 +116,18 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	if err != nil {
 		return err
 	}
-	manager := upgrade.Manager{Run: upgrade.CommandRunner(stdout, stderr)}
+	vendorOut := &indentedWriter{out: stdout, start: true}
+	vendorErr := &indentedWriter{out: stderr, start: true}
+	manager := upgrade.Manager{Run: upgrade.CommandRunner(vendorOut, vendorErr)}
 	ctx := context.Background()
 	if command == "upgrade" {
 		failed := []string{}
 		for _, key := range keys {
-			status := manager.Detect(ctx, key)
-			fmt.Fprintf(stdout, "%s: %s (%s) %s\n", status.Agent.Label, status.Version, status.Source, status.Path)
+			status := (upgrade.Manager{Run: upgrade.CommandRunner(io.Discard, io.Discard)}).Detect(ctx, key)
+			p.section(status.Agent.Label)
+			p.field("Version", status.Version)
+			p.field("Source", status.Source)
+			p.field("Executable", status.Path)
 			if check {
 				continue
 			}
@@ -130,17 +141,55 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 		}
 		return nil
 	}
-	if !skillsOnly {
-		for _, key := range keys {
-			if err := manager.Ensure(ctx, key); err != nil {
-				return fmt.Errorf("install %s: %w", key, err)
-			}
-		}
+	logDir := filepath.Join(home, ".ashley", "logs")
+	if err := os.MkdirAll(logDir, 0700); err != nil {
+		return err
 	}
-	result, err := installer.Install(slices.Clone(keys))
+	log, err := os.CreateTemp(logDir, "install-*.log")
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(stdout, "Installed %d skill links; preserved %d existing paths.\n", result.Installed, result.Skipped)
+	defer log.Close()
+	// Display the recovery log even when a vendor installer or generation fails.
+	defer func() {
+		if err != nil {
+			fmt.Fprintln(log, "Error:", err)
+		}
+		p.field("Full log", log.Name())
+		fmt.Fprintln(stdout)
+	}()
+	installer.Log = log
+	if verbose {
+		installer.Log = io.MultiWriter(log, &indentedWriter{out: stdout, start: true})
+	}
+	manager.Run = upgrade.CommandRunner(io.MultiWriter(vendorOut, log), io.MultiWriter(vendorErr, log))
+	if !skillsOnly {
+		p.section("Agent setup")
+		for _, key := range keys {
+			p.line(agents.Get(key).Label)
+			if err := manager.Ensure(ctx, key); err != nil {
+				return fmt.Errorf("install %s: %w", key, err)
+			}
+			p.field("Ready", agents.Get(key).Label)
+		}
+	}
+	p.section("Sync skills")
+	if skillsOnly {
+		p.line("Regenerate and install for selected agents")
+	}
+	result, err := installer.Install(keys)
+	if err != nil {
+		return err
+	}
+	perAgent := (result.Installed + result.Skipped) / len(keys)
+	for _, key := range keys {
+		p.field(agents.Get(key).Label, fmt.Sprintf("%d skills · %s", perAgent, agents.SkillsDir(key, home, os.Getenv)))
+	}
+	agentNoun := "agents"
+	if len(keys) == 1 {
+		agentNoun = "agent"
+	}
+	p.success(fmt.Sprintf("Ready · %d skills for %d %s", perAgent, len(keys), agentNoun))
+	p.field("Next", "ash")
 	return nil
 }

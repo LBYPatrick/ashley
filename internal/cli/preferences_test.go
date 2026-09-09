@@ -74,9 +74,9 @@ func TestHistoryCommands(t *testing.T) {
 		{[]string{"history"}, "CLI record"},
 		{[]string{"history", "show", "--agent", "codex", "--json"}, `"agent_type":"codex"`},
 		{[]string{"history", "show", "--skill", "missing"}, "No history"},
-		{[]string{"history", "stats"}, "Total invocations: 1"},
+		{[]string{"history", "stats"}, "Invocations  1"},
 		{[]string{"history", "stats", "--json"}, `"total":1`},
-		{[]string{"history", "info"}, "Entries: 1"},
+		{[]string{"history", "info"}, "Entries      1"},
 		{[]string{"history", "prune", "30"}, "Pruned 0 entries"},
 		{[]string{"history", "clear", "--yes"}, "Cleared 1 history entries"},
 	} {
@@ -106,7 +106,7 @@ func TestBinarySkillInstallationCommands(t *testing.T) {
 	if err := Run([]string{"install", "--all", "--skills-only"}, &out, &out); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "Installed 70") {
+	if !strings.Contains(out.String(), "14 skills for 5 agents") {
 		t.Fatal(out.String())
 	}
 	if _, err := os.ReadFile(filepath.Join(home, ".codex", "skills", "a-feat", "SKILL.md")); err != nil {

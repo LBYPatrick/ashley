@@ -2,9 +2,6 @@
 package install
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -29,7 +26,7 @@ type Installer struct {
 	Log        io.Writer
 }
 
-// Result counts installed links and preserved conflicts.
+// Result counts installed, already linked, and removed skill paths.
 type Result struct{ Installed, Skipped, Removed int }
 
 func (i Installer) logf(format string, args ...any) {
@@ -45,10 +42,6 @@ func (i Installer) directory(key string) string {
 		getenv = os.Getenv
 	}
 	return agents.SkillsDir(key, i.Home, getenv)
-}
-func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
-func atomic(path string, data []byte) error {
-	return atomicMode(path, data, 0600)
 }
 func atomicMode(path string, data []byte, mode fs.FileMode) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -68,7 +61,7 @@ func atomicMode(path string, data []byte, mode fs.FileMode) error {
 	return os.Rename(f.Name(), path)
 }
 
-// Materialize writes prompts and complete custom packages, retaining local edits.
+// Materialize regenerates prompts and replaces edits to installed package files.
 func (i Installer) Materialize() ([]string, error) {
 	packages, err := fs.ReadDir(i.Catalog.Source, "generated")
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -82,17 +75,7 @@ func (i Installer) Materialize() ([]string, error) {
 	if info, err := os.Lstat(root); err == nil && info.Mode()&os.ModeSymlink != 0 {
 		return nil, fmt.Errorf("generated root is a symlink: %s", root)
 	}
-	manifestPath := filepath.Join(root, ".manifest.json")
-	manifest := map[string]string{}
-	data, err := os.ReadFile(manifestPath)
-	if err == nil {
-		if err := json.Unmarshal(data, &manifest); err != nil {
-			return nil, fmt.Errorf("invalid skill manifest: %w", err)
-		}
-		if manifest == nil {
-			manifest = map[string]string{}
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	if err := os.MkdirAll(root, 0755); err != nil {
 		return nil, err
 	}
 	var installed []string
@@ -108,19 +91,10 @@ func (i Installer) Materialize() ([]string, error) {
 				return err
 			}
 		}
-		current, err := os.ReadFile(destination)
-		if err == nil && digest(current) != manifest[relative] {
-			i.logf("Preserved local edit: %s", destination)
-			return nil
-		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
 		if err := atomicMode(destination, content, mode); err != nil {
 			return err
 		}
 		i.logf("Generated: %s", destination)
-		manifest[relative] = digest(content)
 		return nil
 	}
 	for _, name := range names {
@@ -133,14 +107,6 @@ func (i Installer) Materialize() ([]string, error) {
 			return nil, fmt.Errorf("invalid skill output: %s", result.Output)
 		}
 		content := []byte(result.Content)
-		// Developer-provided generated documents are intentional overrides.
-		if override, err := i.Catalog.Source.Open(result.Output); err == nil {
-			override.Close()
-			content, err = fs.ReadFile(i.Catalog.Source, result.Output)
-			if err != nil {
-				return nil, err
-			}
-		}
 		relative := filepath.Join(skillName, "SKILL.md")
 		if err := writeManaged(relative, content, 0600); err != nil {
 			return nil, err
@@ -161,6 +127,9 @@ func (i Installer) Materialize() ([]string, error) {
 			if err != nil || entry.IsDir() {
 				return err
 			}
+			if source == path.Join(packageRoot, "SKILL.md") && slices.Contains(installed, path.Base(packageRoot)) {
+				return nil
+			}
 			info, err := entry.Info()
 			if err != nil {
 				return err
@@ -180,13 +149,6 @@ func (i Installer) Materialize() ([]string, error) {
 		if !slices.Contains(installed, entry.Name()) {
 			installed = append(installed, entry.Name())
 		}
-	}
-	data, err = json.MarshalIndent(manifest, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	if err := atomic(manifestPath, append(data, '\n')); err != nil {
-		return nil, err
 	}
 	// Previously imported custom packages remain available to newly selected
 	// agents even when the source checkout is no longer present.
@@ -278,7 +240,7 @@ func (i Installer) Resolve(keys []string) ([]string, error) {
 	return result, nil
 }
 
-// Install links selected agents to persistent generated skills, preserving user directories.
+// Install replaces matching skill paths with links to freshly generated skills.
 func (i Installer) Install(keys []string) (Result, error) {
 	var result Result
 	keys, err := i.Resolve(keys)
@@ -300,20 +262,15 @@ func (i Installer) Install(keys []string) (Result, error) {
 		for _, name := range names {
 			path := filepath.Join(directory, name)
 			target := filepath.Join(i.generated(), name)
-			info, err := os.Lstat(path)
+			_, err := os.Lstat(path)
 			if err == nil {
-				if info.Mode()&os.ModeSymlink == 0 || !i.owned(path) {
-					i.logf("Preserved custom path: %s", path)
-					result.Skipped++
-					continue
-				}
 				existing, _ := filepath.EvalSymlinks(path)
 				if existing == target {
 					i.logf("Verified link: %s -> %s", path, target)
 					result.Skipped++
 					continue
 				}
-				if err := os.Remove(path); err != nil {
+				if err := os.RemoveAll(path); err != nil {
 					return result, err
 				}
 			} else if !errors.Is(err, os.ErrNotExist) {

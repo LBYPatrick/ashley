@@ -41,6 +41,7 @@ if [[ -z "$version" ]]; then
 fi
 version="${version#v}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$ ]] || { echo "Invalid release version: $version" >&2; exit 1; }
+printf '\n  Ashley / Download\n\n  Version      %s\n  Platform     %s / %s\n  Downloading and verifying binary…\n' "$version" "$platform" "$arch"
 archive="ashley-$version-$platform-$arch.tar.gz"
 url="https://github.com/$repo/releases/download/v$version"
 tmp="$(mktemp -d)"
@@ -70,8 +71,10 @@ cp "$tmp/ash" "$candidate"
 chmod 755 "$candidate"
 mv -f "$candidate" "$install_dir/ash"
 candidate=""
-echo "Installed Ashley $version to $install_dir/ash"
+printf '\n  ✓ Installed Ashley %s\n  Executable   %s/ash\n\n' "$version" "$install_dir"
+if [[ "${ASHLEY_BOOTSTRAP:-}" != 1 ]]; then
 case ":$PATH:" in
     *":$install_dir:"*) ;;
-    *) echo "Add $install_dir to PATH to run ash." ;;
+    *) printf '  Add to PATH  export PATH=%q:"$PATH"\n\n' "$install_dir" ;;
 esac
+fi

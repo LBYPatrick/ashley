@@ -82,6 +82,7 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	defer store.Close()
+	p := present(stdout)
 	switch command {
 	case "show":
 		entries, err := store.Query(filter, limit, offset)
@@ -91,22 +92,20 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		if jsonOutput {
 			return json.NewEncoder(stdout).Encode(entries)
 		}
+		p.heading("History")
 		if len(entries) == 0 {
-			fmt.Fprintln(stdout, "No history entries found.")
+			p.line("No history entries found.")
 			return nil
 		}
-		fmt.Fprintf(stdout, "%5s  %-19s  %-12s  %-12s  %-30s  %s\n", "ID", "Time", "Skill", "Agent", "Dir", "Question")
+		var rows [][]string
 		for _, v := range entries {
-			dir := []rune(v.CWD)
-			if len(dir) > 30 {
-				dir = append([]rune("…"), dir[len(dir)-29:]...)
-			}
 			skill := v.Skill
 			if v.Detached {
 				skill += " ⇢"
 			}
-			fmt.Fprintf(stdout, "%5d  %-19s  %-12s  %-12s  %-30s  %s\n", v.ID, v.TimeDisplay(), skill, v.AgentType, string(dir), v.QuestionShort())
+			rows = append(rows, []string{fmt.Sprint(v.ID), v.TimeDisplay(), skill, v.AgentType, v.CWD, v.QuestionShort()})
 		}
+		p.table([]string{"ID", "Time", "Skill", "Agent", "Directory", "Question"}, rows)
 	case "stats":
 		stats, err := store.Stats(filter)
 		if err != nil {
@@ -115,17 +114,18 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		if jsonOutput {
 			return json.NewEncoder(stdout).Encode(stats)
 		}
-		fmt.Fprintf(stdout, "Ashley Analytics\nTotal invocations: %d\n", stats.Total)
+		p.heading("Analytics")
+		p.field("Invocations", fmt.Sprint(stats.Total))
 		if len(stats.TopSkills) > 0 {
-			fmt.Fprintln(stdout, "Top Skills")
+			p.section("Top skills")
 			for _, v := range stats.TopSkills {
-				fmt.Fprintf(stdout, "  %-14s %4d  %s\n", v.Name, v.Count, strings.Repeat("█", min(v.Count, 30)))
+				p.field(v.Name, fmt.Sprintf("%4d  %s", v.Count, strings.Repeat("█", min(v.Count, 30))))
 			}
 		}
 		if len(stats.ByAgent) > 0 {
-			fmt.Fprintln(stdout, "By Agent")
+			p.section("By agent")
 			for _, v := range stats.ByAgent {
-				fmt.Fprintf(stdout, "  %-14s %4d  %s\n", agents.Get(v.Name).Label, v.Count, strings.Repeat("█", min(v.Count, 30)))
+				p.field(agents.Get(v.Name).Label, fmt.Sprintf("%4d  %s", v.Count, strings.Repeat("█", min(v.Count, 30))))
 			}
 		}
 	case "prune":
@@ -133,7 +133,7 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Pruned %d entries older than %d days.\n", n, days)
+		p.success(fmt.Sprintf("Pruned %d entries older than %d days.", n, days))
 	case "clear":
 		if !yes {
 			fmt.Fprint(stdout, "Delete ALL history entries? [y/N]: ")
@@ -142,7 +142,7 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 				return fmt.Errorf("confirmation required; use --yes: %w", err)
 			}
 			if strings.ToLower(strings.TrimSpace(answer)) != "y" && strings.ToLower(strings.TrimSpace(answer)) != "yes" {
-				fmt.Fprintln(stdout, "Cancelled.")
+				p.line("Cancelled.")
 				return nil
 			}
 		}
@@ -150,7 +150,7 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Cleared %d history entries.\n", n)
+		p.success(fmt.Sprintf("Cleared %d history entries.", n))
 	case "info":
 		count, err := store.Count(history.Filter{})
 		if err != nil {
@@ -160,7 +160,10 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Database: %s\nSize: %d bytes\nEntries: %d\n", path, info.Size(), count)
+		p.heading("History storage")
+		p.field("Database", path)
+		p.field("Size", fmt.Sprintf("%d bytes", info.Size()))
+		p.field("Entries", fmt.Sprint(count))
 	}
 	return nil
 }

@@ -34,16 +34,20 @@ func chooseInstallAgents(installer install.Installer, stdout io.Writer) []string
 		return nil
 	}
 	saved := prefs.LoadAgent()
-	fmt.Fprintln(stdout, "Which coding agent should Ashley use?")
+	p := present(stdout)
+	p.section("Choose your coding agent")
+	p.line("Enter a number, or press Enter to keep the default.")
+	fmt.Fprintln(stdout)
 	for i, key := range agents.Keys() {
 		suffix := ""
 		if key == saved {
 			suffix = " (default)"
 		}
-		fmt.Fprintf(stdout, "  %d) %s%s\n", i+1, agents.Get(key).Label, suffix)
+		fmt.Fprintf(stdout, "    %d  %s%s\n", i+1, agents.Get(key).Label, suffix)
 	}
-	fmt.Fprintln(stdout, "  6) All agents")
-	fmt.Fprint(stdout, "Choice [Enter keeps the default]: ")
+	fmt.Fprintln(stdout, "    6  All agents")
+	fmt.Fprintln(stdout)
+	fmt.Fprint(stdout, "  Choice [Enter keeps the default]: ")
 	answer, err := bufio.NewReader(input).ReadString('\n')
 	if err != nil {
 		return nil

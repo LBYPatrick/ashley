@@ -309,7 +309,16 @@ require its vendor’s network installer.
 
 Installing from `--root` imports complete custom packages from `generated/`,
 including supporting files and executable scripts, into `~/.ashley/generated`.
-They remain usable without the checkout; later installs preserve local edits.
+They remain usable without the checkout. Every install regenerates prompts and
+replaces local edits and conflicting paths for the skills being installed. Edit
+source definitions under `~/.ashley/skills` and `~/.ashley/components` to maintain
+custom behavior; generated `SKILL.md` files are disposable outputs.
+
+CLI output groups setup and sync into readable sections. Each installation saves
+a complete log under `~/.ashley/logs/`; use `ash install --verbose` to also stream
+per-file details. TUI Sync continues to display its full log. Human-facing tables
+adapt to terminal width, and redirected output has no ANSI styling. `NO_COLOR`
+or `ASHLEY_NO_COLOR` disables terminal colors.
 
 ```bash
 ash install --codex        # install skills for Codex

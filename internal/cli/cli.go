@@ -1,4 +1,4 @@
-// Package cli implements the experimental Go command-line entry point.
+// Package cli implements the Ashley command-line entry point.
 package cli
 
 import (
@@ -38,7 +38,7 @@ Commands:
   detect [DIRECTORY]           Print detected project context as JSON
   history [show|stats|info|prune|clear]
                                Browse and manage invocation history
-  install [--all|--both|--AGENT] [--skills-only]
+  install [--all|--both|--AGENT] [--skills-only] [--verbose]
                                Install persistent skills and agent CLIs
   uninstall                    Remove Ashley skill links
   update [--check] [--version VERSION] [--skip-tools]
@@ -143,14 +143,20 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(stdout, "Available skills:")
+		p := present(stdout)
+		p.heading("Skills")
+		var rows [][]string
 		for _, name := range names {
 			def, err := catalog.Load(name)
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(stdout, "  %-15s %s\n", name, def.Description)
+			rows = append(rows, []string{name, def.Description})
 		}
+		p.table([]string{"Skill", "Description"}, rows)
+		p.section("Next")
+		p.line("ash prompt <skill> · Preview a prompt")
+		p.line("ash run <skill>    · Start coding")
 		return nil
 	case "detect":
 		if len(args) > 2 {
@@ -254,6 +260,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		defer outputRoot.Close()
+		p := present(stdout)
+		p.heading("Generate")
 		for _, result := range results {
 			if err := outputRoot.MkdirAll(filepath.Dir(result.Output), 0755); err != nil {
 				return err
@@ -261,9 +269,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			if err := outputRoot.WriteFile(result.Output, []byte(result.Content), 0644); err != nil {
 				return err
 			}
-			fmt.Fprintln(stdout, result.Output)
+			p.line(result.Output)
 		}
-		fmt.Fprintf(stdout, "Generated: %d\n", len(results))
+		p.success(fmt.Sprintf("Generated: %d skills", len(results)))
 		return nil
 	default:
 		return fmt.Errorf("unknown command %q (see ash --help)", args[0])

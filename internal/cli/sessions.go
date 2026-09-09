@@ -35,6 +35,7 @@ func attachSession(m sessions.Manager, s sessions.Session, stdout, stderr io.Wri
 	return err
 }
 func sessionCommand(command string, args []string, stdout, stderr io.Writer) error {
+	p := present(stdout)
 	manager, err := sessions.User()
 	if err != nil {
 		return err
@@ -60,7 +61,9 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(stdout, "Cleaned %d exited sessions.\n", n)
+			if !asJSON {
+				p.success(fmt.Sprintf("Cleaned %d exited sessions.", n))
+			}
 		}
 		all, err := manager.All()
 		if err != nil {
@@ -70,11 +73,12 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 		if asJSON {
 			return json.NewEncoder(stdout).Encode(all)
 		}
+		p.heading("Sessions")
 		if len(all) == 0 {
-			fmt.Fprintln(stdout, "No sessions.")
+			p.line("No sessions. Start one with ash run <skill>.")
 			return nil
 		}
-		fmt.Fprintf(stdout, "%-10s %-12s %-12s %-8s %s\n", "ID", "Skill", "Agent", "Status", "Elapsed")
+		var rows [][]string
 		for _, s := range all {
 			state := "exited"
 			if manager.Alive(s) {
@@ -84,8 +88,11 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 			if agent == "" {
 				agent = "claude"
 			}
-			fmt.Fprintf(stdout, "%-10s %-12s %-12s %-8s %s\n", s.ID, s.Skill, agent, state, s.Elapsed(time.Now()))
+			rows = append(rows, []string{s.ID, s.Skill, agent, state, s.Elapsed(time.Now())})
 		}
+		p.table([]string{"ID", "Skill", "Agent", "Status", "Elapsed"}, rows)
+		p.section("Next")
+		p.line("ash attach <id> · Resume   ash logs <id> · View output")
 		return nil
 	}
 	follow := false
@@ -121,7 +128,7 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Killed %d session(s).\n", n)
+		p.success(fmt.Sprintf("Killed %d session(s).", n))
 		return nil
 	}
 	s, err := manager.Resolve(id)
@@ -135,7 +142,7 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 		if err := manager.Kill(s); err != nil {
 			return err
 		}
-		fmt.Fprintf(stdout, "Killed session %s (%s)\n", s.ID, s.Skill)
+		p.success(fmt.Sprintf("Killed session %s (%s)", s.ID, s.Skill))
 		return nil
 	case "logs":
 		text, err := sessions.ReadLog(s, tail)

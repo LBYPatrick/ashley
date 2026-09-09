@@ -26,6 +26,8 @@ func updateCommand(args []string, sourceRoot string, catalog skills.Catalog, std
 }
 
 func updateWithUpdater(args []string, sourceRoot string, catalog skills.Catalog, updater selfupdate.Updater, stdout, stderr io.Writer) error {
+	p := present(stdout)
+	p.heading("Update")
 	flags := flag.NewFlagSet("update", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	version := flags.String("version", "", "Install a specific release version")
@@ -62,9 +64,11 @@ func updateWithUpdater(args []string, sourceRoot string, catalog skills.Catalog,
 		return err
 	}
 	if sourceRoot != "" {
-		fmt.Fprintf(stdout, "Development checkout: %s\nBranch: %s\n", sourceRoot, *branch)
+		p.field("Checkout", sourceRoot)
+		p.field("Branch", *branch)
 	} else {
-		fmt.Fprintf(stdout, "Installed: %s\nRelease: %s\n", ashley.Version(), *version)
+		p.field("Installed", ashley.Version())
+		p.field("Release", *version)
 	}
 	if *check {
 		return nil
@@ -83,7 +87,7 @@ func updateWithUpdater(args []string, sourceRoot string, catalog skills.Catalog,
 		if err := selfupdate.SourceUpdate(ctx, sourceRoot, destination, *branch, stdout, stderr); err != nil {
 			return err
 		}
-		fmt.Fprintln(stdout, "Installed development build:", destination)
+		p.success("Installed development build: " + destination)
 	} else if *version != ashley.Version() || *destinationDir != "" {
 		data, err := updater.Fetch(ctx, *version)
 		if err != nil {
@@ -92,9 +96,9 @@ func updateWithUpdater(args []string, sourceRoot string, catalog skills.Catalog,
 		if err := selfupdate.Install(ctx, destination, *version, data); err != nil {
 			return err
 		}
-		fmt.Fprintln(stdout, "Installed binary:", destination)
+		p.success("Installed binary: " + destination)
 	} else {
-		fmt.Fprintln(stdout, "Ashley is already up to date.")
+		p.success("Ashley is already up to date.")
 	}
 	// Run the new executable so refreshed skills come from the new embedded catalog.
 	refreshArgs := []string{"install", "--skills-only"}

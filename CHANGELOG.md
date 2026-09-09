@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-08
+
+### Fixed
+
+- Organize CLI output with consistent headings, aligned summaries, responsive tables, and terminal-only color; keep JSON, prompts, and raw logs usable in pipelines.
+- Replace noisy per-file installation output with per-agent totals and a persistent full log. Add `ash install --verbose` and keep vendor prompts visible within their own section.
+- Regenerate installed prompts on every install and replace local edits and conflicting skill paths. Source definitions remain customizable, migration backups remain available, and TUI Sync retains its complete log.
+- Group binary bootstrap output and show actionable PATH instructions after setup.
+
 ## [1.0.0] - 2026-09-08
 
 ### Changed
