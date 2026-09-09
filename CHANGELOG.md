@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-08
+
+### Changed
+
+- Make Ashley development, testing, and release validation Go-only, retaining frozen compatibility fixtures and full binary, terminal, installer, migration, and publishing regression coverage.
+- Support explicit `GOOS`, `GOARCH`, and `BUILD_OUTPUT` overrides in `make build`; document direct Go builds and Windows/WSL runtime limits.
+
+### Removed
+
+- Remove the stale Python Ashley implementation, packaging metadata, reference test/capture tools, uv bootstrap, and Python Makefile/CI commands. Keep the Python-to-Go migration script and active Python coding templates.
+
 ## [0.4.0] - 2026-09-08
 
 ### Added

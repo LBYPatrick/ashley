@@ -24,8 +24,6 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - uses: astral-sh/setup-uv@v6
-      - run: uv sync --group dev
       - name: Install tmux for session integration tests
         run: |
           if ! command -v tmux >/dev/null 2>&1; then

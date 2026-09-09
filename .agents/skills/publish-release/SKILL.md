@@ -19,10 +19,10 @@ LICENSE. End users must not need a checkout, Go, Python, or uv to run Ashley.
 3. Move Unreleased entries to `## [X.Y.Z] - YYYY-MM-DD` and leave a fresh
    Unreleased section. Commit the changelog and implementation before publishing.
 4. Write reader-facing release notes to a temporary Markdown file. For a
-   prerelease, state which Go features are available and which still require the
-   Python application. Do not advertise incomplete binaries as a replacement.
+   prerelease, state any unavailable features or platform limits. Do not advertise
+   incomplete binaries as a full replacement.
 5. Run `make publish V=X.Y.Z NOTES=/absolute/path/notes.md YES=1` from `main`.
-   The script synchronizes VERSION, Python metadata and the README badge, checks
+   The script synchronizes VERSION and the README badge, checks
    the release identity and parity status, runs `make gate`, commits version
    files, pushes main and an annotated tag, then creates draft notes.
    It refuses outstanding non-version changes, an existing tag, or a branch
@@ -33,8 +33,8 @@ LICENSE. End users must not need a checkout, Go, Python, or uv to run Ashley.
    and build result. If a publish step fails, inspect remote tag/release state
    before retrying; do not delete a published release or overwrite its tag.
 
-`make gate` runs formatting checks, Python regression tests, Go race/coverage
-tests, Python-to-Go parity checks, builds and standalone smoke tests. Python and
-uv are development/CI tools during migration, never release dependencies.
+`make gate` runs Go formatting, workflow validation, Go regression/release tests,
+race/coverage/vet checks, frozen compatibility fixtures, builds, and binary,
+terminal, installer, and migration tests. Neither Python nor uv is required.
 
 Adding or editing this skill is not authorization to publish a release.

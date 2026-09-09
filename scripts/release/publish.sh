@@ -6,7 +6,7 @@ version="${V:-$(tr -d '[:space:]' < VERSION)}"
 tag="v$version"
 branch="$(git branch --show-current)"
 [[ "$branch" == main ]] || { echo "Publish from main after the migration work is merged." >&2; exit 1; }
-stray="$(git status --porcelain | grep -Ev '^.. (VERSION|pyproject\.toml|README\.md)$' || true)"
+stray="$(git status --porcelain | grep -Ev '^.. (VERSION|README\.md)$' || true)"
 [[ -z "$stray" ]] || { echo "Commit outstanding work and changelog notes before publishing:" >&2; echo "$stray" >&2; exit 1; }
 if [[ -n "${NOTES:-}" && ! -s "$NOTES" ]]; then
     echo "NOTES must be a nonempty Markdown file: $NOTES" >&2
@@ -20,11 +20,11 @@ if git show-ref --verify --quiet "refs/tags/$tag"; then
     echo "$tag already exists; choose a new version." >&2
     exit 1
 fi
-uv run python scripts/release/version.py prepare "$version"
-uv run python scripts/release/version.py check "$tag"
+go run ./scripts/release prepare "$version"
+go run ./scripts/release check "$tag"
 make gate
 [[ "${YES:-}" == 1 ]] || { echo "Checks passed. Run make publish V=$version YES=1 to publish."; exit 0; }
-git add VERSION pyproject.toml README.md
+git add VERSION README.md
 if ! git diff --cached --quiet; then
     git commit -m "chore(release): prepare $tag"
 fi

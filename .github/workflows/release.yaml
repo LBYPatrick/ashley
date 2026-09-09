@@ -19,11 +19,14 @@ jobs:
       prerelease: ${{ steps.check.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
       - id: check
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          version="$(python3 scripts/release/version.py check "$TAG")"
+          version="$(go run ./scripts/release check "$TAG")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [[ "$version" == *-* ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"

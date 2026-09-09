@@ -5,27 +5,25 @@ source checkouts, language toolchains and dependency resolution belong only
 on developer/CI machines. Feature acceptance is recorded in
 [migration acceptance](migration/assessment.md). The default `ash` command
 runs Go, including the interactive screens, agent execution, history, sessions,
-installation and updates. Python remains a development reference used by the
-test suite.
+installation and updates. Development, tests, and release validation use Go.
 
 ## Verification
 
 | Command | Checks |
 | --- | --- |
 | `make gate` | Formatting, lint, workflow validation, all tests, build and binary integration |
-| `make test` | Python regressions/release tests, reference fixture freshness, Go race/coverage/vet, build, binary integration |
-| `make test-python` | Python reference suite and publishing/version validation |
+| `make test` | Go regressions/release tests, race/coverage/vet, build, binary and terminal integration |
 | `make test-go` | Go tests with race detection and aggregate coverage ≥70%, then vet |
-| `make go-parity` | Python still produces the checked-in reference fixtures |
 | `make build` | Pure-Go native executable at `build/ash-go` |
-| `make test-integration` | Built binary, no-runtime execution, archive contents, checksum installation and failure preservation; run `make build` first |
+| `make test-integration` | Built binary, no-runtime execution, archive contents, checksum installation and failure preservation; builds the executable first |
 | `make go-dist` | All four macOS/Linux × arm64/amd64 release packages |
 | `make package PLATFORM=linux ARCH=amd64` | One selected binary archive plus checksum |
 
 `tests/fixtures/parity/python.json` freezes Python outputs for every bundled skill and
 prompt, custom inheritance/globs/resources, representative Jinja templates and
-project detection. To intentionally change reference behavior, review the Python
-change, run `uv run python tests/reference/capture_parity.py`, and inspect the fixture diff.
+project detection. These are frozen historical inputs, tested directly by Go; the
+old runtime and fixture generators are removed. Review any intentional fixture
+change alongside the corresponding implementation and regression tests.
 Do not regenerate fixtures just to make failing Go tests pass.
 
 The gate runs on macOS and Linux in GitHub Actions. Local verification only runs
@@ -57,9 +55,8 @@ binaries; `make install` builds and copies a standalone executable locally.
 
 ## Python migration rollout
 
-Merge `scripts/migrate-python.sh` with the native runtime before directing users
-to it. Publish a native release with all four archives and checksums first;
-legacy Python tags have no binary assets. The migration command and offline
+`scripts/migrate-python.sh` upgrades existing Python installations using native
+release assets. Legacy Python tags have no binary assets. The migration command and offline
 `--binary` path are documented in the [README](../README.md#migrating-from-python).
 The script uses `ash install --legacy-root CHECKOUT --skills-only` to recognize
 links owned by that particular old checkout, import user files, and replace the
@@ -69,7 +66,7 @@ launcher after setup succeeds. It never invokes the old Python environment.
 
 The repository skill lives at `.agents/skills/publish-release/SKILL.md`, with a
 Claude-compatible link. Publishing is a maintainer operation, not an installation
-step. It requires Go, uv/Python, Git and authenticated GitHub CLI on the maintainer
+step. It requires Go, Make, Bash, Git and authenticated GitHub CLI on the maintainer
 machine; none are included in the release downloads.
 
 1. Merge tested implementation and changelog changes to `main`.
@@ -78,8 +75,7 @@ machine; none are included in the release downloads.
 3. Commit the dated changelog section and leave an empty Unreleased section.
 4. Write release notes to a temporary Markdown file, then run:
    `make publish V=X.Y.Z NOTES=/absolute/path/notes.md YES=1`.
-5. Monitor `.github/workflows/release.yaml`. It checks tag/VERSION/Python metadata/
-   README agreement, reruns the full gate, builds all four platforms, verifies
+5. Monitor `.github/workflows/release.yaml`. It checks tag/VERSION/README agreement, reruns the full gate, builds all four platforms, verifies
    checksums, retains draft notes, and publishes only the complete artifact set.
 
 Omit `YES=1` to prepare versions and run checks without committing or pushing.

@@ -1,15 +1,10 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-.venv/
-*.egg
-
-# Generated skills
-generated/
+# Build outputs, generated skills, and coverage
+/build/
+/dist/
+/generated/
+/coverage.out
+/build-coverage.out
+/test-results/
 
 # IDE
 .idea/
@@ -21,22 +16,5 @@ generated/
 .DS_Store
 Thumbs.db
 
-# Ruff
-.ruff_cache/
-
-# Lock
-uv.lock
-
-# Misc
+# Logs
 *.log
-
-# Go coverage and build output
-/coverage.out
-/build-coverage.out
-
-# Development test caches, coverage reports, and visual exports
-.pytest_cache/
-.coverage
-.coverage.*
-/htmlcov/
-/test-results/

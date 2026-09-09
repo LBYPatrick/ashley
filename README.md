@@ -30,8 +30,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 Ashley ships as one Go executable for macOS and Linux on arm64 and amd64.
 Skills, components, and resources are embedded: users need no Go, Python, uv,
 or source checkout. Coding-agent CLIs and tmux remain separate dependencies.
-The project stays open source; Python is retained only as a development test
-reference.
+The project stays open source; development and release tooling use Go.
 
 Existing YAML settings, JSON preferences, SQLite history, and tmux sessions
 remain compatible. See [Migrating from Python](#migrating-from-python) for the
@@ -118,8 +117,24 @@ launcher, and copy the saved `ash` back with `cp -Pp BACKUP/ash ~/.local/bin/ash
 ```bash
 git clone https://github.com/LBYPatrick/ashley.git
 cd ashley
-make install
+make build           # Standalone executable: build/ash-go
+./build/ash-go --version
+make install         # Optional: install the CLI and skills
 ```
+
+Requires the Go version specified in `go.mod`, Make, and Bash. Dependencies download
+on the first build; all skill assets are embedded automatically. No Python or uv
+is needed. Cross-compile with Go's target variables:
+
+```bash
+make build GOOS=linux GOARCH=arm64 BUILD_OUTPUT=build/ash-linux-arm64
+make build GOOS=windows GOARCH=amd64  # build/ash-go.exe
+```
+
+Without Make, `go build -o ash ./cmd/ash` builds directly from the repository root
+(use `-o ash.exe` on Windows). Full agent, hook, and tmux workflows are supported
+on macOS and Linux; use WSL for those workflows on Windows. A successful Windows
+build does not imply native Windows support for Unix tools.
 
 </details>
 
@@ -504,11 +519,8 @@ components/         Reusable markdown instruction blocks
 res/                Code templates and reference docs
 cmd/ash/            Native executable entry point
 internal/           Go CLI, TUI, generation, sessions, history, and updates
-src/ashley/         Python reference implementation (development only)
-tests/python/       Python reference and release-tool regression tests
-tests/integration/  Compiled binary, package, and installer tests
+tests/integration/  Go binary, terminal, package, installer, and migration tests
 tests/fixtures/     Reviewed regression reference outputs
-tests/reference/    Developer tools for capturing reference fixtures
 scripts/release/    Packaging, version validation, and publishing
 scripts/dev/        Local development helpers
 docs/migration/     Migration acceptance and release parity checklist
@@ -533,10 +545,10 @@ Skills are JSONC files referencing reusable components and code resources. The g
 ```bash
 git clone https://github.com/LBYPatrick/ashley.git
 cd ashley
-uv sync --group dev
+make build          # Build the standalone executable
 make generate       # Regenerate skills
 make test           # Run tests
-make format         # Format Go, Python reference tests, and shell scripts
+make format         # Format Go and check shell syntax
 ```
 
 ### Makefile Targets
@@ -544,12 +556,13 @@ make format         # Format Go, Python reference tests, and shell scripts
 | Target | Description |
 |--------|-------------|
 | `make help` | Show all targets |
+| `make build` | Build `build/ash-go`; supports `GOOS`, `GOARCH`, and `BUILD_OUTPUT` |
 | `make install` | Build native CLI and install skills (`AGENT=claude\|codex\|grok\|opencode\|kilo\|both\|all`) |
 | `make uninstall` | Remove skills and CLI |
 | `make generate` | Regenerate skill markdown files |
 | `make list` | List skill definitions |
-| `make format` | Run Go, Python, and shell formatters |
-| `make test` | Python reference tests, Go race/coverage tests, parity, and binary integration |
+| `make format` | Format Go and check shell syntax |
+| `make test` | Go unit/release tests, race/coverage/vet, and binary/terminal integration |
 | `make clean` | Remove build outputs, release archives, generated skills, and test caches |
 | `make update` | Update an explicit developer checkout |
 | `make upgrade` | Detect + upgrade the agent CLIs (`AGENT=<agent key>`) |

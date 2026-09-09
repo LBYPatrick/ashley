@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/LBYPatrick/ashley/internal/config"
@@ -75,15 +74,7 @@ func (r Runner) Run(parent context.Context, commands []string, c Context) error 
 		cmd.Stdin = r.Stdin
 		cmd.Stdout = r.Stdout
 		cmd.Stderr = r.Stderr
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-		// Kill the whole hook process group, including shell-spawned children.
-		cmd.Cancel = func() error {
-			err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-			if errors.Is(err, syscall.ESRCH) {
-				return os.ErrProcessDone
-			}
-			return err
-		}
+		configureProcess(cmd)
 		cmd.WaitDelay = time.Second
 		err := cmd.Run()
 		contextErr := ctx.Err()
