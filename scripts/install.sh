@@ -65,6 +65,9 @@ tar -xzf "$tmp/$archive" -C "$tmp" ash
 chmod +x "$tmp/ash"
 actual="$("$tmp/ash" --version)"
 [[ "$actual" == "ashley $version" ]] || { echo "Downloaded binary version mismatch: $actual" >&2; exit 1; }
+case "${ASHLEY_AUTOMATED:-}" in
+    1|true|yes) "$tmp/ash" __validate-automation ;;
+esac
 mkdir -p "$install_dir"
 candidate="$(mktemp "$install_dir/.ash-XXXXXX")"
 cp "$tmp/ash" "$candidate"
@@ -77,4 +80,14 @@ case ":$PATH:" in
     *":$install_dir:"*) ;;
     *) printf '  Add to PATH  export PATH=%q:"$PATH"\n\n' "$install_dir" ;;
 esac
+fi
+
+# Explicit opt-in only; the embedded bootstrap also serves ash skills.
+if [[ "${ASHLEY_BOOTSTRAP:-}" != 1 ]]; then
+    case "${ASHLEY_AUTOMATED:-}" in
+        1|true|yes) "$install_dir/ash" install </dev/null; exit ;;
+    esac
+    case "${ASHLEY_INSTALL_SKILLS:-}" in
+        1|true|yes) "$install_dir/ash" skills --version ;;
+    esac
 fi

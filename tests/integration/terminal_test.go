@@ -199,3 +199,19 @@ func TestTUISyncUsesOnlyBinary(t *testing.T) {
 	}
 	p.quit()
 }
+
+func TestCommunitySkillsConfirmation(t *testing.T) {
+	for _, answer := range []string{"yes", "no"} {
+		t.Run(answer, func(t *testing.T) {
+			s := newSandbox(t)
+			communityFixtures(t, s)
+			p := startTerminal(t, s, binary, "install", "--skills-only", "--codex")
+			p.waitFor("Install all emilkowalski/skills plus find-skills for codex?")
+			p.send(answer + "\n")
+			p.exit()
+			if exists(filepath.Join(s.home, "community-calls")) != (answer == "yes") {
+				t.Fatal("wrong consent result", p.text())
+			}
+		})
+	}
+}

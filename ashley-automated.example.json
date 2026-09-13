@@ -1,0 +1,6 @@
+{
+  "agents": ["claude", "codex"],
+  "skills_only": false,
+  "install_skills": true,
+  "community_skills": true
+}

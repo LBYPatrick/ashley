@@ -52,6 +52,13 @@ func installOptions(args []string) (keys []string, skillsOnly, check bool, err e
 	return keys, skillsOnly, check, nil
 }
 func installCommand(command string, args []string, catalog skills.Catalog, stdout, stderr io.Writer) (err error) {
+	var automated *automatedInstall
+	if command == "install" {
+		automated, err = loadAutomatedInstall()
+		if err != nil {
+			return err
+		}
+	}
 	legacyRoot := ""
 	verbose := false
 	var options []string
@@ -86,6 +93,10 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	}
 	if skillsOnly && command != "install" {
 		return fmt.Errorf("--skills-only is only supported by install")
+	}
+	if automated != nil {
+		keys = automated.Agents
+		skillsOnly = automated.SkillsOnly
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -163,6 +174,14 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 		installer.Log = io.MultiWriter(log, &indentedWriter{out: stdout, start: true})
 	}
 	manager.Run = upgrade.CommandRunner(io.MultiWriter(vendorOut, log), io.MultiWriter(vendorErr, log))
+	if automated != nil {
+		run := manager.Run
+		manager.Run = func(ctx context.Context, args []string, stdin io.Reader) (string, error) {
+			argv := append([]string{"env", "CI=1", "GIT_TERMINAL_PROMPT=0", "GIT_SSH_COMMAND=ssh -oBatchMode=yes"}, args...)
+			return run(ctx, argv, stdin)
+		}
+	}
+
 	if !skillsOnly {
 		p.section("Agent setup")
 		for _, key := range keys {
@@ -191,5 +210,5 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	}
 	p.success(fmt.Sprintf("Ready · %d skills for %d %s", perAgent, len(keys), agentNoun))
 	p.field("Next", "ash")
-	return nil
+	return installCommunitySkills(keys, automated, io.MultiWriter(stdout, log), io.MultiWriter(stderr, log))
 }

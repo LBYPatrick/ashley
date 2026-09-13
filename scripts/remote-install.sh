@@ -1,6 +1,14 @@
 #!/bin/bash
 # Bootstrap a binary release; no checkout or language runtime is downloaded.
 set -euo pipefail
+case "${ASHLEY_AUTOMATED:-}" in
+    1|true|yes)
+        [[ -n "${ASHLEY_AUTOMATED_CONFIG:-}" && -r "$ASHLEY_AUTOMATED_CONFIG" ]] || { echo 'Silent installation requires a readable ASHLEY_AUTOMATED_CONFIG.' >&2; exit 1; }
+        export CI=1 GIT_TERMINAL_PROMPT=0
+        export GIT_SSH_COMMAND='ssh -oBatchMode=yes'
+        exec </dev/null
+        ;;
+esac
 repo="${ASHLEY_REPO:-LBYPatrick/ashley}"
 install_dir="${ASHLEY_INSTALL_DIR:-$HOME/.local/bin}"
 binary_args=()
@@ -48,12 +56,21 @@ if [[ ${#agent_args[@]} -eq 0 && -n "${ASHLEY_AGENT:-}" ]]; then
         *) echo "Unknown agent: $ASHLEY_AGENT" >&2; exit 1 ;;
     esac
 fi
+if [[ "$binary_only" == true ]]; then
+    case "${ASHLEY_AUTOMATED:-}" in
+        1|true|yes) echo '--binary-only cannot be combined with automated installation.' >&2; exit 1 ;;
+    esac
+fi
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 curl --retry 3 -fsSL "https://raw.githubusercontent.com/$repo/main/scripts/install.sh" -o "$tmp/install.sh"
 ASHLEY_BOOTSTRAP=1 bash "$tmp/install.sh" ${binary_args[@]+"${binary_args[@]}"}
 if [[ "$binary_only" == false ]]; then
     "$install_dir/ash" install ${agent_args[@]+"${agent_args[@]}"} ${skills_only[@]+"${skills_only[@]}"}
+else
+    case "${ASHLEY_INSTALL_SKILLS:-}" in
+        1|true|yes) "$install_dir/ash" skills --version ;;
+    esac
 fi
 
 case ":$PATH:" in

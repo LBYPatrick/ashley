@@ -238,3 +238,77 @@ func TestDetachedRunAndCompletionHooks(t *testing.T) {
 		t.Fatal("job file leaked")
 	}
 }
+
+func TestSkillsInstallerOptIn(t *testing.T) {
+	for _, optIn := range []string{"", "0", "1"} {
+		t.Run("opt-in="+optIn, func(t *testing.T) {
+			s := newSandbox(t)
+			installerEnv(t, s, releaseArchive(t))
+			s.env["ASHLEY_INSTALL_SKILLS"] = optIn
+			fakeBin := strings.Split(s.env["PATH"], ":")[0]
+			write(t, filepath.Join(fakeBin, "node"), "#!/bin/bash\nexit 0\n", 0755)
+			write(t, filepath.Join(fakeBin, "npm"), `#!/bin/bash
+set -eu
+if [[ "$1" == prefix ]]; then echo "$HOME/.ashley/tools"; exit; fi
+printf '%s\n' "$*" > "$HOME/skills-installed"
+mkdir -p "$HOME/.ashley/tools/bin"
+printf '#!/bin/bash\necho skills-fixture\n' > "$HOME/.ashley/tools/bin/skills"
+chmod +x "$HOME/.ashley/tools/bin/skills"
+`, 0755)
+			dest := filepath.Join(s.home, "bin")
+			output := s.must("/bin/bash", filepath.Join(root, "scripts/remote-install.sh"), "--version", version, "--install-dir", dest, "--binary-only")
+			if exists(filepath.Join(s.home, "skills-installed")) != (optIn == "1") {
+				t.Fatalf("unexpected install: %s", output)
+			}
+			if optIn == "1" {
+				requireContains(t, output, "skills-fixture")
+				requireContains(t, read(t, filepath.Join(s.home, "skills-installed")), "install --global --prefix "+s.home+"/.ashley/tools skills")
+			}
+		})
+	}
+}
+
+func communityFixtures(t *testing.T, s *sandbox) {
+	fakeBin := filepath.Join(s.home, "fake-bin")
+	write(t, filepath.Join(fakeBin, "node"), "#!/bin/bash\nexit 0\n", 0755)
+	write(t, filepath.Join(fakeBin, "npm"), "#!/bin/bash\necho \"$HOME/.ashley/tools\"\n", 0755)
+	write(t, filepath.Join(fakeBin, "skills"), "#!/bin/bash\nprintf '%s\\n' \"$*\" >> \"$HOME/community-calls\"\n", 0755)
+	s.env["PATH"] = fakeBin + ":" + s.env["PATH"]
+}
+
+func TestAutomatedRemoteInstallation(t *testing.T) {
+	for _, valid := range []bool{true, false} {
+		t.Run(fmt.Sprint(valid), func(t *testing.T) {
+			s := newSandbox(t)
+			installerEnv(t, s, releaseArchive(t))
+			communityFixtures(t, s)
+			path := filepath.Join(s.home, "ashley-automated.json")
+			data := `{"agents":["claude","codex"],"skills_only":true,"community_skills":true}`
+			if !valid {
+				data = `{"agents":[]}`
+			}
+			write(t, path, data, 0600)
+			s.env["ASHLEY_AUTOMATED"] = "1"
+			s.env["ASHLEY_AUTOMATED_CONFIG"] = path
+			dest := filepath.Join(s.home, "bin")
+			write(t, filepath.Join(dest, "ash"), "old launcher", 0755)
+			out, err := s.run("/bin/bash", filepath.Join(root, "scripts/remote-install.sh"), "--version", version, "--install-dir", dest)
+			if !valid {
+				if err == nil || read(t, filepath.Join(dest, "ash")) != "old launcher" {
+					t.Fatalf("invalid config replaced binary: %v %s", err, out)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("%v %s", err, out)
+			}
+			checkSkills(t, s, agentDirs[:2])
+			calls := read(t, filepath.Join(s.home, "community-calls"))
+			requireContains(t, calls, "add emilkowalski/skills --global --yes --skill * --agent claude-code codex")
+			requireContains(t, calls, "add vercel-labs/skills --global --yes --skill find-skills --agent claude-code codex")
+			if strings.Contains(out, "[y/N]") || strings.Contains(out, "Choice") {
+				t.Fatal("unexpected prompt", out)
+			}
+		})
+	}
+}

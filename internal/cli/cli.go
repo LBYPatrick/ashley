@@ -30,6 +30,7 @@ Commands:
   -i, --interactive            Open the interactive hub (also the default)
   vibe / create                Open the skill browser or creator
   history browse               Open the history browser
+  skills [COMMAND...]          Run native skills.sh commands
   list                         List available skills
   prompt [--project DIR] SKILL [QUESTION...]
                                Print a copy-pasteable prompt
@@ -103,6 +104,11 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	switch args[0] {
+	case "__validate-automation":
+		_, err := loadAutomatedInstall()
+		return err
+	case "skills":
+		return skillsCommand(args[1:], os.Stdin, stdout, stderr)
 	case "update":
 		return updateCommand(args[1:], *root, catalog, stdout, stderr)
 	case "install", "uninstall", "upgrade":

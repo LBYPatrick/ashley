@@ -45,7 +45,7 @@ func newSandbox(t *testing.T) *sandbox {
 		k, v, _ := strings.Cut(pair, "=")
 		s.env[k] = v
 	}
-	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "GROK_HOME", "GROK_BIN_DIR", "OPENCODE_CONFIG_DIR", "ASHLEY_DIR", "ASHLEY_VERSION", "ASHLEY_INSTALL_DIR", "ASHLEY_REPO", "TMUX", "NO_COLOR", "GOOS", "GOARCH"} {
+	for _, key := range []string{"CLAUDE_CONFIG_DIR", "CODEX_HOME", "GROK_HOME", "GROK_BIN_DIR", "OPENCODE_CONFIG_DIR", "ASHLEY_DIR", "ASHLEY_INSTALL_SKILLS", "ASHLEY_AUTOMATED", "ASHLEY_AUTOMATED_CONFIG", "PNPM_HOME", "ASHLEY_VERSION", "ASHLEY_INSTALL_DIR", "ASHLEY_REPO", "TMUX", "NO_COLOR", "GOOS", "GOARCH"} {
 		delete(s.env, key)
 	}
 	s.env["HOME"] = s.home

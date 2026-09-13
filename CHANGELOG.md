@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-13
+
+### Added
+
+- Add `ash skills` to forward native skills.sh commands, with dependency detection, installation confirmation, and immediate PATH refresh for npm and pnpm on macOS and Linux.
+- Offer all skills from `emilkowalski/skills` plus `find-skills` during installation, targeting the agents selected for Ashley.
+- Add optional JSON installation profiles via `ASHLEY_AUTOMATED_CONFIG` and `ASHLEY_AUTOMATED=1`, with explicit agent and dependency choices, validation before launcher replacement, and no interactive prompts.
+- Add `ASHLEY_INSTALL_SKILLS=1` to opt into Skills CLI setup; default binary installation continues to skip it.
+
 ## [1.0.1] - 2026-09-08
 
 ### Fixed

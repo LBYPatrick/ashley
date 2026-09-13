@@ -57,6 +57,23 @@ Downloads and verifies the matching release binary into `~/.local/bin/ash`,
 then installs skills and the selected agent. No checkout, Python, uv, or Go
 toolchain is installed. Native release assets are available starting with v0.4.0.
 
+The optional [skills.sh CLI](https://skills.sh/docs/cli) is **not installed by
+default**. To install it and any missing runtime dependencies automatically:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | ASHLEY_INSTALL_SKILLS=1 bash
+```
+
+This opt-in also applies to `scripts/install.sh`, including binary-only installs.
+
+When Skills is already available or you opted into installing it, agent setup
+also asks whether to install all of [Emil Kowalski's skills](https://github.com/emilkowalski/skills)
+plus `find-skills` from `vercel-labs/skills`. Accepting installs the bundle globally
+for the same selected Ashley agents, without further skill or agent pickers.
+Declining leaves the community bundle uninstalled. This question is also offered
+by `ash install`; binary-only installation does not select agents or offer bundles.
+Without a terminal, the optional bundle is skipped unless configured below.
+
 The installer asks which coding agent to set up. Skip the question with a flag:
 
 ```bash
@@ -146,10 +163,58 @@ build does not imply native Windows support for Unix tools.
 | `ASHLEY_INSTALL_DIR` | `~/.local/bin` | Binary installation directory |
 | `ASHLEY_REPO` | `LBYPatrick/ashley` | GitHub release repository |
 | `ASHLEY_VERSION` | latest stable | Specific binary release version |
+| `ASHLEY_AUTOMATED_CONFIG` | unset | Path to a local automated installation JSON profile |
+| `ASHLEY_AUTOMATED` | unset | `1`, `true`, or `yes`: activate the profile and disable installation prompts |
+| `ASHLEY_INSTALL_SKILLS` | unset | `1`, `true`, or `yes`: install skills.sh dependencies without prompting during installation or `ash skills` |
 | `ASHLEY_NO_COLOR` | unset | Disable colored output (`1` to enable) |
 | `ASHLEY_AGENT` | unset | Preselect the agent (`claude`, `codex`, `grok`, `opencode`, `kilo`, `both`, or `all`) |
 
 </details>
+
+### Unattended installation
+
+Copy [ashley-automated.example.json](ashley-automated.example.json) to a local
+`ashley-automated.json`, then edit your choices:
+
+```json
+{
+  "agents": ["claude", "codex"],
+  "skills_only": false,
+  "install_skills": true,
+  "community_skills": true
+}
+```
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | \
+  ASHLEY_AUTOMATED_CONFIG="$PWD/ashley-automated.json" ASHLEY_AUTOMATED=1 bash
+```
+
+Both variables are required to activate the profile. The path refers to an existing
+local file (a mounted file works too); the filename itself is unrestricted. Supplying
+a path without enabling `ASHLEY_AUTOMATED` leaves normal interactive setup active.
+The same variables work with `ash install` and `scripts/install.sh`.
+
+| JSON field | Default | Meaning |
+|------------|---------|---------|
+| `agents` | required | Nonempty list of `claude`, `codex`, `grok`, `opencode`, or `kilo` |
+| `skills_only` | `false` | Skip installing coding-agent CLIs; still install Ashley skills |
+| `install_skills` | `false` | Authorize automatic Skills CLI and runtime dependency installation |
+| `community_skills` | `false` | Install every Emil skill plus `find-skills` for the selected agents |
+
+The profile overrides command-line agent/skills-only selections and
+`ASHLEY_INSTALL_SKILLS`. `community_skills: true` can reuse an existing Skills
+installation with `install_skills: false`; missing dependencies then cause an error.
+Unknown fields, duplicate/unknown agents, invalid JSON, and missing configuration
+fail without prompting. The downloaded binary validates the profile before replacing
+the existing launcher. Automated mode rejects `--binary-only` because the profile
+specifies agent setup.
+
+Silent mode means **no interactive input or selection prompts**: progress and errors
+remain visible, and the installation log includes community setup output. External
+commands use noninteractive settings, and bundle installation passes explicit agent
+and skill selections plus `--yes`. Failures return a nonzero status; no interactive
+fallback is attempted. Agent account authentication remains a separate step.
 
 ### Uninstall
 
@@ -190,6 +255,46 @@ ash prompt feat "Add OAuth support"
 # List available skills
 ash list
 ```
+
+---
+
+## skills.sh
+
+On Linux and macOS, `ash skills` forwards all arguments, input, output, and exit
+status to the native [Skills CLI](https://skills.sh/docs/cli):
+
+```bash
+ash skills --help
+ash skills find
+ash skills add vercel-labs/agent-skills
+ash skills list
+ash skills remove
+ash skills update
+```
+
+Ashley detects pnpm/npm, Node.js, and the `skills` executable. If dependencies
+are missing, it displays an installation plan and asks for confirmation. Declining
+or reaching end-of-input cancels setup. For unattended use:
+
+```bash
+ASHLEY_INSTALL_SKILLS=1 ash skills --version
+```
+
+Setup uses an existing pnpm or npm installation; if neither exists, it installs
+standalone pnpm. Missing or unsupported Node.js is installed as LTS through pnpm
+(bootstrapping pnpm if needed). Skills is installed with `pnpm add --global skills`
+or `npm install --global --prefix ~/.ashley/tools skills`. No sudo is needed.
+Ashley refreshes PATH and verifies dependencies in the same invocation, including
+both older pnpm layouts and pnpm 12's `PNPM_HOME/bin`, so no terminal restart is
+needed. `PNPM_HOME` is respected; otherwise it uses `~/Library/pnpm` on macOS or
+`${XDG_DATA_HOME:-~/.local/share}/pnpm` on Linux. The pnpm installer may also update
+your shell configuration.
+
+Every argument after `ash skills`, including `--help` and `--yes`, belongs to the
+Skills CLI; use the environment variable above to approve Ashley's dependency
+setup. This integration requires Bash and curl for bootstrap; use WSL on Windows.
+Skills installed through this command are managed by the upstream CLI. Ashley's
+built-in catalog remains available through `ash list` and `ash install`.
 
 ---
 
@@ -486,6 +591,7 @@ ash run raw [question]           Run the coding agent without a skill
 ash pipe <a+b+c> [question]      Run a skill pipeline
 ash generate                     Assemble skill files from JSONC
 ash list                         List available skills
+ash skills [commands/options]    Forward native skills.sh commands
 ash prompt <skill> [question]    Print prompt to stdout
 ash sessions                     Manage detached sessions (TUI)
 ash attach <id>                  Attach to a session

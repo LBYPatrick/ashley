@@ -9,7 +9,7 @@ import (
 // Assets contains the same source definitions used by the Python generator.
 // Custom repositories can supply an os.DirFS instead.
 //
-//go:embed skills/*.jsonc components res res/code/typescript/.* VERSION
+//go:embed skills/*.jsonc components res res/code/typescript/.* VERSION scripts/skills.sh
 var Assets embed.FS
 
 // Version returns the release version embedded at build time.
