@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Show a download progress bar during interactive binary installation; keep redirected and CI output quiet.
+
 ## [1.2.0] - 2026-09-13
 
 ### Added
