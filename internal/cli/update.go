@@ -112,6 +112,8 @@ func updateWithUpdater(args []string, sourceRoot string, catalog skills.Catalog,
 		refreshArgs = append([]string{"--root", sourceRoot}, refreshArgs...)
 	}
 	refresh := exec.CommandContext(ctx, destination, refreshArgs...)
+	// Refresh existing Ashley skills without replaying optional installation setup.
+	refresh.Env = append(os.Environ(), "ASHLEY_UPDATE_REFRESH=1")
 	refresh.Stdin = os.Stdin
 	refresh.Stdout = stdout
 	refresh.Stderr = stderr

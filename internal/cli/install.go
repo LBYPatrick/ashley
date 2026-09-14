@@ -52,8 +52,9 @@ func installOptions(args []string) (keys []string, skillsOnly, check bool, err e
 	return keys, skillsOnly, check, nil
 }
 func installCommand(command string, args []string, catalog skills.Catalog, stdout, stderr io.Writer) (err error) {
+	refreshOnly := command == "install" && os.Getenv("ASHLEY_UPDATE_REFRESH") == "1"
 	var automated *automatedInstall
-	if command == "install" {
+	if command == "install" && !refreshOnly {
 		automated, err = loadAutomatedInstall()
 		if err != nil {
 			return err
@@ -120,7 +121,7 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 		}
 		keys = []string{prefs.LoadAgent()}
 	}
-	if command == "install" && len(keys) == 0 {
+	if command == "install" && len(keys) == 0 && !refreshOnly {
 		keys = chooseInstallAgents(installer, stdout)
 	}
 	keys, err = installer.Resolve(keys)
@@ -210,5 +211,8 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	}
 	p.success(fmt.Sprintf("Ready · %d skills for %d %s", perAgent, len(keys), agentNoun))
 	p.field("Next", "ash")
+	if refreshOnly {
+		return nil
+	}
 	return installCommunitySkills(keys, automated, io.MultiWriter(stdout, log), io.MultiWriter(stderr, log))
 }

@@ -215,3 +215,57 @@ func TestCommunitySkillsConfirmation(t *testing.T) {
 		})
 	}
 }
+
+func TestSkillsTUIHandoff(t *testing.T) {
+	s := newSandbox(t)
+	communityFixtures(t, s)
+	write(t, filepath.Join(s.home, "fake-bin", "skills"), "#!/bin/bash\necho 'Installed skills fixture'\n", 0755)
+	write(t, filepath.Join(s.home, ".ashley/theme.json"), `{"mode":"dark","preset":"blue"}`, 0644)
+	p := startTerminal(t, s, binary)
+	p.waitFor("Skill Browser")
+	p.send(strings.Repeat("\x1b[B", 7) + "\r")
+	p.waitFor("Find skills")
+	p.send(strings.Repeat("\x1b[B", 2) + "\r")
+	p.waitFor("Installed skills fixture")
+	p.waitFor("Press Enter to return to Ashley")
+	select {
+	case <-p.done:
+		t.Fatal("output disappeared before acknowledgement")
+	default:
+	}
+	offset := len(p.text())
+	p.send("\n")
+	p.until(func() bool { return strings.Contains(p.text()[offset:], "Skills.sh") })
+	offset = len(p.text())
+	p.send("\x1b")
+	p.until(func() bool { return strings.Contains(p.text()[offset:], "Skill Browser") })
+	p.send("q")
+	p.exit()
+}
+
+func TestUpdateSkipsCommunitySetup(t *testing.T) {
+	s := newSandbox(t)
+	s.env["NO_COLOR"] = "1"
+	s.must(binary, "install", "--skills-only", "--codex")
+	communityFixtures(t, s)
+	s.env["ASHLEY_INSTALL_SKILLS"] = "1"
+	s.env["ASHLEY_AUTOMATED"] = "1"
+	s.env["ASHLEY_AUTOMATED_CONFIG"] = filepath.Join(s.home, "missing-profile.json")
+	p := startTerminal(t, s, binary, "update", "--version", version, "--skip-tools")
+	// Both the updater and its refresh child probe terminal colors at startup.
+	select {
+	case <-p.done:
+		if p.err != nil {
+			t.Fatalf("update failed: %v\n%s", p.err, p.text())
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("update waited for input", p.text())
+	}
+	if strings.Contains(p.text(), "Install all emilkowalski") || strings.Contains(p.text(), "[y/N]") {
+		t.Fatal("update prompted for community setup", p.text())
+	}
+	if exists(filepath.Join(s.home, "community-calls")) {
+		t.Fatal("update invoked skills.sh")
+	}
+	checkSkills(t, s, []string{agentDirs[1]})
+}

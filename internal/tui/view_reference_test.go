@@ -58,7 +58,7 @@ func TestScreenHierarchyAndContent(t *testing.T) {
 }
 func TestScreensStayInsideTerminalBounds(t *testing.T) {
 	for _, size := range [][2]int{{50, 20}, {80, 24}, {100, 30}, {140, 50}} {
-		for _, screen := range []string{"hub", "vibe", "sessions", "history", "stats", "settings", "create"} {
+		for _, screen := range []string{"skills.sh", "hub", "vibe", "sessions", "history", "stats", "settings", "create"} {
 			m := newModel(t)
 			m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 			m.open(screen)

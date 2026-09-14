@@ -367,12 +367,21 @@ Run `ash` to launch the hub:
 | Feature | Description | Direct CLI |
 |---------|-------------|------------|
 | **Vibe** | Skill browser — preview, pick a run mode, and launch | `ash vibe` |
+| **Skills.sh** | Find, add, list, remove, check, and update community skills; set up the Emil + find-skills bundle | Hub or command palette |
 | **Sessions** | Manage detached runs | `ash sessions` |
 | **History** | Browse invocation log | `ash history browse` |
 | **Sync** | Generate skills, then install for all detected agents | — |
 | **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Coding agent, theme & colour | — |
+
+Open **Skills.sh** from the hub or the `Ctrl+P` command palette. Select an action
+with arrows and Enter; Find and Add accept a search term or repository/URL.
+Add, List, and Remove operate on globally installed skills. Native Skills prompts
+handle skill/agent selection and missing-dependency consent. Command output remains
+visible until you press Enter to return to Ashley. Community bundle setup reuses
+Ashley’s agent selection and asks before adding Emil’s skills and `find-skills`.
+Opening the page does not install anything.
 
 Sync detects supported agent executables on PATH and in native install locations,
 then generates skills into `~/.ashley/generated` before installing links for every
@@ -472,6 +481,10 @@ ash update                 # update Ashley, then upgrade the agent CLIs
 SKIP_TOOL=1 ash update     # update Ashley only (also: true / yes)
 SKIP_TOOL=1 make update
 ```
+
+`ash update` refreshes Ashley skills without offering the optional community bundle
+or replaying automated installation profiles. Use `ash install` or the TUI
+Skills.sh page to add that bundle explicitly.
 
 The default is saved to `~/.ashley/prefs.json` and can also be changed from the
 TUI **Settings** screen. Run modes map to the available backend controls:

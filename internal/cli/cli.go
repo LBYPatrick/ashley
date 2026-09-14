@@ -104,6 +104,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	switch args[0] {
+	case "__tui-command":
+		return tuiCommand(args[1:], *root, stdout, stderr)
 	case "__validate-automation":
 		_, err := loadAutomatedInstall()
 		return err

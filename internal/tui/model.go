@@ -35,7 +35,7 @@ type Options struct {
 type completed struct{ err error }
 type tick time.Time
 
-var hub = []string{"Vibe", "Sessions", "History", "Sync", "Create", "Stats", "Settings"}
+var hub = []string{"Vibe", "Sessions", "History", "Sync", "Create", "Stats", "Settings", "Skills.sh"}
 var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
@@ -170,6 +170,8 @@ func (m *Model) refresh() {
 }
 func (m *Model) count() int {
 	switch m.screen {
+	case "skills.sh":
+		return len(skillsActions)
 	case "hub":
 		return len(hub)
 	case "vibe":
@@ -182,7 +184,7 @@ func (m *Model) count() int {
 	return 0
 }
 func (m *Model) updatePreview() {
-	if m.screen != "hub" && m.screen != "vibe" && m.screen != "sessions" && m.screen != "history" {
+	if m.screen != "skills.sh" && m.screen != "hub" && m.screen != "vibe" && m.screen != "sessions" && m.screen != "history" {
 		return
 	}
 	m.logOffset = 0
@@ -219,6 +221,9 @@ func (m *Model) execute(args ...string) tea.Cmd {
 }
 func (m *Model) open(screen string) {
 	m.screen = screen
+	if screen == "skills.sh" {
+		m.question.SetValue("")
+	}
 	m.screenScroll = 0
 	m.cursor = 0
 	m.offset = 0
@@ -330,6 +335,9 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if key == "ctrl+c" {
 			return m, m.quit()
+		}
+		if m.focus == "skills-input" && key == "enter" {
+			return m, m.activateSkills()
 		}
 		if m.focus != "" {
 			if key == "tab" {
@@ -491,6 +499,8 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 func (m *Model) activate() tea.Cmd {
 	switch m.screen {
+	case "skills.sh":
+		return m.activateSkills()
 	case "hub":
 		key := strings.ToLower(hub[m.cursor])
 		switch key {

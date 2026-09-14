@@ -13,7 +13,7 @@ import (
 	"github.com/titanous/json5"
 )
 
-var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Sync", "Create skill", "Analytics", "Settings"}
+var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Sync", "Create skill", "Analytics", "Settings", "Skills.sh"}
 
 var featureDescriptions = []string{
 	"Browse skills, preview workflows, and launch your coding agent with a skill prompt.",
@@ -23,10 +23,13 @@ var featureDescriptions = []string{
 	"Build a new skill interactively with a step-by-step wizard.",
 	"See which skills and coding agents you use most.",
 	"Choose the default coding agent, light or dark mode, and a colour preset.",
+	"Find, install, update, and remove skills from skills.sh, or set up the community bundle.",
 }
 
 func (m *Model) detailText() string {
 	switch m.screen {
+	case "skills.sh":
+		return m.skillsDetail()
 	case "hub":
 		return featureTitles[m.cursor] + "\n\n" + featureDescriptions[m.cursor] + "\n\nPress Enter to open"
 	case "vibe":

@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-13
+
 ### Added
 
+- Add a Skills.sh page to the TUI hub and command palette for finding, adding, listing, removing, checking, and updating skills, plus community-bundle setup with native prompts and readable command output.
 - Automatically migrate Python checkouts through the normal remote installer, preserving custom skills, agent links, settings, and history; back up legacy launchers and repair recognized PATH wrappers.
+
+### Fixed
+
+- Skip optional community-bundle setup and installation-profile prompts during `ash update`; refresh existing Ashley skills without replaying first-install choices.
 
 ## [1.1.0] - 2026-09-13
 

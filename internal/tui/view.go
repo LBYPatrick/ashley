@@ -55,7 +55,7 @@ func (m *Model) layout() screenLayout {
 	if m.screen == "vibe" {
 		bottom = h - 7
 	}
-	if m.screen == "history" {
+	if m.screen == "history" || m.screen == "skills.sh" {
 		bottom = h - 6
 	}
 	l := screenLayout{}
@@ -89,6 +89,8 @@ func (m *Model) header(f *frame, a appearance) {
 func (m *Model) footer(f *frame, a appearance) {
 	text := "enter Open  ↑↓ Move  q Quit"
 	switch m.screen {
+	case "skills.sh":
+		text = "esc Back  ↑↓ Move  enter Open / Submit"
 	case "vibe":
 		text = "esc Back  / Filter  m Mode  p Copy Prompt"
 	case "sessions":
@@ -170,7 +172,7 @@ func (m *Model) View() string {
 	f := newFrame(max(20, m.width), max(8, m.height), a.base)
 	m.header(f, a)
 	switch m.screen {
-	case "hub", "vibe", "sessions", "history":
+	case "hub", "vibe", "sessions", "history", "skills.sh":
 		m.browserView(f, a)
 	case "sync":
 		m.operationView(f, a)
@@ -205,6 +207,12 @@ func (m *Model) browserView(f *frame, a appearance) {
 	heading := "Home"
 	labels := featureTitles
 	switch m.screen {
+	case "skills.sh":
+		heading = "Skills.sh"
+		labels = nil
+		for _, action := range skillsActions {
+			labels = append(labels, action.label)
+		}
 	case "vibe":
 		heading = "Skills"
 		labels = nil
@@ -326,6 +334,8 @@ func (m *Model) browserView(f *frame, a appearance) {
 		if m.focus == "filter" {
 			f.input(rect{l.left.x, l.left.y, l.left.w, 3}, m.filter.Value(), "Filter skills...", true, a)
 		}
+	} else if m.screen == "skills.sh" && m.cursor < 2 {
+		f.input(l.input, m.question.Value(), m.skillsPlaceholder(), m.focus == "skills-input", a, m.question.Position())
 	} else if m.screen == "history" {
 		f.input(l.input, m.filter.Value(), "Search history (skill, question, directory)...", m.focus == "filter", a, m.filter.Position())
 	}

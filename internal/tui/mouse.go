@@ -79,6 +79,10 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if msg.Action != tea.MouseActionPress || msg.Button != tea.MouseButtonLeft {
 		return nil
 	}
+	if m.screen == "skills.sh" && m.cursor < 2 && l.input.contains(msg.X, msg.Y) {
+		m.focus = "skills-input"
+		return m.question.Focus()
+	}
 	if (m.screen == "vibe" || m.screen == "history") && l.input.contains(msg.X, msg.Y) {
 		if m.screen == "vibe" {
 			m.focus = "question"
@@ -113,7 +117,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		m.filter.Blur()
 		m.question.Blur()
 		m.updatePreview()
-		if selected && (m.screen == "hub" || m.screen == "vibe") {
+		if selected && (m.screen == "hub" || m.screen == "vibe" || m.screen == "skills.sh") {
 			return m.activate()
 		}
 	}

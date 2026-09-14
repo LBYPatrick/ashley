@@ -114,6 +114,10 @@ func TestBinaryUpdateRefreshesSkillsAndPreservesUserData(t *testing.T) {
 		t.Fatal("failed download replaced installation")
 	}
 	corrupt.Store(false)
+	// Update refreshes must ignore installer opt-ins and stale automation profiles.
+	t.Setenv("ASHLEY_INSTALL_SKILLS", "1")
+	t.Setenv("ASHLEY_AUTOMATED", "1")
+	t.Setenv("ASHLEY_AUTOMATED_CONFIG", filepath.Join(home, "missing-profile.json"))
 	if err := updateWithUpdater(args, "", catalog, updater, &output, &output); err != nil {
 		t.Fatal(err, output.String())
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 var paletteCommands = [][2]string{
-	{"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+	{"Skills.sh", "Find and manage community skills"}, {"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
 }
 
 func (m *Model) paletteItems() [][2]string {
@@ -78,8 +78,8 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		switch choice {
 		case "Quit":
 			return m.quit()
-		case "Home", "Skills", "Sessions", "History", "Sync", "Create", "Analytics", "Theme":
-			screens := map[string]string{"Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Analytics": "stats", "Theme": "settings"}
+		case "Skills.sh", "Home", "Skills", "Sessions", "History", "Sync", "Create", "Analytics", "Theme":
+			screens := map[string]string{"Skills.sh": "skills.sh", "Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Analytics": "stats", "Theme": "settings"}
 			m.open(screens[choice])
 			if choice == "Sync" {
 				return m.startOperation("sync")

@@ -28,7 +28,7 @@ func TestColoredScreensHaveBoundedOutput(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {100, 30}, {160, 50}} {
 		m := newModel(t)
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		for _, screen := range []string{"hub", "settings", "history", "sessions", "stats", "vibe"} {
+		for _, screen := range []string{"skills.sh", "hub", "settings", "history", "sessions", "stats", "vibe"} {
 			m.open(screen)
 			start := time.Now()
 			view := m.View()
