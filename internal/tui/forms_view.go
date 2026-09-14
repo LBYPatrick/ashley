@@ -27,16 +27,20 @@ func (m *Model) settingsControls() []settingControl {
 	for index, key := range agents.Keys() {
 		controls = append(controls, settingControl{rect{x, 9 + index, inner, 1}, 0, index, key, agents.Get(key).Label})
 	}
-	modeWidth := min(12, (inner-2)/2)
-	controls = append(controls, settingControl{rect{x, 18, modeWidth, 1}, 1, 0, "dark", "Dark"}, settingControl{rect{x + modeWidth + 2, 18, modeWidth, 1}, 1, 1, "light", "Light"})
+	modeColumns := min(3, max(1, (inner+2)/12))
+	modeWidth := min(12, (inner-(modeColumns-1)*2)/modeColumns)
+	for i, mode := range settingsRows()[1] {
+		controls = append(controls, settingControl{rect{x + i%modeColumns*(modeWidth+2), 18 + i/modeColumns*2, modeWidth, 1}, 1, i, mode, strings.Title(mode)})
+	}
+	modeExtra := (2 / modeColumns) * 2
 	// Narrow terminals use fewer columns; semantic keys stay stable on resize.
 	columns := min(5, max(1, (inner+2)/15))
 	for index, p := range config.Presets() {
 		col := index % columns
 		width := (inner - (columns-1)*2) / columns
-		controls = append(controls, settingControl{rect{x + col*(width+2), 23 + index/columns*2, width, 1}, 2 + index/5, index % 5, p.Key, strings.Title(p.Key)})
+		controls = append(controls, settingControl{rect{x + col*(width+2), 23 + modeExtra + index/columns*2, width, 1}, 2 + index/5, index % 5, p.Key, strings.Title(p.Key)})
 	}
-	bottom := 23 + (9/columns)*2
+	bottom := 23 + modeExtra + (9/columns)*2
 	controls = append(controls, settingControl{rect{x + max(0, inner-12), bottom + 3, min(12, inner), 1}, 4, 0, "done", "Done"})
 	return controls
 }
@@ -59,17 +63,24 @@ func (m *Model) settingsView(f *frame, a appearance) {
 	for _, section := range []struct {
 		y     int
 		label string
-	}{{7, "Coding agent"}, {16, "Appearance"}, {21, "Accent color"}} {
+	}{{7, "Coding agent"}, {16, "Appearance"}, {21 + (2/min(3, max(1, (inner+2)/12)))*2, "Accent color"}} {
 		content.put(x, section.y, a.base.Bold(true).Render(section.label))
 	}
-	surface := a.base.Background(lipgloss.Color(terminalColor(themeValues[m.theme.Mode+"-"+m.theme.Preset]["surface-lighten-1"])))
+	surface := a.base
+	if !a.clear {
+		surface = surface.Background(lipgloss.Color(terminalColor(m.themePalette()["surface-lighten-1"])))
+	}
 	for _, control := range m.settingsControls() {
 		r := control.rect
 		selected := control.key == m.agent || control.key == m.theme.Mode || control.key == m.theme.Preset
 		focused := control.row == m.settingsRow && control.column == m.settingsColumn
 		style := surface
 		if focused {
-			style = style.Background(lipgloss.Color(blendColor(a.accent, a.bg, .18)))
+			if a.clear {
+				style = style.Underline(true).Bold(true)
+			} else {
+				style = style.Background(lipgloss.Color(blendColor(a.accent, a.bg, .18)))
+			}
 		}
 		if selected {
 			style = style.Foreground(lipgloss.Color(a.accent)).Bold(true)
@@ -77,7 +88,7 @@ func (m *Model) settingsView(f *frame, a appearance) {
 				style = style.Foreground(lipgloss.Color(a.fg))
 			}
 		}
-		if control.row == 4 {
+		if control.row == 4 && !a.clear {
 			style = a.base.Background(lipgloss.Color(a.accent)).Foreground(lipgloss.Color("#161616")).Bold(true)
 		}
 		content.fill(r, style)
@@ -184,6 +195,7 @@ func (m *Model) focusSettings() {
 			break
 		}
 	}
+	m.keepSettingVisible()
 }
 func (m *Model) keepCreatorVisible() {
 	if m.wizard == nil || m.wizard.stage != 0 {

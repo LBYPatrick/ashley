@@ -16,13 +16,26 @@ import (
 type appearance struct {
 	base, border, title, muted, selected, blurred, panel lipgloss.Style
 	accent, bg, fg                                       string
+	clear                                                bool
 }
 
-func (m *Model) appearance() appearance {
-	values := themeValues[m.theme.Mode+"-"+m.theme.Preset]
+func (m *Model) themePalette() map[string]string {
+	mode := m.theme.Mode
+	if mode == "clear" {
+		mode = "dark"
+		if !lipgloss.HasDarkBackground() {
+			mode = "light"
+		}
+	}
+	values := themeValues[mode+"-"+m.theme.Preset]
 	if values == nil {
 		values = themeValues["dark-blue"]
 	}
+	return values
+}
+
+func (m *Model) appearance() appearance {
+	values := m.themePalette()
 	accent := terminalColor(values["accent"])
 	bg, border, panel := values["surface"], values["surface-lighten-2"], terminalColor(values["panel"])
 	contrast := "#FFFFFF"
@@ -30,6 +43,11 @@ func (m *Model) appearance() appearance {
 		contrast = "#000000"
 	}
 	fg, muted := blendColor(contrast, bg, .87), blendColor(contrast, bg, .60)
+	if m.theme.Mode == "clear" {
+		base := lipgloss.NewStyle()
+		title := base.Foreground(lipgloss.Color(accent)).Bold(true)
+		return appearance{base: base, border: base, title: title, muted: base.Faint(true), selected: title.Underline(true), blurred: title, panel: base, accent: accent, bg: bg, fg: fg, clear: true}
+	}
 	base := lipgloss.NewStyle().Background(lipgloss.Color(bg)).Foreground(lipgloss.Color(fg))
 	return appearance{base: base, border: base.Foreground(lipgloss.Color(border)), title: base.Foreground(lipgloss.Color(accent)).Bold(true), muted: base.Foreground(lipgloss.Color(muted)), selected: base.Background(lipgloss.Color(blendColor(accent, bg, .20))).Bold(true), blurred: base.Background(lipgloss.Color(blendColor(accent, bg, .3))), panel: base.Background(lipgloss.Color(panel)), accent: accent, bg: bg, fg: fg}
 }
@@ -162,7 +180,7 @@ func (f *frame) input(r rect, value, placeholder string, focused bool, a appeara
 		if position < len(chars) {
 			glyph = string(chars[position])
 		}
-		f.put(r.x+3+position, r.y+1, a.base.Reverse(true).Render(glyph))
+		f.put(r.x+3+position, r.y+1, a.cursor().Render(glyph))
 	}
 }
 
@@ -194,6 +212,9 @@ func (m *Model) View() string {
 	m.footer(f, a)
 	if m.paletteOpen {
 		m.paletteView(f, a)
+	}
+	if m.theme.Mode == "clear" {
+		f.clearBackground()
 	}
 	return f.String()
 }
@@ -353,8 +374,8 @@ func (m *Model) statsMaxScroll() int {
 }
 func (m *Model) statsText(a appearance) string {
 	text := a.title.Render("◆ Analytics") + "\n\n  " + a.muted.Render("Total invocations") + "   " + a.base.Bold(true).Render(fmt.Sprint(m.stats.Total))
-	heading := a.title.Foreground(lipgloss.Color(terminalColor(themeValues[m.theme.Mode+"-"+m.theme.Preset]["accent-lighten-1"])))
-	accent := themeValues[m.theme.Mode+"-"+m.theme.Preset]["accent"]
+	heading := a.title.Foreground(lipgloss.Color(terminalColor(m.themePalette()["accent-lighten-1"])))
+	accent := m.themePalette()["accent"]
 	if len(m.stats.TopSkills) == 0 {
 		text += "\n\n" + a.muted.Render("No invocations recorded yet.")
 	} else {
@@ -382,4 +403,12 @@ func (m *Model) statsText(a appearance) string {
 		}
 	}
 	return text
+}
+
+// Clear cursors retain the terminal background, including at an empty input.
+func (a appearance) cursor() lipgloss.Style {
+	if a.clear {
+		return a.base.Underline(true).Bold(true)
+	}
+	return a.panel.Reverse(true)
 }

@@ -218,7 +218,7 @@ func styleEditor(editor *textarea.Model, a appearance) {
 	style := textarea.Style{Base: a.panel, Text: a.panel, CursorLine: a.panel, LineNumber: a.muted, CursorLineNumber: a.muted, EndOfBuffer: a.panel, Placeholder: a.muted.Background(a.panel.GetBackground()), Prompt: a.panel}
 	editor.FocusedStyle = style
 	editor.BlurredStyle = style
-	editor.Cursor.Style = a.panel.Reverse(true)
+	editor.Cursor.Style = a.cursor()
 	if editor.Focused() {
 		editor.Focus()
 	} else {

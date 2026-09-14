@@ -25,12 +25,12 @@ func clickSetting(t *testing.T, m *Model, key string) {
 }
 func TestSettingsResponsiveLayoutAndFocus(t *testing.T) {
 	trueColor(t)
-	for _, size := range [][2]int{{50, 20}, {80, 24}, {100, 32}, {190, 40}} {
+	for _, size := range [][2]int{{20, 8}, {32, 14}, {50, 20}, {80, 24}, {100, 32}, {190, 40}} {
 		m := newModel(t)
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		m.open("settings")
 		controls := m.settingsControls()
-		if len(controls) != 18 {
+		if len(controls) != 19 {
 			t.Fatal("lost choices", len(controls))
 		}
 		if b := m.settingsBounds(); b.w > 86 || b.x < 2 {
@@ -113,7 +113,7 @@ func TestSettingsAllThemesAndFirstRun(t *testing.T) {
 	m := newModel(t)
 	m.open("settings")
 	m.Update(tea.WindowSizeMsg{Width: 100, Height: 32})
-	for _, mode := range []string{"dark", "light"} {
+	for _, mode := range []string{"clear", "dark", "light"} {
 		for _, preset := range config.Presets() {
 			m.theme = config.Theme{Mode: mode, Preset: preset.Key}
 			text := ansi.Strip(m.View())

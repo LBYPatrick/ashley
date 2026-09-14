@@ -5,7 +5,7 @@ import (
 )
 
 func settingsRows() [][]string {
-	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
+	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"clear", "dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
 }
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.paletteOpen {

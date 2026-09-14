@@ -22,7 +22,7 @@ var featureDescriptions = []string{
 	"Generate skills, then install them for every detected coding agent.",
 	"Build a new skill interactively with a step-by-step wizard.",
 	"See which skills and coding agents you use most.",
-	"Choose the default coding agent, light or dark mode, and a colour preset.",
+	"Choose the default coding agent, clear, dark or light mode, and a colour preset.",
 	"Find, install, update, and remove skills from skills.sh, or set up the community bundle.",
 }
 

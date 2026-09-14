@@ -87,6 +87,16 @@ func (f *frame) scrollbar(r rect, virtual, position int, a appearance) {
 	offset *= float64(position) / float64(virtual-r.h)
 	start := int(offset * 8)
 	end := start + int(math.Ceil(thumb*8))
+	if a.clear {
+		for i := 0; i < r.h; i++ {
+			glyph, style := "│", a.muted
+			if i >= start/8 && i < (end+7)/8 {
+				glyph, style = "┃", a.title
+			}
+			f.put(r.x, r.y+i, style.Render(strings.Repeat(glyph, r.w)))
+		}
+		return
+	}
 	bars := []rune("▁▂▃▄▅▆▇ ")
 	for index := 0; index < r.h; index++ {
 		style := a.base
@@ -103,5 +113,23 @@ func (f *frame) scrollbar(r rect, virtual, position int, a appearance) {
 			style = a.base.Foreground(lipgloss.Color(blendColor(a.accent, a.bg, .25))).Reverse(true)
 		}
 		f.put(r.x, r.y+index, style.Render(strings.Repeat(string(glyph), r.w)))
+	}
+}
+
+// clearBackground also handles reverse-video cursors from child widgets and
+// ANSI backgrounds in captured output without losing their foreground colors.
+func (f *frame) clearBackground() {
+	for y := 0; y < f.height; y++ {
+		for x := 0; x < f.width; x++ {
+			c := f.cells.Cell(x, y)
+			if c == nil {
+				continue
+			}
+			c.Style.Bg = nil
+			if c.Style.Attrs&cellbuf.ReverseAttr != 0 {
+				c.Style.Attrs &^= cellbuf.ReverseAttr
+				c.Style.UlStyle = cellbuf.SingleUnderline
+			}
+		}
 	}
 }

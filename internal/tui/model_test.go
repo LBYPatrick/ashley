@@ -136,6 +136,7 @@ func TestSettingsPersistAllChoices(t *testing.T) {
 		key(m, "tab")
 	}
 	key(m, "right")
+	key(m, "right")
 	key(m, "enter")
 	if m.theme.Mode != "light" {
 		t.Fatal(m.theme)
@@ -143,7 +144,7 @@ func TestSettingsPersistAllChoices(t *testing.T) {
 	key(m, "down")
 	key(m, "right")
 	key(m, "enter")
-	if m.theme.Preset != "purple" {
+	if m.theme.Preset != "orange" {
 		t.Fatal(m.theme)
 	}
 	key(m, "esc")

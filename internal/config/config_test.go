@@ -73,7 +73,7 @@ func TestMalformedAndMissing(t *testing.T) {
 	for _, data := range []string{"{bad", "[]", "null", `{"agent":42,"mode":false,"preset":[]}`, `{"agent":"unknown","mode":"neon","preset":"unknown"}`} {
 		write(t, s, "prefs.json", data)
 		write(t, s, "theme.json", data)
-		if s.LoadAgent() != "claude" || s.LoadTheme() != (Theme{"dark", "blue"}) {
+		if s.LoadAgent() != "claude" || s.LoadTheme() != (Theme{"clear", "blue"}) {
 			t.Fatal(data)
 		}
 	}
@@ -101,7 +101,7 @@ func TestPreferencesPreserveUserData(t *testing.T) {
 		t.Fatal("accepted unknown agent")
 	}
 	for _, p := range Presets() {
-		for _, mode := range []string{"light", "dark"} {
+		for _, mode := range []string{"clear", "light", "dark"} {
 			want := Theme{mode, p.Key}
 			if err := s.SaveTheme(want); err != nil {
 				t.Fatal(err)

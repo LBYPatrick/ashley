@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-14
+
+### Added
+
+- Add Clear mode alongside Dark and Light, defaulting to the terminal background when no valid mode is saved. Preserve existing preferences and adapt selections, panels, inputs, and scrollbars for transparency.
+
 ### Changed
 
 - Show a download progress bar during interactive binary installation; keep redirected and CI output quiet.

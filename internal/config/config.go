@@ -213,8 +213,8 @@ func (s Store) LoadTheme() Theme {
 	data := s.readJSON("theme.json")
 	mode, _ := data["mode"].(string)
 	preset, _ := data["preset"].(string)
-	if mode != "dark" && mode != "light" {
-		mode = "dark"
+	if mode != "clear" && mode != "dark" && mode != "light" {
+		mode = "clear"
 	}
 	if !validPreset(preset) {
 		preset = "blue"
@@ -230,7 +230,7 @@ func (s Store) ThemeConfigured() bool {
 
 // SaveTheme persists appearance without editing hooks or pipelines.
 func (s Store) SaveTheme(theme Theme) error {
-	if theme.Mode != "dark" && theme.Mode != "light" {
+	if theme.Mode != "clear" && theme.Mode != "dark" && theme.Mode != "light" {
 		return fmt.Errorf("unknown theme mode: %s", theme.Mode)
 	}
 	if !validPreset(theme.Preset) {

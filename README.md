@@ -519,7 +519,7 @@ See the [Grok permission guide](https://github.com/xai-org/grok-build/blob/main/
 Ashley's look is configurable from the **Settings** screen in the TUI (or the
 first-run wizard). Choose:
 
-- **Mode** — light or dark
+- **Mode** — Clear (default), Dark, or Light
 - **Colour** — a primary colour (Blue, Green, Purple, Orange, Rose, Cyan) or a
   dual-tone preset (Ocean, Sunset, Grape, Forest)
 
@@ -701,3 +701,5 @@ make format         # Format Go and check shell syntax
 ## License
 
 [MIT](LICENSE)
+
+Clear mode uses your terminal’s background and foreground, so configured transparency or blur remains visible. It does not enable terminal transparency itself. Existing saved Dark or Light preferences are preserved; choose Clear in Settings to switch.
