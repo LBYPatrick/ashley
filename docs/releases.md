@@ -55,8 +55,10 @@ binaries; `make install` builds and copies a standalone executable locally.
 
 ## Python migration rollout
 
-`scripts/migrate-python.sh` upgrades existing Python installations using native
-release assets. Legacy Python tags have no binary assets. The migration command and offline
+`scripts/remote-install.sh` automatically upgrades existing Python installations
+through the binary installer, including user skill import and launcher backups.
+The standalone `scripts/migrate-python.sh` remains an offline recovery option.
+Legacy Python tags have no binary assets. The migration command and offline
 `--binary` path are documented in the [README](../README.md#migrating-from-python).
 The script uses `ash install --legacy-root CHECKOUT --skills-only` to recognize
 links owned by that particular old checkout, import user files, and replace the

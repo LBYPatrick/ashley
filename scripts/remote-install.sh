@@ -1,5 +1,6 @@
 #!/bin/bash
 # Bootstrap a binary release; no checkout or language runtime is downloaded.
+# install.sh automatically backs up and migrates recognized legacy launchers.
 set -euo pipefail
 case "${ASHLEY_AUTOMATED:-}" in
     1|true|yes)

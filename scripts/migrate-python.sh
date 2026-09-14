@@ -64,7 +64,7 @@ else
     fi
     version_args=()
     if [[ -n "$version" ]]; then version_args=(--version "$version"); fi
-    bash "$tmp/install.sh" --install-dir "$tmp" ${version_args[@]+"${version_args[@]}"}
+    ASHLEY_MIGRATION_STAGING=1 bash "$tmp/install.sh" --install-dir "$tmp" ${version_args[@]+"${version_args[@]}"}
 fi
 # Reject Python/shell launchers before executing a user-supplied --binary.
 magic="$(od -An -tx1 -N4 "$tmp/ash" | tr -d ' \n')"

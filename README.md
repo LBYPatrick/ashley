@@ -82,44 +82,45 @@ curl -fsSL .../remote-install.sh | bash -s -- --codex   # or --claude, --grok, -
 
 ### Migrating from Python
 
-Use the migration script instead of running the old `make install`:
+The normal remote installer automatically migrates Python installations; no separate migration command is needed:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/migrate-python.sh -o /tmp/ashley-migrate.sh
-bash /tmp/ashley-migrate.sh
+curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh \
+  | bash -s -- --version 1.1.0
 ```
 
-It downloads and verifies the release, finds the old checkout through the
-launcher symlink or `~/.ashley/repo` (`ASHLEY_DIR` is also supported), and imports
-its skill definitions, components, resources, and generated packages into
-`~/.ashley`. Existing files in that user directory win over imported files.
-Imported source files become local overrides of the embedded defaults, preserving
-customizations; remove an override when you want to use the bundled version.
-The script generates and installs skills for configured/detected agents without
-installing or upgrading their CLIs, then atomically replaces `~/.local/bin/ash`.
+It finds the old checkout through launcher symlinks or `~/.ashley/repo`
+(`ASHLEY_DIR` is also supported), verifies the native release, and imports skill
+definitions, components, resources, and generated packages into `~/.ashley`.
+Existing user files win over imported files. Imported files remain local
+overrides of the embedded defaults, preserving customizations.
 
-For a custom checkout or install location:
+Before replacing the launcher, migration backs it up and moves existing agent
+skill links off the checkout using the native executable. This preservation step
+runs without Python, uv, dependency installation, or prompts. The normal remote
+installer then performs the requested agent setup. Use `--skills-only --codex`
+to skip agent CLI installation, or `--binary-only` to skip subsequent setup
+while still preserving an existing skill installation.
+
+The installer also backs up and redirects recognized Python or Go wrappers
+that take precedence on PATH. An unwritable shadowing launcher produces an
+error before replacement and instructions to put the install directory first
+on PATH. Unrelated executables (including a system shell named `ash`) are never
+redirected. `--install-dir DIR` selects a custom destination.
+
+Backups live under `~/.ashley/migrations/python-to-go-*`. Settings, SQLite
+history, session logs, the old checkout/virtualenv, and shared Python/uv
+installations are retained. If verification or migration skill setup fails,
+the launcher stays unchanged; any imported files and backups remain available
+for inspection. Symlinked skill data is rejected rather than copied through.
+Subsequent native installs do not repeat migration.
+
+For offline or explicit-source recovery, the standalone compatibility helper
+is still available:
 
 ```bash
-bash /tmp/ashley-migrate.sh --source ~/code/ashley --install-dir ~/.local/bin --codex
-# Pin a published native release with --version X.Y.Z.
+bash scripts/migrate-python.sh --binary /path/to/ash --source ~/code/ashley
 ```
-
-For an offline migration, use a trusted native binary built by CI or extracted
-from a verified release archive:
-
-```bash
-bash scripts/migrate-python.sh --binary /path/to/ash
-```
-
-The old launcher and any pre-existing user skill directories are backed up under
-`~/.ashley/migrations/python-to-go-*`. Settings, SQLite history, session logs,
-the old checkout/virtualenv, and shared Python/uv installations are retained.
-If download, verification, or skill setup fails, the launcher stays unchanged;
-any imported skill files and their backups remain available for inspection.
-The script rejects symlinked skill data directories/files rather than copying
-through them. If no agent is found, select one explicitly with `--codex`,
-`--claude`, or `--all`.
 
 Start a new shell (or run `hash -r`), then check `ash --version`, `ash history show`,
 and `ash list`. After verifying your custom skills and old history, you can

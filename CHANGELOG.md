@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatically migrate Python checkouts through the normal remote installer, preserving custom skills, agent links, settings, and history; back up legacy launchers and repair recognized PATH wrappers.
+
 ## [1.1.0] - 2026-09-13
 
 ### Added
