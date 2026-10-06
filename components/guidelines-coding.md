@@ -18,13 +18,23 @@ For a new web frontend with no framework specified, use **Vue + TypeScript + Vit
 - **Interface Segregation:** Many small focused interfaces over one large general-purpose one.
 - **Dependency Inversion:** Depend on abstractions, not concretions. Inject dependencies.
 
+## Backend Architecture: Domain Driven Design
+Use Domain Driven Design (DDD) for backend servers in every language, including Go. Organize files by bounded context and business capability, then separate domain rules, application use cases, and infrastructure/transport adapters within each context. This architecture requirement takes precedence over Go layout advice that suggests a different organization.
+
+For example, a Go service can use `cmd/server/main.go` for composition and `internal/orders/{domain,application,infrastructure,transport}/` for the orders context. Name files after business concepts (`order.go`, `place_order.go`) and keep tests beside the code. Domain code must not import HTTP frameworks, database drivers, or infrastructure packages; adapters depend inward through small interfaces owned by their consumers. Keep transaction orchestration in application services and business invariants in domain types. Add aggregates, repositories, and domain events only when the business model needs them; do not create empty layers or generic base repositories. For existing servers, apply these boundaries to touched functionality without an unrelated wholesale rewrite.
+
+## Test Scripts & One-Shot Scripts
+Prefer **Go** for new standalone verification scripts, test harnesses, and one-shot automation, including in non-Go repositories. Use the standard library where practical and run small programs with `go run path/to/script.go`; use `go run ./scripts/task` for a multi-file command within a module. Prefer Go over Python unless the task needs Python-specific libraries, an existing script is being maintained, or the available environment cannot run Go. Keep native unit tests in the project's existing test framework; this preference does not replace pytest, Jest, or other established suites.
+
 ## Functional Purity
 Write functions as pure as possible (same inputs → same outputs, no side effects). Isolate side effects (I/O, network, DB) at system edges. Core logic stays pure.
 
 ## Async & Concurrency
 Use asyncio/multithreading/multiprocessing for I/O and CPU-bound work. Python: prefer `asyncio` + `uvloop`, use `AsyncUtil` if available. TS/JS: `Promise.all`, `Promise.allSettled`, async/await.
+Go: use bounded goroutines for independent work, pass `context.Context` for cancellation and deadlines, and give each goroutine an owner responsible for its lifetime. Synchronize shared state; do not introduce concurrency without a clear benefit.
+
 ## Testing
-After writing code, always verify: use project's test framework (pytest, jest, vitest), write minimal test scripts if none exists, or at minimum run a build. Test happy path + at least one edge case.
+After writing code, always verify: use the project's test framework (Go `testing`, pytest, jest, vitest), write minimal Go test scripts if none exists, or at minimum run a build. Test happy path + at least one edge case. In Go, use `*_test.go`, `TestXxx(t *testing.T)`, table-driven cases when useful, and `t.Cleanup` for resources. Run `go test ./...` and use `go test -race ./...` when supported for concurrent code.
 
 ## YAGNI (You Aren't Gonna Need It)
 Do not build features, abstractions, or infrastructure "just in case." Only implement what is required right now. If a future need arises, implement it then — the cost of adding later is almost always less than the cost of maintaining unused code. Delete dead code immediately; do not comment it out.

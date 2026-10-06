@@ -200,7 +200,12 @@ func TestDetachedRunAndCompletionHooks(t *testing.T) {
 	tools := filepath.Join(s.home, "tools")
 	quote := func(v string) string { return "'" + strings.ReplaceAll(v, "'", "'\\''") + "'" }
 	write(t, filepath.Join(tools, "tmux"), "#!/bin/sh\nexec "+quote(tmux)+" -L "+socket+" -f /dev/null \"$@\"\n", 0700)
-	write(t, filepath.Join(tools, "codex"), "#!/bin/sh\nprintf 'agent-start\\n'\nprintf '%s' \"$*\" > \"$HOME/agent-args\"\nexit 7\n", 0700)
+	payload, _ := json.Marshal(map[string]string{"session_id": "tracked-codex-conversation", "cwd": s.home, "source": "startup"})
+	write(t, filepath.Join(tools, "codex"), "#!/bin/sh\nset -eu\n"+
+		"[ \"$1\" = --no-daemon ]\nshift\n[ \"$1\" = -c ]\ncase \"$2\" in hooks.SessionStart=*) ;; *) exit 12;; esac\nshift 2\n"+
+		"[ \"$1\" = -c ]\ncase \"$2\" in hooks.Stop=*) ;; *) exit 12;; esac\nshift 2\n[ \"$#\" = 1 ]\n"+
+		"printf '%s' "+quote(string(payload))+" | "+quote(binary)+" __record-agent-session-env\n"+
+		"printf 'agent-start\\n'\nprintf '%s' \"$1\" > \"$HOME/agent-args\"\nexit 7\n", 0700)
 	s.env["PATH"] = tools + ":" + os.Getenv("PATH")
 	s.env["TMUX"] = ""
 	write(t, filepath.Join(s.home, ".ashley/config.yaml"), "hooks:\n  global:\n    before_run: 'echo before > before-hook'\n    after_run: 'echo $ASHLEY_EXIT_CODE:$ASHLEY_SESSION_ID > after-hook'\n    on_error: 'echo error > error-hook'\n", 0644)
@@ -224,7 +229,7 @@ func TestDetachedRunAndCompletionHooks(t *testing.T) {
 	}
 	var rows []map[string]any
 	json.Unmarshal([]byte(s.must(binary, "history", "show", "--json")), &rows)
-	if rows[0]["exit_code"] != float64(7) || rows[0]["outcome"] != "failure" || rows[0]["session_id"] != id || rows[0]["detached"] != true {
+	if rows[0]["exit_code"] != float64(7) || rows[0]["outcome"] != "failure" || rows[0]["session_id"] != id || rows[0]["detached"] != true || rows[0]["agent_session_id"] != "tracked-codex-conversation" {
 		t.Fatal(rows)
 	}
 	requireContains(t, s.must(binary, "logs", id), "agent-start")

@@ -419,3 +419,22 @@ func TestClipboardCopiesPromptAndReportsUnavailableCommand(t *testing.T) {
 		t.Fatal("clipboard failure hidden")
 	}
 }
+
+func TestHistoryEnterResumesSelectedEntry(t *testing.T) {
+	m := newModel(t)
+	m.open("history")
+	var args []string
+	m.options.Execute = func(argv []string) tea.Cmd { args = argv; return nil }
+	key(m, "enter")
+	if len(args) != 0 {
+		t.Fatal("empty history launched command")
+	}
+	m.historyRows = []history.Invocation{{ID: 42, AgentType: "codex", AgentSessionID: "conversation-42"}}
+	key(m, "enter")
+	if !reflect.DeepEqual(args, []string{"history", "resume", "42"}) {
+		t.Fatal(args)
+	}
+	if !strings.Contains(m.detailText(), "conversation-42") {
+		t.Fatal(m.detailText())
+	}
+}

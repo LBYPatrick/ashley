@@ -492,13 +492,16 @@ TUI **Settings** screen. Run modes map to the available backend controls:
 | Ashley mode | Claude Code | OpenAI Codex |
 |-------------|-------------|--------------|
 | Normal | *(defaults)* | *(defaults)* |
-| `-dsp` | `--dangerously-skip-permissions` | `--dangerously-bypass-approvals-and-sandbox` |
+| `-dsp` | `--dangerously-skip-permissions` | `--dangerously-bypass-approvals-and-sandbox --sandbox danger-full-access` |
 | `--auto` | `--permission-mode auto` | `--sandbox workspace-write --ask-for-approval never` |
 | `-afk` | DSP + autonomous instructions | DSP + autonomous instructions |
 
 Grok maps `-dsp` to `--always-approve` and `--auto` to `--permission-mode auto`.
 OpenCode and Kilo map both modes to `--auto`; explicit deny rules still apply.
 For every backend, `-afk` adds autonomous instructions to the DSP mode.
+`--leon` is an alias for AFK. Codex DSP and AFK explicitly select Full Access
+with `--sandbox danger-full-access` alongside the YOLO flag. These are per-run
+options; Ashley does not change the user's persistent Codex configuration.
 See the [Grok permission guide](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/22-permissions-and-safety.md),
 [OpenCode CLI reference](https://opencode.ai/docs/cli/), and
 [Kilo CLI reference](https://kilo.ai/docs/code-with-ai/platforms/cli-reference).
@@ -535,10 +538,19 @@ resilience. Without
 `--detached`, Ashley attaches to it immediately (exiting cleans it up); with
 `--detached`, it runs in the background for you to manage later.
 
-Ashley enables mouse scrolling for its sessions: wheel up opens tmux
-scrollback instead of sending arrow keys to the agent. Press `q` (or `Esc`
-in vi copy mode) to return to typing. Existing sessions receive this fix
-when reattached with `ash attach`. Other tmux sessions keep their settings.
+Ashley routes wheel events to agents that enable mouse input, so their own
+conversation scrolling works in both directions. For agents without mouse
+input, wheel up opens tmux scrollback. Press `q` (or `Esc` in vi copy mode)
+to return to typing and pasting. Existing sessions receive these settings
+when reattached with `ash attach`.
+
+Ashley also enables tmux's `set-clipboard on` so agents can copy through
+OSC 52 to your terminal clipboard. This option is server-wide and applies
+to other sessions on the same tmux server; mouse bindings remain scoped to
+Ashley sessions. Your terminal must allow clipboard escape sequences.
+Terminal-native selection may require a mouse override modifier (such as
+Shift or Option, depending on your terminal) while mouse reporting is active.
+See [tmux clipboard support](https://github.com/tmux/tmux/wiki/Clipboard).
 
 ```bash
 ash run feat "Add OAuth support"            # runs in tmux, attaches immediately
@@ -577,6 +589,7 @@ Every `ash run` is logged to SQLite.
 ash history show                 # Recent invocations
 ash history show --skill feat    # Filter by skill
 ash history browse               # Interactive browser (TUI)
+ash history resume 42            # Reattach or resume this invocation's conversation
 ash history stats                # Usage by skill and by agent
 ash history stats --agent codex  # Restrict analytics to one agent
 ash history prune 30             # Delete entries older than 30 days
@@ -586,6 +599,31 @@ ash history info                 # DB location and stats
 Each invocation records which coding agent ran it. Existing databases are
 migrated automatically on the next run — invocations logged before multi-agent
 support are counted as Claude Code.
+
+Press **Enter** on a history entry to reattach its running session, or resume
+its recorded agent conversation in a new tmux session. Resuming preserves
+the original working directory, agent, and permission mode, without replaying
+the original prompt. Each new launch gets its own history entry linked to
+the same conversation. The details panel and `ash history show --json` expose
+the conversation ID separately from the tmux session ID.
+
+| Agent | Conversation tracking | Native resume command |
+|--------|-----------------------|-----------------------|
+| Claude Code | Explicit UUID at launch | `claude --resume ID` |
+| Codex | SessionStart / Stop hooks | `codex resume ID` |
+| Grok | Explicit UUID at launch | `grok --resume ID` |
+| OpenCode | Temporary `session.created` plugin | `opencode --session ID` |
+| Kilo | Temporary `session.created` plugin | `kilo --session ID` |
+
+Codex tracking requires a recent CLI with lifecycle hooks and `--no-daemon`.
+Trust Ashley's callbacks in Codex's `/hooks` interface; the Stop callback
+can record the first conversation after trust is granted and a response
+finishes. Ashley does not bypass hook trust or edit agent configuration files.
+OpenCode and Kilo receive a temporary plugin through their inline configuration.
+The agent's native conversation storage must still exist to resume it.
+Older entries without a conversation ID can reattach a live tmux session,
+but cannot automatically resume after it exits. Ashley never guesses a
+conversation from the most recent session in a directory.
 
 | Platform | Database location |
 |----------|-------------------|
@@ -613,6 +651,7 @@ ash logs [-f] <id>               View/follow session logs
 ash kill <id|all>                Kill sessions
 ash history show                 Show invocation history
 ash history browse               Interactive history browser
+ash history resume <id>          Reattach or resume an agent conversation
 ash history stats [--agent X]    Usage analytics by skill and agent
 ash history prune <days>         Delete old entries
 ash history clear                Delete all history
@@ -664,6 +703,14 @@ edge workloads requiring extreme performance, Python for ML/data analytics when
 lower runtime performance is acceptable, and Go otherwise. Web frontends default
 to Vue + TypeScript + Vite. Explicit choices and existing stacks take precedence;
 both Vue and React component references remain bundled.
+
+Coding guidance prefers Go for new standalone test scripts and one-shot
+automation while retaining each project's native unit-test framework. Backend
+servers use Domain Driven Design, organizing files by bounded context with
+domain, application, and adapter boundaries, including in Go. Go style follows
+[Google's guide](https://google.github.io/styleguide/go/); formatter guidance
+covers `gofmt`, optional `goimports`, and `go vet` alongside the Python and
+TypeScript tooling.
 
 Skills are JSONC files referencing reusable components and code resources. The generator assembles them into self-contained markdown prompts with all resources inlined. Project detection provides tech stack context to Jinja2 templates for conditional content.
 

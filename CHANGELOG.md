@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add native conversation tracking and history resume for Claude Code, Codex, Grok, OpenCode, and Kilo through `ash history resume ID` and Enter in the history browser.
+
+### Changed
+
+- Expand Go coding and formatting guidance using Google's style guide, prefer Go for standalone scripts, and require Domain Driven Design boundaries for backend servers.
+
+### Fixed
+
+- Explicitly enable Codex Full Access alongside YOLO for DSP and AFK modes, including `--leon`.
+- Forward both mouse wheel directions to mouse-aware agents and retain tmux scrollback for other applications.
+- Enable application clipboard requests through tmux's server-wide clipboard setting and document copy-mode paste behavior.
+
 ## [1.3.0] - 2026-09-14
 
 ### Added

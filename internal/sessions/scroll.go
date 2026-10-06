@@ -24,8 +24,9 @@ func Tmux(args []string, input string) (string, error) {
 
 var tableBinding = regexp.MustCompile(`(?m)^(bind-key\s+(?:-\S+\s+)*-T\s+)\S+`)
 
-// ConfigureScrolling captures wheel events without changing other sessions.
+// ConfigureScrolling routes mouse events to the agent or tmux scrollback.
 // Copying the existing key table preserves shortcuts and tmux prefix handling.
+// Clipboard support is necessarily server-wide: tmux has no session override.
 func ConfigureScrolling(run Commander, name string) error {
 	original, err := run([]string{"show-options", "-Av", "-t", name, "key-table"}, "")
 	if err != nil {
@@ -50,10 +51,11 @@ func ConfigureScrolling(run Commander, name string) error {
 		}
 	}
 	for _, args := range [][]string{
-		{"bind-key", "-T", table, "WheelUpPane", "copy-mode", "-e", "-t", "="},
-		{"bind-key", "-T", table, "WheelDownPane", "if-shell", "-F", "#{pane_in_mode}", "send-keys -X -t = -N 5 scroll-down"},
+		{"bind-key", "-T", table, "WheelUpPane", "if-shell", "-F", "-t", "=", "#{||:#{pane_in_mode},#{mouse_any_flag}}", "send-keys -M", "copy-mode -e -t ="},
+		{"bind-key", "-T", table, "WheelDownPane", "send-keys", "-M"},
 		{"set-option", "-t", name, "key-table", table},
 		{"set-option", "-t", name, "mouse", "on"},
+		{"set-option", "-s", "set-clipboard", "on"},
 	} {
 		if _, err := run(args, ""); err != nil {
 			return err

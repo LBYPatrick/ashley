@@ -117,9 +117,9 @@ func (m *Model) footer(f *frame, a appearance) {
 			text = strings.Replace(text, "esc Back", "q Quit", 1)
 		}
 	case "history":
-		text = "esc Back  n Next  p Prev  / Search  d Delete  r Refresh"
+		text = "esc Back  enter Resume  n Next  p Prev  / Search  d Delete  r Refresh"
 		if m.options.Screen == "history" {
-			text = "q Quit  n Next  p Prev  / Search  d Delete  r Refresh"
+			text = "q Quit  enter Resume  n Next  p Prev  / Search  d Delete  r Refresh"
 		}
 	case "settings":
 		text = "esc Done  ↑↓←→ Move  enter Select  tab Next"

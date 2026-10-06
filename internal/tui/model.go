@@ -499,6 +499,10 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 func (m *Model) activate() tea.Cmd {
 	switch m.screen {
+	case "history":
+		if len(m.historyRows) > 0 {
+			return m.execute("history", "resume", fmt.Sprint(m.historyRows[m.cursor].ID))
+		}
 	case "skills.sh":
 		return m.activateSkills()
 	case "hub":

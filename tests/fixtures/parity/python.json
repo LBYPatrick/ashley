@@ -36,7 +36,9 @@
       "skill_trigger": "$",
       "system_prompt_flag": null,
       "dsp_flags": [
-        "--dangerously-bypass-approvals-and-sandbox"
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--sandbox",
+        "danger-full-access"
       ],
       "auto_flags": [
         "--sandbox",
@@ -114,8 +116,8 @@
   "bundled": {
     "brainstorm": {
       "output": "generated/a-brainstorm/SKILL.md",
-      "sha256": "d9def91953f4f8120d01c1d3dd66e0cc0a888bd0e283dad53c0912a39047760b",
-      "prompt_sha256": "b3a1d17bf40d484a871ca24ba244568fb504e156de3a2f5cc5ab58eee66e8987"
+      "sha256": "009330b0c8365b63919f590d59ec3e5300888a9ed149b8e69b5d6b09d4325874",
+      "prompt_sha256": "f7798a267a2ca779819d585955b8735781d82bf2c6eacad4c05583d336df89eb"
     },
     "changelog": {
       "output": "generated/a-changelog/SKILL.md",
@@ -124,18 +126,18 @@
     },
     "ci": {
       "output": "generated/a-ci/SKILL.md",
-      "sha256": "9a8555cfc65e2c71464dacf7e35018a0171f64a29f71b46b2e3025b8224a0dd5",
-      "prompt_sha256": "b4622ca8df3ea600cc290079b072d62b5c286566ce97781737505c4810a7cde2"
+      "sha256": "3129bc6026115333c0599128dceb413b2b24433c91fd53b0b2820108d412c5bc",
+      "prompt_sha256": "b0422b3ff2a66a9c16e7798b12cc0383b57db06ee277104d4fb21fb150b1409c"
     },
     "claudemd": {
       "output": "generated/a-claudemd/SKILL.md",
-      "sha256": "f26a1ca8546956eec95d8e14a7acef12a7d0d23d27963f8aa2bca54921f8c304",
-      "prompt_sha256": "9682c78a2f988964b10160c6d2ca824d13a861703675b038c8be117478ebfc18"
+      "sha256": "e763e5e53615d90594791ce238754d96210fcaf4b1c1160fd3bb7073244a8df7",
+      "prompt_sha256": "fc22260a223079c51356527239cd89598e87b9c3c84eecf4428cda501c46c3f6"
     },
     "coding": {
       "output": "generated/a-coding/SKILL.md",
-      "sha256": "fabf6f340f79e0a655ffee8aad0701173a22063fa4ad4883344bef5859a65314",
-      "prompt_sha256": "65455d90255778daad31f2483c05e4a160667663c43b2b4ef220930928296a35"
+      "sha256": "22125e5c1dab01edd6138335774e25488bf4cd34835d48e441522aebe6cf7476",
+      "prompt_sha256": "993c7bb0b346534f2c8d6d17f2c8941c915a76863709d58034eb888404f5b164"
     },
     "commit": {
       "output": "generated/a-commit/SKILL.md",
@@ -144,23 +146,23 @@
     },
     "debug": {
       "output": "generated/a-debug/SKILL.md",
-      "sha256": "4ef0f62bb1f1430aa96c12f11d2475a64d8716b72afbfef1a00aed3696aac8d5",
-      "prompt_sha256": "845a263826e4f3d6f9cf62bb69c4d5e9f5248ff032c8045ec14ca27e7dff3007"
+      "sha256": "dc525045857904724e0bcadf2d36edc1884a80da9ace43005a12d72a8f217d4c",
+      "prompt_sha256": "9c36ef72dce407092060207185c36b0a82ff4db4231801480fb3dc7f55360674"
     },
     "feat": {
       "output": "generated/a-feat/SKILL.md",
-      "sha256": "868962adbc84f95817a64bfb98c8ce1aa7c4cd23c1ad14600f59df657ba32811",
-      "prompt_sha256": "ff34291c290949f2ee14cf92ab999b928b97f75035e1d84bfe08dc5c9a64fa56"
+      "sha256": "3dfe69f4b1d75d3c2a53f513d717fd3742864bf1934373d0292bf7db1021ab9f",
+      "prompt_sha256": "bae757a9389dbaebda3ad4f28c1d86ad38251f0215aa6a67318eda6d0cdc7574"
     },
     "optimize": {
       "output": "generated/a-optimize/SKILL.md",
-      "sha256": "b5f4a070639743936c00d1719e72846883f384308f2f67b37539f0ce4f8fb010",
-      "prompt_sha256": "1022ca56d107617ed21a92515a0474653bb2a8c12b0a48f9b415bdaa5b8a66b4"
+      "sha256": "532a2b863cdb0c91604725671a69774477d009330273bf9d842590ccc033550e",
+      "prompt_sha256": "12181aa3842ec4a850ee2560db7a813aa1804aba5261247657ce4d413b8361b3"
     },
     "pretty": {
       "output": "generated/a-pretty/SKILL.md",
-      "sha256": "450c0a4828ec475c2d3a88e29a643399722a04ffaa3b85b6ecf0822e9c3b559a",
-      "prompt_sha256": "460b05d3db026599e69b3a91b9d7418800f588f642d7fa3394db368949e55801"
+      "sha256": "93cc749ce760621d7f67ba4f9c4aa8219e91fe7318d74775f90d6537fea28084",
+      "prompt_sha256": "4e2839f3272da132f07804b7a0577683709467e98d717766d1c471540721ff61"
     },
     "readme": {
       "output": "generated/a-readme/SKILL.md",
@@ -174,13 +176,13 @@
     },
     "refactor": {
       "output": "generated/a-refactor/SKILL.md",
-      "sha256": "5d447e538581bb997419f93c8b24aaf550a6b804128fbbd4c1f94ae0a2b0dfcd",
-      "prompt_sha256": "cff5c5d40e005dc5175fbf8322a103d919381eda06e63d1dea9d505f61fa3466"
+      "sha256": "3182a990da7983d64f1bbeee130b8e0b1627784cf39ca94a9711ab3d8e532049",
+      "prompt_sha256": "0fba9426d47255fd48f76d96943fcca7f57f217352777b12367c6dfd9f327eb1"
     },
     "scaffold": {
       "output": "generated/a-scaffold/SKILL.md",
-      "sha256": "8ac30c57e91770a5545593855a0b8758a759f9de72e8aac4b308d3ed020d0fb7",
-      "prompt_sha256": "8637a2dad6f75bce5d94462740c90b86d159a24a395068eaca9c6443629550f8"
+      "sha256": "d52f08d3e1450497b4189208880d48cda7a054398dead4c1d49fe19acb417b33",
+      "prompt_sha256": "f2f5afe564f9f256b0d7b20b56bdbee7415699f9aa79ec65abfdb75e4eedd6f2"
     }
   },
   "templates": [

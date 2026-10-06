@@ -44,7 +44,8 @@ const schema = `CREATE TABLE IF NOT EXISTS invocations (
  exit_code INTEGER DEFAULT NULL,
  duration_s REAL DEFAULT NULL,
  outcome TEXT NOT NULL DEFAULT 'unknown',
- agent_type TEXT NOT NULL DEFAULT 'claude'
+ agent_type TEXT NOT NULL DEFAULT 'claude',
+ agent_session_id TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_invocations_timestamp ON invocations(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_invocations_skill ON invocations(skill);`
@@ -102,7 +103,7 @@ func (s *Store) initialize() error {
 	if err != nil {
 		return err
 	}
-	for _, column := range [][2]string{{"exit_code", "INTEGER DEFAULT NULL"}, {"duration_s", "REAL DEFAULT NULL"}, {"outcome", "TEXT NOT NULL DEFAULT 'unknown'"}, {"agent_type", "TEXT NOT NULL DEFAULT 'claude'"}} {
+	for _, column := range [][2]string{{"exit_code", "INTEGER DEFAULT NULL"}, {"duration_s", "REAL DEFAULT NULL"}, {"outcome", "TEXT NOT NULL DEFAULT 'unknown'"}, {"agent_type", "TEXT NOT NULL DEFAULT 'claude'"}, {"agent_session_id", "TEXT NOT NULL DEFAULT ''"}} {
 		if !existing[column[0]] {
 			if _, err := conn.ExecContext(context.Background(), "ALTER TABLE invocations ADD COLUMN "+column[0]+" "+column[1]); err != nil {
 				return err
@@ -118,18 +119,19 @@ func (s *Store) Close() error { return s.db.Close() }
 
 // Invocation mirrors legacy history rows, including unknown outcomes.
 type Invocation struct {
-	ID         int64    `json:"id"`
-	Timestamp  string   `json:"timestamp"`
-	Skill      string   `json:"skill"`
-	Question   string   `json:"question"`
-	CWD        string   `json:"cwd"`
-	Permission string   `json:"permission"`
-	Detached   bool     `json:"detached"`
-	SessionID  string   `json:"session_id"`
-	ExitCode   *int     `json:"exit_code"`
-	DurationS  *float64 `json:"duration_s"`
-	Outcome    string   `json:"outcome"`
-	AgentType  string   `json:"agent_type"`
+	ID             int64    `json:"id"`
+	Timestamp      string   `json:"timestamp"`
+	Skill          string   `json:"skill"`
+	Question       string   `json:"question"`
+	CWD            string   `json:"cwd"`
+	Permission     string   `json:"permission"`
+	Detached       bool     `json:"detached"`
+	SessionID      string   `json:"session_id"`
+	ExitCode       *int     `json:"exit_code"`
+	DurationS      *float64 `json:"duration_s"`
+	Outcome        string   `json:"outcome"`
+	AgentType      string   `json:"agent_type"`
+	AgentSessionID string   `json:"agent_session_id"`
 }
 
 // Record inserts a new invocation and returns its ID.
@@ -143,7 +145,7 @@ func (s *Store) Record(v Invocation) (int64, error) {
 	if v.AgentType == "" {
 		v.AgentType = "claude"
 	}
-	result, err := s.db.Exec(`INSERT INTO invocations (timestamp,skill,question,cwd,permission,detached,session_id,agent_type) VALUES (?,?,?,?,?,?,?,?)`, v.Timestamp, v.Skill, v.Question, v.CWD, v.Permission, v.Detached, v.SessionID, v.AgentType)
+	result, err := s.db.Exec(`INSERT INTO invocations (timestamp,skill,question,cwd,permission,detached,session_id,agent_type,agent_session_id) VALUES (?,?,?,?,?,?,?,?,?)`, v.Timestamp, v.Skill, v.Question, v.CWD, v.Permission, v.Detached, v.SessionID, v.AgentType, v.AgentSessionID)
 	if err != nil {
 		return 0, err
 	}
@@ -152,11 +154,22 @@ func (s *Store) Record(v Invocation) (int64, error) {
 func stamp(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000000+00:00") }
 
 // Filter selects records by skill, coding agent, or a SQL LIKE substring search.
-type Filter struct{ Skill, Agent, Search string }
+type Filter struct {
+	Skill, Agent, Search, AgentSessionID string
+	ID                                   int64
+}
 
 func (f Filter) where() (string, []any) {
 	var conditions []string
 	var args []any
+	if f.ID != 0 {
+		conditions = append(conditions, "id = ?")
+		args = append(args, f.ID)
+	}
+	if f.AgentSessionID != "" {
+		conditions = append(conditions, "agent_session_id = ?")
+		args = append(args, f.AgentSessionID)
+	}
 	if f.Skill != "" {
 		conditions = append(conditions, "skill = ?")
 		args = append(args, f.Skill)
@@ -180,7 +193,7 @@ func (f Filter) where() (string, []any) {
 func (s *Store) Query(filter Filter, limit, offset int) ([]Invocation, error) {
 	where, args := filter.where()
 	args = append(args, limit, offset)
-	rows, err := s.db.Query(`SELECT id,timestamp,skill,question,cwd,permission,detached,session_id,exit_code,duration_s,COALESCE(NULLIF(outcome,''),'unknown'),COALESCE(NULLIF(agent_type,''),'claude') FROM invocations`+where+` ORDER BY timestamp DESC,id DESC LIMIT ? OFFSET ?`, args...)
+	rows, err := s.db.Query(`SELECT id,timestamp,skill,question,cwd,permission,detached,session_id,exit_code,duration_s,COALESCE(NULLIF(outcome,''),'unknown'),COALESCE(NULLIF(agent_type,''),'claude'),agent_session_id FROM invocations`+where+` ORDER BY timestamp DESC,id DESC LIMIT ? OFFSET ?`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -188,12 +201,41 @@ func (s *Store) Query(filter Filter, limit, offset int) ([]Invocation, error) {
 	result := []Invocation{}
 	for rows.Next() {
 		var v Invocation
-		if err := rows.Scan(&v.ID, &v.Timestamp, &v.Skill, &v.Question, &v.CWD, &v.Permission, &v.Detached, &v.SessionID, &v.ExitCode, &v.DurationS, &v.Outcome, &v.AgentType); err != nil {
+		if err := rows.Scan(&v.ID, &v.Timestamp, &v.Skill, &v.Question, &v.CWD, &v.Permission, &v.Detached, &v.SessionID, &v.ExitCode, &v.DurationS, &v.Outcome, &v.AgentType, &v.AgentSessionID); err != nil {
 			return nil, err
 		}
 		result = append(result, v)
 	}
 	return result, rows.Err()
+}
+
+// Get returns one history entry without guessing by date or working directory.
+func (s *Store) Get(id int64) (Invocation, error) {
+	if id <= 0 {
+		return Invocation{}, fmt.Errorf("invalid history ID")
+	}
+	rows, err := s.Query(Filter{ID: id}, 1, 0)
+	if err != nil {
+		return Invocation{}, err
+	}
+	if len(rows) == 0 {
+		return Invocation{}, fmt.Errorf("history entry %d not found", id)
+	}
+	return rows[0], nil
+}
+
+// LinkAgentSession records only the first conversation observed for an invocation.
+// Later /new commands and child sessions must not replace the original link.
+func (s *Store) LinkAgentSession(id int64, agent, session string) error {
+	result, err := s.db.Exec(`UPDATE invocations SET agent_session_id=? WHERE id=? AND agent_type=? AND (agent_session_id='' OR agent_session_id=?)`, session, id, agent, session)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err == nil && n == 0 {
+		return fmt.Errorf("history entry missing or already linked to another conversation")
+	}
+	return err
 }
 
 // Count counts matching rows independently of pagination.

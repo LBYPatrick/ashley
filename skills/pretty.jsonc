@@ -6,6 +6,7 @@
   "components": [
     "components/guidelines-installing.md",
     "components/formatter-python.md",
+    "components/formatter-go.md",
     "components/formatter-typescript.md",
     "components/readme-update.md"
   ],
@@ -31,7 +32,7 @@
       {
         "name": "Install Tools",
         "instructions": [
-          "Based on the detected language: **Python** — set up ruff and uv-sort; **TypeScript/JavaScript** — set up Prettier and ESLint v9+; **Other** — research and install appropriate tools.",
+          "Based on the detected language: **Go** — use bundled gofmt and go vet, preserving any configured goimports or golangci-lint; **Python** — set up ruff and uv-sort; **TypeScript/JavaScript** — set up Prettier and ESLint v9+; **Other** — research and install appropriate tools.",
           "Create `scripts/install-formatter.sh` — installs all formatter/linter tools."
         ],
         "validation": "Verify the tools are installed and accessible via command line."

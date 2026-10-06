@@ -108,6 +108,10 @@ func (m *Model) detailText() string {
 			return "No history yet.\n\nRun a skill with: ash run <skill> <question>"
 		}
 		v := m.historyRows[m.cursor]
+		conversation := v.AgentSessionID
+		if conversation == "" {
+			conversation = "Unavailable (running sessions can still attach)"
+		}
 		detached := "No"
 		if v.Detached {
 			detached = "Yes"
@@ -124,7 +128,7 @@ func (m *Model) detailText() string {
 		if info, err := os.Stat(dbpath); err == nil {
 			size = fmt.Sprintf("%.1f KB", float64(info.Size())/1024)
 		}
-		return fmt.Sprintf("Invocation #%d\n\nTime:       %s UTC\nSkill:      %s\nAgent:      %s\nQuestion:   %s\nDirectory:  %s\nPermission: %s\nDetached:   %s\n\nDatabase: %s (%s)", v.ID, v.TimeDisplay(), v.Skill, agents.Get(v.AgentType).Label, question, v.CWD, v.Permission, detached, dbpath, size)
+		return fmt.Sprintf("Invocation #%d\n\nTime:       %s UTC\nSkill:      %s\nAgent:      %s\nQuestion:   %s\nDirectory:  %s\nPermission: %s\nDetached:   %s\nConversation: %s\n\nEnter to attach or resume\n\nDatabase: %s (%s)", v.ID, v.TimeDisplay(), v.Skill, agents.Get(v.AgentType).Label, question, v.CWD, v.Permission, detached, conversation, dbpath, size)
 	}
 	return ""
 }

@@ -163,3 +163,28 @@ func TestPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentSessionRoundTrip(t *testing.T) {
+	s := openTest(t)
+	id, err := s.Record(Invocation{Skill: "raw", AgentType: "grok", AgentSessionID: "conversation-one", SessionID: "deadbeef"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	row, err := s.Get(id)
+	if err != nil || row.AgentSessionID != "conversation-one" || row.SessionID != "deadbeef" {
+		t.Fatal(row, err)
+	}
+	if _, err := s.Get(999); err == nil {
+		t.Fatal("missing row found")
+	}
+	if _, err := s.Get(0); err == nil {
+		t.Fatal("invalid row found")
+	}
+	if err := s.LinkAgentSession(id, "grok", "conversation-two"); err == nil {
+		t.Fatal("replaced existing conversation")
+	}
+	rows, err := s.Query(Filter{Agent: "grok", AgentSessionID: "conversation-one"}, -1, 0)
+	if err != nil || len(rows) != 1 {
+		t.Fatal(rows, err)
+	}
+}

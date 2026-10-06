@@ -77,6 +77,10 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 	if err != nil {
 		return err
 	}
+	return launch(command, o, detached, catalog, stdout, stderr)
+}
+
+func launch(command string, o invocation.Options, detached bool, catalog skills.Catalog, stdout, stderr io.Writer) error {
 	prefs, err := config.User()
 	if err != nil {
 		return err
@@ -98,6 +102,9 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
+	}
+	if o.WorkDir != "" {
+		cwd = o.WorkDir
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -187,6 +194,15 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 	return attachSession(manager, session, stdout, stderr)
 }
 func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Options, cfg config.Config, cwd, dbPath, sessionID string, detached bool, stdout, stderr io.Writer) (execution.Job, error) {
+	agentSessionID := o.ResumeID
+	if agentSessionID == "" && (o.Agent == "claude" || o.Agent == "grok") {
+		var err error
+		agentSessionID, err = agents.NewConversationID()
+		if err != nil {
+			return execution.Job{}, err
+		}
+		o.ExtraFlags = append(append([]string{}, o.ExtraFlags...), "--session-id", agentSessionID)
+	}
 	v, err := builder.Build(o)
 	if err != nil {
 		return execution.Job{}, err
@@ -202,11 +218,11 @@ func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Op
 		return execution.Job{}, err
 	}
 	defer store.Close()
-	id, err := store.Record(history.Invocation{Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent})
+	id, err := store.Record(history.Invocation{Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent, AgentSessionID: agentSessionID})
 	if err != nil {
 		return execution.Job{}, err
 	}
-	return execution.Job{Args: v.Args, Context: hookContext, Hooks: h, HistoryPath: dbPath, InvocationID: id}, nil
+	return execution.Job{Args: v.Args, Context: hookContext, Hooks: h, HistoryPath: dbPath, InvocationID: id, Agent: o.Agent, AgentSessionID: agentSessionID}, nil
 }
 func ensureTmux(stdout, stderr io.Writer) error {
 	if _, err := exec.LookPath("tmux"); err == nil {

@@ -40,15 +40,22 @@ func TestScrollingIsolation(t *testing.T) {
 	}
 	bindings, _ := run([]string{"list-keys", "-T", "ashley-scroll-root"}, "")
 	for _, line := range strings.Split(bindings, "\n") {
-		if strings.Contains(line, "WheelUpPane") && (!strings.Contains(line, "copy-mode -e") || strings.Contains(line, "send-keys -M")) {
+		if strings.Contains(line, "WheelUpPane") && (!strings.Contains(line, "copy-mode -e") || !strings.Contains(line, "mouse_any_flag") || !strings.Contains(line, "send-keys -M")) {
 			t.Fatal(line)
 		}
+		if strings.Contains(line, "WheelDownPane") && !strings.Contains(line, "send-keys -M") {
+			t.Fatal(line)
+		}
+	}
+	clipboard, _ := run([]string{"show-options", "-s", "set-clipboard"}, "")
+	if strings.TrimSpace(clipboard) != "set-clipboard on" {
+		t.Fatal(clipboard)
 	}
 }
 
 func TestScrollingPropagatesFailures(t *testing.T) {
 	failure := errors.New("tmux failed")
-	for failAt := 1; failAt <= 7; failAt++ {
+	for failAt := 1; failAt <= 8; failAt++ {
 		calls := 0
 		run := func(args []string, input string) (string, error) {
 			calls++

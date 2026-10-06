@@ -23,11 +23,13 @@ func (e ExitError) Error() string { return fmt.Sprintf("agent exited with status
 
 // Job is the private serialized context handed to the supervisor inside tmux.
 type Job struct {
-	Args         []string
-	Context      hooks.Context
-	Hooks        config.Hooks
-	HistoryPath  string
-	InvocationID int64
+	Args           []string
+	Context        hooks.Context
+	Hooks          config.Hooks
+	HistoryPath    string
+	InvocationID   int64
+	Agent          string
+	AgentSessionID string
 }
 
 // Run executes an agent, records its actual status, and runs completion hooks.
@@ -42,6 +44,11 @@ func Run(ctx context.Context, job Job, stdin io.Reader, stdout, stderr io.Writer
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.WaitDelay = 2 * time.Second
+	cleanup, trackingErr := trackConversation(cmd, job)
+	defer cleanup()
+	if trackingErr != nil {
+		fmt.Fprintln(stderr, "Conversation tracking:", trackingErr)
+	}
 	runErr := cmd.Run()
 	code := 0
 	if runErr != nil {

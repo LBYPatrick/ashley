@@ -20,10 +20,14 @@ Reference: [Google TypeScript Style Guide](https://google.github.io/styleguide/t
 
 ## Go
 Reference: [Google Go Style Guide](https://google.github.io/styleguide/go/)
-- **Naming:** `MixedCaps` / `mixedCaps` (no underscores). Short variable names in small scopes.
-- **Errors:** Return errors, don't panic. Wrap with `fmt.Errorf("...: %w", err)`.
-- **Formatting:** `gofmt` is authoritative. No style debates.
-- **Comments:** Package comment on the `package` line. Exported symbols documented with `// FuncName ...`.
+- **Naming:** Use `MixedCaps` / `mixedCaps` for identifiers and consistent initialisms (`HTTPClient`, `userID`). Package names are short, lowercase, and meaningful; avoid generic `util` packages. File names may use underscores. Short variable names suit small scopes.
+- **Errors:** Return errors for expected failures; do not panic. Add useful context with `fmt.Errorf("load order: %w", err)` when callers should unwrap the cause. Use `errors.Is` / `errors.As`, not string matching. Handle errors rather than silently discarding them.
+- **Formatting:** `gofmt` is authoritative; use `goimports` if configured to manage imports. Group standard-library imports separately from other imports. Do not impose an arbitrary line-length limit.
+- **Comments:** Put package documentation immediately before a `package` declaration (often in `doc.go`), not on the declaration line. Document exported symbols with comments beginning `// FuncName ...`.
+- **API design:** Accept `context.Context` as the first parameter when needed; do not store it in structs. Define small interfaces where consumed, prefer useful zero values, and avoid pointers to interfaces.
+- **Architecture:** Apply the Backend Architecture: Domain Driven Design rules for server package/file structure, even where generic Go layout recommendations differ.
+
+Details: [Style decisions](https://google.github.io/styleguide/go/decisions.html), [best practices](https://google.github.io/styleguide/go/best-practices.html), and [Go testing](https://go.dev/doc/code#Testing).
 
 ## Java
 Reference: [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)

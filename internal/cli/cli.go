@@ -30,6 +30,7 @@ Commands:
   -i, --interactive            Open the interactive hub (also the default)
   vibe / create                Open the skill browser or creator
   history browse               Open the history browser
+  history resume ID            Attach or resume the recorded agent conversation
   skills [COMMAND...]          Run native skills.sh commands
   list                         List available skills
   prompt [--project DIR] SKILL [QUESTION...]
@@ -131,7 +132,17 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		defer cancel()
 		return execution.Run(ctx, job, os.Stdin, stdout, stderr)
 	case "history":
+		if len(args) > 1 && args[1] == "resume" {
+			return resumeHistory(args[2:], catalog, stdout, stderr)
+		}
 		return historyCommand(args[1:], stdout, stderr)
+	case "__record-agent-session":
+		return execution.RecordAgentSession(args[1:], os.Stdin)
+	case "__record-agent-session-env":
+		if len(args) != 1 {
+			return fmt.Errorf("session callback does not accept arguments")
+		}
+		return execution.RecordAgentSession([]string{os.Getenv("ASHLEY_HISTORY_PATH"), os.Getenv("ASHLEY_INVOCATION_ID"), "codex"}, os.Stdin)
 	case "agent", "config":
 		return preferences(args[0], args[1:], stdout, stderr)
 	case "help":

@@ -126,3 +126,28 @@ func TestLiteralPromptMarkerCannotReadOrRemoveUserFile(t *testing.T) {
 		t.Fatal("modified user file")
 	}
 }
+
+func TestResumeDoesNotReplayPrompt(t *testing.T) {
+	for _, agent := range agents.Keys() {
+		for _, mode := range []string{"default", "auto", "dsp", "afk"} {
+			b := builder(t)
+			v, err := b.Build(Options{Agent: agent, Skill: "raw", Question: "do not repeat this task", ResumeID: "conversation-123", DSP: mode == "dsp", Auto: mode == "auto", AFK: mode == "afk"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			flags, _ := agents.PermissionArgs(agent, mode == "dsp", mode == "auto", mode == "afk")
+			resume, err := agents.ResumeArgs(agent, "conversation-123")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := append(append([]string{"/bin/" + agent}, flags...), resume...)
+			if !slices.Equal(v.Args, want) || v.Permission != mode {
+				t.Fatalf("%s/%s: %q", agent, mode, v.Args)
+			}
+		}
+	}
+	b := builder(t)
+	if _, err := b.Build(Options{Agent: "codex", Skill: "raw", ResumeID: "../bad"}); err == nil {
+		t.Fatal("accepted invalid ID")
+	}
+}

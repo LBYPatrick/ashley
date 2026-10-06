@@ -32,6 +32,8 @@ type Options struct {
 	Normal     bool
 	ExtraFlags []string
 	Project    map[string]any
+	ResumeID   string
+	WorkDir    string
 }
 
 // Invocation contains argv and any spilled prompt files owned by the caller.
@@ -88,6 +90,14 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 	v.Args = append([]string{binary}, flags...)
 	v.Permission = mode
 	v.Args = append(v.Args, o.ExtraFlags...)
+	if o.ResumeID != "" {
+		resume, err := agents.ResumeArgs(o.Agent, o.ResumeID)
+		if err != nil {
+			return v, err
+		}
+		v.Args = append(v.Args, resume...)
+		return v, nil
+	}
 	instructions := []string{}
 	if o.AFK {
 		instructions = append(instructions, afkAddendum)
