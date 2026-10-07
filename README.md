@@ -507,13 +507,17 @@ Ashley skills linked. Skip it with `SKIP_TOOL`:
 
 ```bash
 ash update                 # update Ashley, then upgrade the agent CLIs
-SKIP_TOOL=1 ash update     # update Ashley only (also: true / yes)
+SKIP_TOOL=1 ash update     # skip agent CLI upgrades (also: true / yes)
 SKIP_TOOL=1 make update
 ```
 
 `ash update` refreshes Ashley skills without offering the optional community bundle
 or replaying automated installation profiles. Use `ash install` or the TUI
 Skills.sh page to add that bundle explicitly.
+It also detects Zellij and installs a verified binary when missing or outdated,
+including when Ashley is already current or `--skip-tools` is set. Missing Zellij
+configuration is initialized without replacing existing settings. `--check`
+remains read-only.
 
 The default is saved to `~/.ashley/prefs.json` and can also be changed from the
 TUI **Settings** screen. Run modes map to the available backend controls:
@@ -597,7 +601,7 @@ If missing or outdated, it installs the official 0.45.1 binary to
 version. No root privileges or language toolchain are required. Skills-only and
 binary-only installs defer session setup until the first run.
 
-On full installation and `ash run`, Ashley also creates a starter Zellij config
+On full installation, `ash update`, and `ash run`, Ashley also creates a starter Zellij config
 and layout when none exists. It honors `ZELLIJ_CONFIG_FILE`, `ZELLIJ_CONFIG_DIR`,
 and existing platform/XDG config locations. Existing configurations are preserved.
 The starter uses a focused agent pane, a persistent shortcut header, and Zellij's

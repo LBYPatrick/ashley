@@ -297,5 +297,10 @@ func TestUpdateSkipsCommunitySetup(t *testing.T) {
 	if exists(filepath.Join(s.home, "community-calls")) {
 		t.Fatal("update invoked skills.sh")
 	}
+	requireContains(t, p.text(), "Ashley is already up to date.")
+	requireContains(t, p.text(), "Zellij ready:")
+	if !exists(filepath.Join(s.home, ".config", "zellij", "config.kdl")) {
+		t.Fatal("already-current update did not initialize missing Zellij config")
+	}
 	checkSkills(t, s, []string{agentDirs[1]})
 }

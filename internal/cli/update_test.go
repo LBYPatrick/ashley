@@ -74,8 +74,16 @@ func TestBinaryUpdateRefreshesSkillsAndPreservesUserData(t *testing.T) {
 	defer server.Close()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	for _, key := range []string{"CODEX_HOME", "CLAUDE_CONFIG_DIR", "GROK_HOME", "OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME", "SKIP_TOOL"} {
+	for _, key := range []string{"CODEX_HOME", "CLAUDE_CONFIG_DIR", "GROK_HOME", "OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME", "ZELLIJ_CONFIG_FILE", "ZELLIJ_CONFIG_DIR", "SKIP_TOOL"} {
 		t.Setenv(key, "")
+	}
+	zellijDir := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(zellijDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	zellij := filepath.Join(zellijDir, "zellij")
+	if err := os.WriteFile(zellij, []byte("#!/bin/sh\nprintf '%s\\n' \"$@\" >> \"$HOME/zellij-checks\"\necho 'zellij 0.45.1'\n"), 0700); err != nil {
+		t.Fatal(err)
 	}
 	catalog := skills.Catalog{Source: ashley.Assets}
 	installer := install.Installer{Home: home, Catalog: catalog}
@@ -105,6 +113,9 @@ func TestBinaryUpdateRefreshesSkillsAndPreservesUserData(t *testing.T) {
 	if !bytes.Equal(data, original) {
 		t.Fatal("check changed installation")
 	}
+	if _, err := os.Stat(filepath.Join(home, "zellij-checks")); !os.IsNotExist(err) {
+		t.Fatal("read-only update checked the session backend", err)
+	}
 	corrupt.Store(true)
 	if err := updateWithUpdater(args, "", catalog, updater, &output, &output); err == nil {
 		t.Fatal("corrupt download accepted")
@@ -113,6 +124,9 @@ func TestBinaryUpdateRefreshesSkillsAndPreservesUserData(t *testing.T) {
 	if !bytes.Equal(data, original) {
 		t.Fatal("failed download replaced installation")
 	}
+	if _, err := os.Stat(filepath.Join(home, "zellij-checks")); !os.IsNotExist(err) {
+		t.Fatal("failed update changed the session backend", err)
+	}
 	corrupt.Store(false)
 	// Update refreshes must ignore installer opt-ins and stale automation profiles.
 	t.Setenv("ASHLEY_INSTALL_SKILLS", "1")
@@ -120,6 +134,14 @@ func TestBinaryUpdateRefreshesSkillsAndPreservesUserData(t *testing.T) {
 	t.Setenv("ASHLEY_AUTOMATED_CONFIG", filepath.Join(home, "missing-profile.json"))
 	if err := updateWithUpdater(args, "", catalog, updater, &output, &output); err != nil {
 		t.Fatal(err, output.String())
+	}
+	checks, err := os.ReadFile(filepath.Join(home, "zellij-checks"))
+	if err != nil || string(checks) != "--version\n" {
+		t.Fatal("update did not detect the existing session backend", string(checks), err)
+	}
+	configPath := filepath.Join(home, ".config", "zellij", "config.kdl")
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatal("update did not create the missing Zellij config", err)
 	}
 	data, _ = os.ReadFile(installed)
 	if !bytes.Equal(data, binary) {

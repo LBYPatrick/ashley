@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Detect and conditionally install Zellij during `ash update`, including already-current and agent-upgrade-skipping updates, while keeping `--check` read-only and preserving existing Zellij configuration.
+
 - Send remote clipboard requests through OSC 52, preserve terminal resize detection, accept separate space events in command searches, and focus task input after palette navigation. Add real SSH/Mosh transport and Zellij interaction coverage.
 - Isolate the CLI usage-error test so test runs cannot create sessions in the user's environment.
 

@@ -183,11 +183,15 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 		}
 	}
 
-	if !skillsOnly {
+	// Updates invoke this through the new binary, including upgrades from versions
+	// that did not know about Zellij. Ordinary skills-only installs stay minimal.
+	if !skillsOnly || refreshOnly {
 		p.section("Session backend")
 		if err := ensureZellij(io.MultiWriter(vendorOut, log), io.MultiWriter(vendorErr, log)); err != nil {
 			return err
 		}
+	}
+	if !skillsOnly {
 		p.section("Agent setup")
 		for _, key := range keys {
 			p.line(agents.Get(key).Label)
