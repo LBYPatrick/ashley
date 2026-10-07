@@ -102,3 +102,58 @@ func TestEnsureZellijDetectsInstalledWithoutNetwork(t *testing.T) {
 		t.Fatal(out.String())
 	}
 }
+
+func TestZellijStarterConfigPreservesUserSettings(t *testing.T) {
+	for _, override := range []string{"default", "xdg", "directory", "file"} {
+		t.Run(override, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("XDG_CONFIG_HOME", "")
+			t.Setenv("ZELLIJ_CONFIG_DIR", "")
+			t.Setenv("ZELLIJ_CONFIG_FILE", "")
+			want := filepath.Join(home, ".config", "zellij", "config.kdl")
+			switch override {
+			case "xdg":
+				t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "xdg"))
+				want = filepath.Join(home, "xdg", "zellij", "config.kdl")
+			case "directory":
+				t.Setenv("ZELLIJ_CONFIG_DIR", filepath.Join(home, "custom"))
+				want = filepath.Join(home, "custom", "config.kdl")
+			case "file":
+				want = filepath.Join(home, "custom", "mine.kdl")
+				t.Setenv("ZELLIJ_CONFIG_FILE", want)
+			}
+			var out bytes.Buffer
+			if err := ensureZellijConfig(&out); err != nil {
+				t.Fatal(err)
+			}
+			data, err := os.ReadFile(want)
+			if err != nil || !strings.Contains(string(data), "default_layout") || !strings.Contains(string(data), "SearchInput 0") {
+				t.Fatal(string(data), err)
+			}
+			layouts, err := filepath.Glob(filepath.Join(filepath.Dir(want), "ashley-layout-*.kdl"))
+			if err != nil || len(layouts) != 1 {
+				t.Fatal(layouts, err)
+			}
+			data, err = os.ReadFile(layouts[0])
+			if err != nil || !strings.Contains(string(data), "zellij:status-bar") {
+				t.Fatal(string(data), err)
+			}
+			const customized = "// user's own config\nmouse_mode false\n"
+			if err := os.WriteFile(want, []byte(customized), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := ensureZellijConfig(&out); err != nil {
+				t.Fatal(err)
+			}
+			data, err = os.ReadFile(want)
+			if err != nil || string(data) != customized {
+				t.Fatal("replaced user config", string(data), err)
+			}
+			layouts, _ = filepath.Glob(filepath.Join(filepath.Dir(want), "ashley-layout-*.kdl"))
+			if len(layouts) != 1 {
+				t.Fatal("repeat setup leaked layouts", layouts)
+			}
+		})
+	}
+}

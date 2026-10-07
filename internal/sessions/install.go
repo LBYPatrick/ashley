@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,7 +59,7 @@ func compatibleZellij(path string) bool {
 func EnsureZellij(stdout io.Writer) error {
 	if path, err := ZellijBinary(); err == nil && compatibleZellij(path) {
 		fmt.Fprintln(stdout, "Zellij ready:", path)
-		return nil
+		return ensureZellijConfig(stdout)
 	}
 	asset, ok := zellijAssets[runtime.GOOS+"/"+runtime.GOARCH]
 	if !ok {
@@ -118,8 +119,94 @@ func EnsureZellij(stdout io.Writer) error {
 		return err
 	}
 	fmt.Fprintln(stdout, "Zellij installed.")
+	return ensureZellijConfig(stdout)
+}
+
+// Match Zellij's config overrides and preserve existing user/system settings.
+func zellijConfigPath() (string, error) {
+	if path := os.Getenv("ZELLIJ_CONFIG_FILE"); path != "" {
+		return path, nil
+	}
+	if dir := os.Getenv("ZELLIJ_CONFIG_DIR"); dir != "" {
+		return filepath.Join(dir, "config.kdl"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	preferred := filepath.Join(home, ".config", "zellij", "config.kdl")
+	candidates := []string{preferred}
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		candidates = append(candidates, filepath.Join(xdg, "zellij", "config.kdl"))
+	}
+	if runtime.GOOS == "darwin" {
+		candidates = append(candidates, filepath.Join(home, "Library", "Application Support", "org.Zellij-Contributors.Zellij", "config.kdl"))
+	}
+	candidates = append(candidates, "/etc/zellij/config.kdl")
+	for _, path := range candidates {
+		if _, err := os.Lstat(path); err == nil {
+			return path, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+	}
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return filepath.Join(xdg, "zellij", "config.kdl"), nil
+	}
+	return preferred, nil
+}
+
+func ensureZellijConfig(stdout io.Writer) error {
+	path, err := zellijConfigPath()
+	if err != nil {
+		return err
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	// Embed the layout in a separate, uniquely named file, so an existing layout
+	// is never replaced. Publish the config only after its layout is complete.
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+	layout, err := os.CreateTemp(filepath.Dir(path), "ashley-layout-*.kdl")
+	if err != nil {
+		return err
+	}
+	if _, err = layout.WriteString(zellijLayout); err != nil {
+		layout.Close()
+		os.Remove(layout.Name())
+		return err
+	}
+	if err = layout.Close(); err != nil {
+		os.Remove(layout.Name())
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		os.Remove(layout.Name())
+		if errors.Is(err, os.ErrExist) {
+			return nil
+		}
+		return err
+	}
+	_, writeErr := fmt.Fprintf(f, "// Ashley starter configuration. Customize freely.\n%s\ndefault_layout %q\n", zellijConfig, layout.Name())
+	closeErr := f.Close()
+	if err = errors.Join(writeErr, closeErr); err != nil {
+		os.Remove(path)
+		os.Remove(layout.Name())
+		return err
+	}
+	fmt.Fprintln(stdout, "Created Zellij config:", path)
 	return nil
 }
+
 func unpackZellij(data []byte, want string) ([]byte, error) {
 	if fmt.Sprintf("%x", sha256.Sum256(data)) != want {
 		return nil, fmt.Errorf("Zellij checksum mismatch")

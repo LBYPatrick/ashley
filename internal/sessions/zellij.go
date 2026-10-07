@@ -42,7 +42,8 @@ const zellijConfig = `default_mode "locked"
 mouse_mode true
 copy_on_select true
 copy_clipboard "system"
-pane_frames false
+pane_frames true
+pane_frame_style "full"
 simplified_ui true
 scroll_buffer_size 100000
 session_serialization false
@@ -58,10 +59,13 @@ keybinds clear-defaults=true {
  normal {
   bind "d" { Detach; }
   bind "s" { SwitchToMode "Scroll"; }
+  bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+  bind "o" { SwitchToMode "Session"; }
   bind "b" { Write 2; SwitchToMode "Locked"; }
   bind "Esc" "Enter" "Ctrl b" { SwitchToMode "Locked"; }
  }
  scroll {
+  bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
   bind "k" "Up" { ScrollUp; }
   bind "j" "Down" { ScrollDown; }
   bind "PageUp" { PageScrollUp; }
@@ -71,8 +75,39 @@ keybinds clear-defaults=true {
   bind "c" { Copy; SwitchToMode "Locked"; }
   bind "q" "Esc" "Enter" { ScrollToBottom; SwitchToMode "Locked"; }
  }
+ entersearch {
+  bind "Esc" { SearchInput 27; SwitchToMode "Scroll"; }
+  bind "Enter" { SwitchToMode "Search"; }
+ }
+ search {
+  bind "n" { Search "down"; }
+  bind "p" { Search "up"; }
+  bind "/" { SwitchToMode "EnterSearch"; SearchInput 0; }
+  bind "c" { SearchToggleOption "CaseSensitivity"; }
+  bind "w" { SearchToggleOption "Wrap"; }
+  bind "o" { SearchToggleOption "WholeWord"; }
+  bind "Up" { ScrollUp; }
+  bind "Down" { ScrollDown; }
+  bind "PageUp" { PageScrollUp; }
+  bind "PageDown" { PageScrollDown; }
+  bind "q" "Esc" { ScrollToBottom; SwitchToMode "Locked"; }
+ }
+ session {
+  bind "d" { Detach; }
+  bind "Esc" "Enter" { SwitchToMode "Locked"; }
+ }
 }
 load_plugins {}
+`
+
+// Native chrome remains non-focusable and follows Zellij's terminal sizing.
+// The title supplies the common controls even while agent input is locked.
+const zellijLayout = `layout {
+ pane focus=true name="Ctrl+B: d Detach / Search s Scroll | Drag Copy | Terminal Paste"
+ pane size=1 borderless=true {
+  plugin location="zellij:status-bar"
+ }
+}
 `
 
 func (m Manager) startZellij(s Session, args []string) (Session, error) {
@@ -84,7 +119,7 @@ func (m Manager) startZellij(s Session, args []string) (Session, error) {
 	}
 	configPath := filepath.Join(m.Dir, s.ID+".kdl")
 	layoutPath := filepath.Join(m.Dir, s.ID+"-layout.kdl")
-	if err := os.WriteFile(layoutPath, []byte("layout {\n pane\n}\n"), 0600); err != nil {
+	if err := os.WriteFile(layoutPath, []byte(zellijLayout), 0600); err != nil {
 		return Session{}, err
 	}
 	if err := os.WriteFile(configPath, []byte(zellijConfig+"\ndefault_layout "+strconv.Quote(layoutPath)+"\n"), 0600); err != nil {

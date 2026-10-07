@@ -141,6 +141,11 @@ func TestZellijRemoteInputDetachAndResize(t *testing.T) {
 			write(t, filepath.Join(s.home, "ready"), "", 0600)
 			p.waitFor("READY")
 			p.waitFor("52;c;")
+			p.until(func() bool { return strings.Contains(sessions.DisplayLog(p.text()), "Detach") })
+			t.Log("Zellij initial screen:\n" + sessions.DisplayLog(p.text()))
+			p.send("\x02/READY\r")
+			p.until(func() bool { return strings.Contains(sessions.DisplayLog(p.text()), "SEARCHING") })
+			p.send("q")
 			up, down := "\x1b[<64;10;10M", "\x1b[<65;10;10M"
 			p.send(up)
 			if mouse {

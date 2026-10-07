@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Go-native_binary-00ADD8?logo=go&logoColor=white" alt="Go" />
-  <img src="https://img.shields.io/badge/version-1.3.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.4.0-blue" alt="Version" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License" /></a>
 </p>
 
@@ -597,6 +597,12 @@ If missing or outdated, it installs the official 0.45.1 binary to
 version. No root privileges or language toolchain are required. Skills-only and
 binary-only installs defer session setup until the first run.
 
+On full installation and `ash run`, Ashley also creates a starter Zellij config
+and layout when none exists. It honors `ZELLIJ_CONFIG_FILE`, `ZELLIJ_CONFIG_DIR`,
+and existing platform/XDG config locations. Existing configurations are preserved.
+The starter uses a focused agent pane, a persistent shortcut header, and Zellij's
+native mode-aware status bar; no extra plugin downloads or special fonts are needed.
+
 Without `--detached`, Ashley attaches immediately; detached runs continue in
 the background. Closing an SSH/Mosh connection detaches the client. Agent output
 is recorded by Ashley's PTY supervisor before the agent starts, so logs and
@@ -608,7 +614,11 @@ runs use Zellij. Your global tmux and Zellij configuration files are not replace
 Zellij starts in locked mode so agent shortcuts pass through. Press **Ctrl+B,
 then D** to detach; **Ctrl+B, then S** enters scrollback. In scrollback use arrows,
 PageUp/PageDown, Home/End, and Q or Esc to return to typing. Ctrl+B then B sends a
-literal Ctrl+B. Mouse selection copies through OSC 52, and wheel events reach
+literal Ctrl+B. **Ctrl+B, then /** searches scrollback: type a query, press Enter,
+then N/P for next/previous match; Q or Esc returns to the agent. In scrollback,
+`/` opens search and C copies the selection. The shortcut header stays visible
+while typing, and the status bar adapts to the active mode and terminal width.
+Mouse selection copies through OSC 52, and wheel events reach
 mouse-aware agents. Hold the terminal's mouse override modifier (often Shift) for
 native selection. Pasting uses the terminal's normal paste action.
 

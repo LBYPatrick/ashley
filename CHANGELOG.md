@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Show persistent Zellij shortcut hints and a mode-aware status bar, add scrollback search, and create a starter configuration on install/run only when no user configuration exists.
+
 - Add optional `ash run -n/--name` session labels, editable in the TUI and persisted in SQLite history and session metadata.
 
 - Add native conversation tracking and history resume for Claude Code, Codex, Grok, OpenCode, and Kilo through `ash history resume ID` and Enter in the history browser.
