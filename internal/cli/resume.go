@@ -69,7 +69,7 @@ func resumeHistory(args []string, catalog skills.Catalog, stdout, stderr io.Writ
 	if !info.IsDir() {
 		return fmt.Errorf("original working directory is not a directory: %s", entry.CWD)
 	}
-	o := invocation.Options{Agent: entry.AgentType, Skill: entry.Skill, Question: entry.Question, ResumeID: entry.AgentSessionID, WorkDir: entry.CWD}
+	o := invocation.Options{Name: entry.Name, Agent: entry.AgentType, Skill: entry.Skill, Question: entry.Question, ResumeID: entry.AgentSessionID, WorkDir: entry.CWD}
 	switch entry.Permission {
 	case "default", "":
 		o.Normal = true

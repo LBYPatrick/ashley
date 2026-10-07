@@ -52,6 +52,26 @@ func newSandbox(t *testing.T) *sandbox {
 	s.env["PATH"] = "/usr/bin:/bin"
 	s.env["XDG_DATA_HOME"] = filepath.Join(s.home, "data")
 	s.env["XDG_CONFIG_HOME"] = filepath.Join(s.home, ".config")
+	for _, key := range []string{"ZELLIJ", "ZELLIJ_SESSION_NAME", "ZELLIJ_PANE_ID", "ZELLIJ_SOCKET_DIR", "ZELLIJ_CONFIG_DIR", "ZELLIJ_CONFIG_FILE"} {
+		delete(s.env, key)
+	}
+	if zellij, err := exec.LookPath("zellij"); err == nil {
+		link(t, zellij, filepath.Join(s.home, ".local/bin/zellij"))
+		socket, err := os.MkdirTemp("/tmp", "ashz-")
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.env["ZELLIJ_SOCKET_DIR"] = socket
+		t.Cleanup(func() {
+			out, _ := s.run(zellij, "list-sessions", "--short", "--no-formatting")
+			for _, name := range strings.Fields(out) {
+				if strings.HasPrefix(name, "ashley-") {
+					s.run(zellij, "kill-session", name)
+				}
+			}
+			os.RemoveAll(socket)
+		})
+	}
 	return s
 }
 func (s *sandbox) environment() []string {

@@ -2,13 +2,10 @@ package tui
 
 import (
 	"fmt"
-	"math"
-	"strconv"
-	"strings"
-	"time"
-
-	ashley "github.com/LBYPatrick/ashley"
 	"github.com/LBYPatrick/ashley/internal/agents"
+	"math"
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -16,17 +13,21 @@ import (
 type appearance struct {
 	base, border, title, muted, selected, blurred, panel lipgloss.Style
 	accent, bg, fg                                       string
-	clear                                                bool
 }
 
-func (m *Model) themePalette() map[string]string {
-	mode := m.theme.Mode
-	if mode == "clear" {
-		mode = "dark"
-		if !lipgloss.HasDarkBackground() {
-			mode = "light"
-		}
+// effectiveMode uses terminal brightness for Auto. Lipgloss/termenv falls
+// back to a black background when the terminal cannot report its color.
+func (m *Model) effectiveMode() string {
+	if m.theme.Mode == "dark" || m.theme.Mode == "light" {
+		return m.theme.Mode
 	}
+	if lipgloss.HasDarkBackground() {
+		return "dark"
+	}
+	return "light"
+}
+func (m *Model) themePalette() map[string]string {
+	mode := m.effectiveMode()
 	values := themeValues[mode+"-"+m.theme.Preset]
 	if values == nil {
 		values = themeValues["dark-blue"]
@@ -39,20 +40,15 @@ func (m *Model) appearance() appearance {
 	accent := terminalColor(values["accent"])
 	bg, border, panel := values["surface"], values["surface-lighten-2"], terminalColor(values["panel"])
 	contrast := "#FFFFFF"
-	if m.theme.Mode == "light" {
+	if m.effectiveMode() == "light" {
 		contrast = "#000000"
 	}
 	fg, muted := blendColor(contrast, bg, .87), blendColor(contrast, bg, .60)
-	if m.theme.Mode == "clear" {
-		base := lipgloss.NewStyle()
-		title := base.Foreground(lipgloss.Color(accent)).Bold(true)
-		return appearance{base: base, border: base, title: title, muted: base.Faint(true), selected: title.Underline(true), blurred: title, panel: base, accent: accent, bg: bg, fg: fg, clear: true}
-	}
 	base := lipgloss.NewStyle().Background(lipgloss.Color(bg)).Foreground(lipgloss.Color(fg))
 	return appearance{base: base, border: base.Foreground(lipgloss.Color(border)), title: base.Foreground(lipgloss.Color(accent)).Bold(true), muted: base.Foreground(lipgloss.Color(muted)), selected: base.Background(lipgloss.Color(blendColor(accent, bg, .20))).Bold(true), blurred: base.Background(lipgloss.Color(blendColor(accent, bg, .3))), panel: base.Background(lipgloss.Color(panel)), accent: accent, bg: bg, fg: fg}
 }
 
-type screenLayout struct{ left, right, list, detail, input, mode rect }
+type screenLayout struct{ left, right, list, detail, input rect }
 
 func (m *Model) layout() screenLayout {
 	w, h := max(20, m.width), max(8, m.height)
@@ -69,57 +65,79 @@ func (m *Model) layout() screenLayout {
 		sidebar = min(64, max(38, available/4))
 	}
 	sidebar = min(sidebar, max(12, available*2/5))
-	bottom := h - 2
-	if m.screen == "vibe" {
-		bottom = h - 7
-	}
-	if m.screen == "history" || m.screen == "skills.sh" {
+	bottom := h - 3
+	if m.screen == "skills.sh" {
 		bottom = h - 6
 	}
 	l := screenLayout{}
-	l.left = rect{margin, 2, sidebar, max(3, bottom-2)}
-	l.right = rect{margin + sidebar + 3, 2, max(1, available-sidebar-3), max(3, bottom-2)}
-	l.list = rect{margin, 5, sidebar, max(1, bottom-5)}
-	l.detail = rect{l.right.x + 1, 3, max(1, l.right.w-2), max(1, bottom-4)}
+	l.left = rect{margin, 3, sidebar, max(3, bottom-3)}
+	l.right = rect{margin + sidebar + 3, 3, max(1, available-sidebar-3), max(3, bottom-3)}
+	l.list = rect{margin, 6, sidebar, max(1, bottom-6)}
+	l.detail = rect{l.right.x, 5, l.right.w, max(1, bottom-5)}
 	l.input = rect{margin, h - 5, available, 3}
-	l.mode = rect{margin, h - 6, available, 1}
-	if m.screen == "vibe" {
-		// Keep the prompt and its controls together while browser panels expand.
-		promptWidth := min(132, w-4)
-		promptX := (w - promptWidth) / 2
-		l.input = rect{promptX, h - 5, promptWidth, 3}
-		l.mode = rect{promptX, h - 6, promptWidth, 1}
+	if m.screen == "vibe" || m.screen == "history" {
+		l.input = rect{margin, 4, sidebar, 3}
+		l.list.y = 8
+		l.list.h = max(1, bottom-8)
 	}
 	if m.maximized {
-		l.list = rect{margin, 5, available, max(1, bottom-5)}
+		l.list.w = available
 		l.left.w = available
 		l.right = rect{}
 		l.detail = rect{}
+		if m.screen == "vibe" || m.screen == "history" {
+			l.input.w = available
+		}
+	}
+	if w < 76 {
+		l.left.w = available
+		l.list.w = available
+		if m.screen == "vibe" || m.screen == "history" {
+			l.input.w = available
+		}
+		l.right = rect{}
+		l.detail = rect{}
+		if m.compactDetail {
+			l.right = rect{margin, 3, available, max(1, bottom-3)}
+			l.detail = rect{margin, 4, available, max(1, bottom-4)}
+		}
 	}
 	return l
 }
 func (m *Model) header(f *frame, a appearance) {
-	f.fill(rect{0, 0, f.width, 1}, a.panel)
-	title := "Ashley v" + ashley.Version() + "  /  " + screenName(m.screen)
-	f.put(2, 0, a.panel.Bold(true).Render(ansi.Truncate(title, max(1, f.width-14), "…")))
-	f.put(f.width-10, 0, a.panel.Render(time.Now().Format("15:04:05")))
+	f.fill(rect{0, 0, f.width, 2}, a.base)
+	f.put(2, 0, a.base.Bold(true).Render(ansi.Truncate("Ashley  /  "+screenName(m.screen), max(1, f.width-18), "…")))
+	f.put(max(2, f.width-15), 0, a.muted.Render("^P Commands"))
+	for _, c := range m.navControls() {
+		style := a.muted
+		active := m.screen == c.key || (c.key == "sessions" && (m.screen == "history" || m.screen == "log")) || (c.key == "skills.sh" && (m.screen == "vibe" || m.screen == "create" || m.screen == "sync"))
+		if active {
+			style = a.selected
+		}
+		f.put(c.x, c.y, style.Render(ansi.Truncate(" "+c.label+" ", c.w, "")))
+	}
 }
 func (m *Model) footer(f *frame, a appearance) {
-	text := "enter Open  ↑↓ Move  q Quit"
+	text := "enter Open  ↑↓ Move  c Continue latest  q Quit"
+	if m.screen == "hub" && len(m.recent) == 0 {
+		text = "enter Open  ↑↓ Move  q Quit"
+	}
 	switch m.screen {
 	case "skills.sh":
 		text = "esc Back  ↑↓ Move  enter Open / Submit"
 	case "vibe":
-		text = "esc Back  / Filter  m Mode  p Copy Prompt"
+		text = "enter Use skill  / Search  pgdn Preview  esc Back"
+	case "compose":
+		text = "^R Start  ^N Name  ^S Skill  tab Options  esc Home"
 	case "sessions":
-		text = "esc Back  c Copy ID  l Log  s Sort  K Kill  X Kill All  d Delete  r Refresh  k Cleanup"
+		text = "enter Open  t History  l Log  N Rename  i Inspector  K Stop"
 		if m.options.Screen == "sessions" {
-			text = strings.Replace(text, "esc Back", "q Quit", 1)
+			text += "  q Quit"
 		}
 	case "history":
-		text = "esc Back  enter Resume  n Next  p Prev  / Search  d Delete  r Refresh"
+		text = "enter Resume  t Sessions  / Search  N Rename  i Inspector  d Delete"
 		if m.options.Screen == "history" {
-			text = "q Quit  enter Resume  n Next  p Prev  / Search  d Delete  r Refresh"
+			text += "  q Quit"
 		}
 	case "settings":
 		text = "esc Done  ↑↓←→ Move  enter Select  tab Next"
@@ -139,19 +157,32 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "help", "log":
 		text = "esc Back  pgup/pgdown Scroll"
 	}
+	if m.width < 76 && (m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" || m.screen == "skills.sh") {
+		text = "enter Open  v Details  / Search  esc Back"
+		if m.screen == "vibe" {
+			text = "enter Use skill  v Details  / Search"
+		}
+		if m.screen == "skills.sh" {
+			text = "enter Open  v Details  esc Back"
+		}
+	}
+	if m.focus == "filter" {
+		text = "Type to search  enter Results  esc Done"
+	}
+	if m.confirm != nil {
+		text = "tab Choose  enter Accept  esc Cancel"
+	}
 	y := f.height - 1
 	f.fill(rect{0, y, f.width, 1}, a.panel)
-	f.put(1, y, a.panel.Render(ansi.Truncate(text, max(1, f.width-13), "…")))
-	f.put(max(0, f.width-12), y, a.panel.Render("▏^p palette"))
-	x := 1
+	f.put(2, y, a.panel.Render(ansi.Truncate(text, max(1, f.width-2), "…")))
+	x := 2
 	for _, binding := range strings.Split(text, "  ") {
 		key := strings.Fields(binding)
-		if len(key) > 0 && x+len(key[0]) < f.width-12 {
+		if len(key) > 0 && x+len(key[0]) < f.width-2 {
 			f.put(x, y, a.panel.Foreground(lipgloss.Color(a.accent)).Render(key[0]))
 		}
 		x += ansi.StringWidth(binding) + 2
 	}
-	f.put(max(0, f.width-11), y, a.panel.Foreground(lipgloss.Color(a.accent)).Render("^p"))
 }
 func (f *frame) input(r rect, value, placeholder string, focused bool, a appearance, cursor ...int) {
 	if r.w < 4 {
@@ -164,23 +195,32 @@ func (f *frame) input(r rect, value, placeholder string, focused bool, a appeara
 	f.fill(r, a.panel)
 	f.put(r.x, r.y+2, border.Render(strings.Repeat("─", r.w)))
 	style := a.panel
+	empty := value == ""
 	if value == "" {
 		value = placeholder
 		style = a.muted.Background(a.panel.GetBackground())
 	}
-	f.put(r.x+3, r.y+1, style.Render(ansi.Truncate(value, max(1, r.w-5), "")))
+	chars := []rune(value)
+	position := len(chars)
+	if len(cursor) > 0 {
+		position = cursor[0]
+	}
+	if empty {
+		position = 0
+	}
+	position = min(max(0, position), len(chars))
+	caret := ansi.StringWidth(string(chars[:position]))
+	shift := 0
 	if focused {
-		position := len([]rune(value))
-		if len(cursor) > 0 {
-			position = cursor[0]
-		}
-		position = min(max(0, position), max(0, r.w-6))
+		shift = max(0, caret-max(1, r.w-6))
+	}
+	f.put(r.x+3, r.y+1, style.Render(ansi.Cut(value, shift, shift+max(1, r.w-5))))
+	if focused {
 		glyph := " "
-		chars := []rune(value)
 		if position < len(chars) {
 			glyph = string(chars[position])
 		}
-		f.put(r.x+3+position, r.y+1, a.cursor().Render(glyph))
+		f.put(r.x+3+caret-shift, r.y+1, a.cursor().Render(glyph))
 	}
 }
 
@@ -190,7 +230,11 @@ func (m *Model) View() string {
 	f := newFrame(max(20, m.width), max(8, m.height), a.base)
 	m.header(f, a)
 	switch m.screen {
-	case "hub", "vibe", "sessions", "history", "skills.sh":
+	case "hub":
+		m.homeView(f, a)
+	case "compose":
+		m.composeView(f, a)
+	case "vibe", "sessions", "history", "skills.sh":
 		m.browserView(f, a)
 	case "sync":
 		m.operationView(f, a)
@@ -205,6 +249,7 @@ func (m *Model) View() string {
 		f.text(r, m.preview.View(), a.base, 0)
 
 	}
+	m.header(f, a)
 	if m.status != "" { // Notifications occupy chrome, never replace a detail panel.
 		text := ansi.Truncate(m.status, max(1, f.width-4), "…")
 		f.put(max(1, f.width-ansi.StringWidth(text)-2), f.height-2, a.panel.Render(text))
@@ -213,153 +258,13 @@ func (m *Model) View() string {
 	if m.paletteOpen {
 		m.paletteView(f, a)
 	}
-	if m.theme.Mode == "clear" {
-		f.clearBackground()
+	if m.confirm != nil {
+		m.confirmView(f, a)
+	}
+	if m.rename != nil {
+		m.nameView(f, a)
 	}
 	return f.String()
-}
-func (m *Model) browserView(f *frame, a appearance) {
-	l := m.layout()
-	if !m.maximized {
-		for y := 3; y < f.height-3; y++ {
-			f.put(l.right.x-2, y, a.border.Render("│"))
-		}
-	}
-	heading := "Home"
-	labels := featureTitles
-	switch m.screen {
-	case "skills.sh":
-		heading = "Skills.sh"
-		labels = nil
-		for _, action := range skillsActions {
-			labels = append(labels, action.label)
-		}
-	case "vibe":
-		heading = "Skills"
-		labels = nil
-		for _, name := range m.names {
-			labels = append(labels, "a-"+name)
-		}
-	case "sessions":
-		running := 0
-		labels = nil
-		for _, s := range m.sessionRows {
-			icon := "○"
-			if m.sessionAlive[s.ID] {
-				icon = "●"
-				running++
-			}
-			labels = append(labels, fmt.Sprintf("%s %s  %s  (%s)", icon, s.ID, s.Skill, s.Elapsed(time.Now())))
-		}
-		sort := "newest"
-		if m.sortMode == "skill" {
-			sort = "skill"
-		}
-		heading = fmt.Sprintf("Sessions (%d)", len(labels))
-		f.put(l.left.x, 3, a.muted.Render(ansi.Truncate(fmt.Sprintf("%d running · %s", running, sort), l.left.w, "…")))
-	case "history":
-		heading = fmt.Sprintf("History (%d) — Page %d/%d", m.total, m.offset/50+1, max(1, (m.total+49)/50))
-		labels = nil
-		for _, v := range m.historyRows {
-			stamp := v.TimeDisplay()
-			if len(stamp) > 16 {
-				stamp = stamp[5:16]
-			}
-			arrow := ""
-			if v.Detached {
-				arrow = " ⇢"
-			}
-			labels = append(labels, stamp+"  "+v.Skill+arrow+"  "+ansi.Truncate(v.QuestionShort(), 30, ""))
-		}
-	}
-	hx, hy := l.left.x, 2
-	if m.screen == "history" {
-		heading = fmt.Sprintf("History (%d)", m.total)
-		f.put(hx, 3, a.muted.Render(ansi.Truncate(fmt.Sprintf("Page %d/%d · n next / p prev", m.offset/50+1, max(1, (m.total+49)/50)), l.left.w, "…")))
-	}
-	f.put(hx, hy, a.base.Bold(true).Render(ansi.Truncate(heading, max(1, l.left.w), "…")))
-	start := max(0, m.cursor-l.list.h+1)
-	for index := start; index < min(len(labels), start+l.list.h); index++ {
-		style := a.base
-		if index == m.cursor {
-			style = a.selected
-			if m.focus != "" {
-				style = a.blurred
-			}
-		}
-		// ListItem and its Label each contribute one horizontal padding cell.
-		marker := "  "
-		if index == m.cursor {
-			marker = "› "
-		}
-		label := marker + labels[index]
-		label = ansi.Truncate(label, l.list.w, "")
-		label += strings.Repeat(" ", max(0, l.list.w-ansi.StringWidth(label)))
-		f.put(l.list.x, l.list.y+index-start, style.Render(label))
-	}
-	if m.maximized {
-		return
-	}
-	detail := m.detailText()
-	if m.screen == "sessions" {
-		detailRect, log, body := m.sessionPanels()
-		f.text(detailRect, detail, a.base, m.preview.YOffset)
-		f.put(log.x, log.y, a.border.Render(strings.Repeat("─", log.w)))
-		f.put(log.x, log.y+1, a.title.Render(ansi.Truncate("Log (last 50 lines)", max(1, log.w), "")))
-		f.text(body, m.sessionLog, a.base, min(m.logOffset, m.maxLogOffset()))
-	} else {
-		f.richText(l.detail, detail, a, m.preview.YOffset)
-		// Headings use the same accent as the original rich-text panels.
-		lines := strings.Split(ansi.Wrap(detail, l.detail.w, ""), "\n")
-		for index := m.preview.YOffset; index < min(len(lines), m.preview.YOffset+l.detail.h); index++ {
-			if m.screen == "vibe" && strings.HasPrefix(lines[index], "   ") && len(strings.Fields(lines[index])) > 1 {
-				number := strings.Fields(lines[index])[0]
-				if _, err := strconv.Atoi(number); err == nil {
-					f.put(l.detail.x+2, l.detail.y+index-m.preview.YOffset, a.title.Render(fmt.Sprintf("%2s", number)))
-				}
-			}
-			if index == 0 || lines[index] == "Overview" || lines[index] == "Workflow" {
-				f.put(l.detail.x, l.detail.y+index-m.preview.YOffset, a.title.Render(lines[index]))
-			}
-		}
-	}
-	if m.screen == "vibe" {
-		virtual := len(strings.Split(ansi.Wrap(detail, l.detail.w, ""), "\n"))
-		if virtual > l.detail.h {
-			f.scrollbar(rect{l.detail.x + l.detail.w, l.detail.y, 2, l.detail.h}, virtual, m.preview.YOffset, a)
-		}
-		if l.mode.w < 70 {
-			f.put(l.mode.x, l.mode.y, a.muted.Render(ansi.Truncate("Mode: "+[]string{"Normal", "DSP", "AUTO", "AFK"}[m.mode]+" · m change · "+agents.Get(m.agent).Label, l.mode.w, "…")))
-		} else {
-			x := l.mode.x
-			f.put(x, l.mode.y, a.muted.Render("Run mode "))
-			x += 9
-			for index, label := range []string{"Normal", "DSP", "AUTO", "AFK"} {
-				icon := "○"
-				style := a.base
-				if index == m.mode {
-					icon = "●"
-					style = a.selected
-				}
-				text := " " + icon + " " + label + " "
-				f.put(x, l.mode.y, style.Render(text))
-				x += ansi.StringWidth(text) + 1
-			}
-			hint := []string{"Standard permission prompts", "Skip all permission checks", "Auto-accept edits", "Fully autonomous — implies DSP"}[m.mode] + " · " + agents.Get(m.agent).Label
-			right := l.mode.x + l.mode.w
-			available := max(0, right-x-1)
-			hint = ansi.Truncate(hint, available, "…")
-			f.put(right-ansi.StringWidth(hint), l.mode.y, a.muted.Render(hint))
-		}
-		f.input(l.input, m.question.Value(), "Enter your question, then press Enter to run...", m.focus == "question", a, m.question.Position())
-		if m.focus == "filter" {
-			f.input(rect{l.left.x, l.left.y, l.left.w, 3}, m.filter.Value(), "Filter skills...", true, a)
-		}
-	} else if m.screen == "skills.sh" && m.cursor < 2 {
-		f.input(l.input, m.question.Value(), m.skillsPlaceholder(), m.focus == "skills-input", a, m.question.Position())
-	} else if m.screen == "history" {
-		f.input(l.input, m.filter.Value(), "Search history (skill, question, directory)...", m.focus == "filter", a, m.filter.Position())
-	}
 }
 func (m *Model) statsView(f *frame, a appearance) {
 	r := m.readingRect()
@@ -405,10 +310,6 @@ func (m *Model) statsText(a appearance) string {
 	return text
 }
 
-// Clear cursors retain the terminal background, including at an empty input.
 func (a appearance) cursor() lipgloss.Style {
-	if a.clear {
-		return a.base.Underline(true).Bold(true)
-	}
 	return a.panel.Reverse(true)
 }

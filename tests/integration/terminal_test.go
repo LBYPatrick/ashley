@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/creack/pty"
 )
 
@@ -144,7 +145,7 @@ func TestInteractiveScreens(t *testing.T) {
 					}
 					offset := len(p.text())
 					p.send("\x1b")
-					p.until(func() bool { return strings.Contains(p.text()[offset:], "Skill Browser") })
+					p.until(func() bool { return strings.Contains(p.text()[offset:], "What would you like") })
 				}
 				if tc.name == "create" {
 					p.send("pty-skill\tTerminal skill\t\tCreated through the terminal\x0e\x0e\x0e\x13")
@@ -155,6 +156,35 @@ func TestInteractiveScreens(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestComposerWorkspaceJourney(t *testing.T) {
+	s := newSandbox(t)
+	p := startTerminal(t, s, binary)
+	p.waitFor("What would you like") // First launch goes directly to Home.
+	p.send("\x1b[50;5u")             // Ctrl+2
+	p.waitFor("Start a new conversation")
+	p.send("\x0e") // Ctrl+N: name the draft.
+	p.waitFor("Session name")
+	p.send("Login repair\r")
+	p.waitFor("Name  Login repair")
+	p.send("Fix login\rKeep sessions intact")
+	p.waitFor("Keep sessions intact")
+	p.send("\x13") // Ctrl+S: skill chooser.
+	p.waitFor("Search skills")
+	p.send("/")
+	p.waitFor("Results")
+	p.send("debug\r\r")
+	p.until(func() bool { return strings.Contains(p.text(), "Skill  a-debug") })
+	offset := len(p.text())
+	p.send("\x1b[27;5;52~") // Ctrl+4: Library.
+	p.until(func() bool { return strings.Contains(ansi.Strip(p.text()[offset:]), "Ashley  /  Library") })
+	offset = len(p.text())
+	p.send("\x1b[50;5u")
+	p.until(func() bool { return strings.Contains(p.text()[offset:], "Keep sessions intact") })
+	p.send("\t\t\x1b[C")
+	p.until(func() bool { return strings.Contains(ansi.Strip(p.text()), "Full access") })
+	p.quit()
 }
 func TestFirstInstallAgentSelection(t *testing.T) {
 	for _, tc := range []struct {
@@ -222,10 +252,10 @@ func TestSkillsTUIHandoff(t *testing.T) {
 	write(t, filepath.Join(s.home, "fake-bin", "skills"), "#!/bin/bash\necho 'Installed skills fixture'\n", 0755)
 	write(t, filepath.Join(s.home, ".ashley/theme.json"), `{"mode":"dark","preset":"blue"}`, 0644)
 	p := startTerminal(t, s, binary)
-	p.waitFor("Skill Browser")
+	p.waitFor("What would you like")
 	p.send(strings.Repeat("\x1b[B", 7) + "\r")
 	p.waitFor("Find skills")
-	p.send(strings.Repeat("\x1b[B", 2) + "\r")
+	p.send(strings.Repeat("\x1b[B", 5) + "\r")
 	p.waitFor("Installed skills fixture")
 	p.waitFor("Press Enter to return to Ashley")
 	select {
@@ -235,10 +265,10 @@ func TestSkillsTUIHandoff(t *testing.T) {
 	}
 	offset := len(p.text())
 	p.send("\n")
-	p.until(func() bool { return strings.Contains(p.text()[offset:], "Skills.sh") })
+	p.until(func() bool { return strings.Contains(p.text()[offset:], "Skill library") })
 	offset = len(p.text())
 	p.send("\x1b")
-	p.until(func() bool { return strings.Contains(p.text()[offset:], "Skill Browser") })
+	p.until(func() bool { return strings.Contains(p.text()[offset:], "What would you like") })
 	p.send("q")
 	p.exit()
 }

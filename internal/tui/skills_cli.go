@@ -8,6 +8,9 @@ import (
 )
 
 var skillsActions = []struct{ label, description, command string }{
+	{"Your skills", "Browse your Ashley skills, inspect a workflow, and use it in a new conversation.", "browse"},
+	{"Create a skill", "Build a reusable workflow with the guided skill creator.", "create"},
+	{"Sync skills", "Generate and install Ashley skills for your detected coding agents.", "sync"},
 	{"Find skills", "Search the Skills directory. Enter an optional search term below, or open the native browser.", "find"},
 	{"Add skills", "Install globally from a repository or URL. Enter a source below; the native installer lets you choose skills and agents.", "add"},
 	{"Installed skills", "List globally installed skills and their agents.", "list"},
@@ -18,7 +21,7 @@ var skillsActions = []struct{ label, description, command string }{
 }
 
 func (m *Model) skillsPlaceholder() string {
-	if m.cursor == 1 {
+	if skillsActions[m.cursor].command == "add" {
 		return "Repository or URL, e.g. emilkowalski/skills"
 	}
 	return "Optional search term, e.g. animations"
@@ -31,6 +34,17 @@ func (m *Model) skillsDetail() string {
 
 func (m *Model) activateSkills() tea.Cmd {
 	action := skillsActions[m.cursor].command
+	switch action {
+	case "browse":
+		m.open("vibe")
+		return nil
+	case "create":
+		m.open("create")
+		return nil
+	case "sync":
+		m.open("sync")
+		return m.startOperation("sync")
+	}
 	if (action == "find" || action == "add") && m.focus != "skills-input" {
 		m.focus = "skills-input"
 		m.question.SetValue("")
@@ -63,4 +77,8 @@ func (m *Model) activateSkills() tea.Cmd {
 	m.focus = ""
 	m.question.Blur()
 	return m.execute(args...)
+}
+
+func (m *Model) skillsHasInput() bool {
+	return m.cursor >= 0 && m.cursor < len(skillsActions) && (skillsActions[m.cursor].command == "find" || skillsActions[m.cursor].command == "add")
 }

@@ -5,8 +5,17 @@ import (
 	"strings"
 )
 
+// section establishes one shared heading baseline and rule for every panel.
+func (f *frame) section(r rect, label string, a appearance) {
+	if r.w < 1 {
+		return
+	}
+	f.put(r.x, r.y, a.border.Render(strings.Repeat("─", r.w)))
+	f.put(r.x, r.y, a.base.Bold(true).Render(ansi.Truncate(label+"  ", r.w, "…")))
+}
+
 func (m *Model) readingRect() rect {
-	width := min(100, max(12, m.width-8))
+	width := max(12, m.width-4)
 	return rect{(max(20, m.width) - width) / 2, 3, width, max(1, m.height-6)}
 }
 func wrappedLines(text string, width int) int {
@@ -37,6 +46,6 @@ func (f *frame) richText(r rect, text string, a appearance, offset int) {
 	}
 }
 func screenName(screen string) string {
-	names := map[string]string{"skills.sh": "Skills.sh", "hub": "Home", "vibe": "Skills", "sessions": "Sessions", "history": "History", "stats": "Analytics", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts"}
+	names := map[string]string{"skills.sh": "Library", "compose": "New run", "hub": "Home", "vibe": "Choose a skill", "sessions": "Activity", "history": "Activity · History", "stats": "Usage", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts"}
 	return names[screen]
 }

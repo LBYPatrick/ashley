@@ -188,3 +188,36 @@ func TestAgentSessionRoundTrip(t *testing.T) {
 		t.Fatal(rows, err)
 	}
 }
+
+func TestNameSurvivesReopenAndRenameIsScoped(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.db")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := s.Record(Invocation{Name: "API work", Skill: "raw", SessionID: "abc"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := s.Record(Invocation{Name: "Other task", Skill: "raw"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+	s, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	v, err := s.Get(id)
+	if err != nil || v.Name != "API work" {
+		t.Fatal(v, err)
+	}
+	if err = s.Rename(id, "abc", "API release"); err != nil {
+		t.Fatal(err)
+	}
+	v, _ = s.Get(other)
+	if v.Name != "Other task" {
+		t.Fatal("unrelated name changed", v)
+	}
+}

@@ -5,9 +5,26 @@ import (
 )
 
 func settingsRows() [][]string {
-	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"clear", "dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
+	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"auto", "dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
 }
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
+	if m.rename != nil {
+		return nil
+	}
+	if m.confirm != nil {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			r := m.confirmBounds()
+			if msg.Y == r.y+r.h-2 {
+				for i := 0; i < 2; i++ {
+					if msg.X >= r.x+3+i*13 && msg.X < r.x+12+i*13 {
+						m.confirm.proceed = i == 1
+						return m.confirmKey("enter")
+					}
+				}
+			}
+		}
+		return nil
+	}
 	if m.paletteOpen {
 		r := m.paletteBounds()
 		visible := max(1, r.h-7)
@@ -23,6 +40,69 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 			if index < len(m.paletteItems()) {
 				m.paletteCursor = index
 				return m.paletteKey(tea.KeyMsg{Type: tea.KeyEnter})
+			}
+		}
+		return nil
+	}
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		if msg.Y == 0 && msg.X >= max(2, m.width-15) {
+			m.paletteOpen = true
+			m.paletteQuery = ""
+			m.paletteCursor = 0
+			return nil
+		}
+		for _, c := range m.navControls() {
+			if c.contains(msg.X, msg.Y) {
+				m.open(c.key)
+				return nil
+			}
+		}
+	}
+	if m.screen == "compose" {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			r := m.composeBounds()
+			if msg.X < r.x || msg.X >= r.x+r.w {
+				return nil
+			}
+			in := m.composerInput()
+			if in.contains(msg.X, msg.Y) {
+				m.composeFocus = 0
+				return m.composer.Focus()
+			}
+			if msg.Y == in.y-2 {
+				m.open("vibe")
+				return nil
+			}
+			y := in.y + in.h + 1
+			if msg.Y == y {
+				m.composeFocus = 1
+				m.composer.Blur()
+				m.cycleAgent()
+			}
+			if msg.Y == y+1 {
+				m.composeFocus = 2
+				m.composer.Blur()
+				m.mode = (m.mode + 1) % len(modes)
+			}
+			if msg.Y == y+5 {
+				return m.launchDraft()
+			}
+		}
+		return nil
+	}
+	if m.screen == "hub" {
+		if msg.Button == tea.MouseButtonWheelDown {
+			m.cursor = min(m.count()-1, m.cursor+1)
+		}
+		if msg.Button == tea.MouseButtonWheelUp {
+			m.cursor = max(0, m.cursor-1)
+		}
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			for _, c := range m.homeControls() {
+				if c.contains(msg.X, msg.Y) {
+					m.cursor = c.row
+					return m.activate()
+				}
 			}
 		}
 		return nil
@@ -61,6 +141,16 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		return nil
 	}
 	l := m.layout()
+	if !m.compactDetail && (m.screen == "sessions" || m.screen == "history") && msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == l.left.y {
+		if msg.X >= l.left.x && msg.X < l.left.x+10 {
+			m.open("sessions")
+			return nil
+		}
+		if msg.X >= l.left.x+12 && msg.X < l.left.x+22 {
+			m.open("history")
+			return nil
+		}
+	}
 	if wheel {
 		_, log, _ := m.sessionPanels()
 		if m.screen == "sessions" && log.contains(msg.X, msg.Y) {
@@ -79,35 +169,19 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if msg.Action != tea.MouseActionPress || msg.Button != tea.MouseButtonLeft {
 		return nil
 	}
-	if m.screen == "skills.sh" && m.cursor < 2 && l.input.contains(msg.X, msg.Y) {
+	if m.screen == "skills.sh" && m.skillsHasInput() && l.input.contains(msg.X, msg.Y) {
 		m.focus = "skills-input"
 		return m.question.Focus()
 	}
+	if m.compactDetail {
+		return nil
+	}
 	if (m.screen == "vibe" || m.screen == "history") && l.input.contains(msg.X, msg.Y) {
-		if m.screen == "vibe" {
-			m.focus = "question"
-			m.filter.Blur()
-			return m.question.Focus()
-		}
 		m.focus = "filter"
 		return m.filter.Focus()
 	}
-	if m.screen == "vibe" && l.mode.contains(msg.X, msg.Y) {
-		if l.mode.w < 70 {
-			m.mode = (m.mode + 1) % 4
-			return nil
-		}
-		x := l.mode.x + 9
-		for index, width := range []int{11, 8, 9, 8} {
-			if msg.X >= x && msg.X < x+width {
-				m.mode = index
-				return nil
-			}
-			x += width
-		}
-	}
 	if l.list.contains(msg.X, msg.Y) {
-		index := max(0, m.cursor-l.list.h+1) + msg.Y - l.list.y
+		index := max(0, m.cursor-m.visibleRows()+1) + (msg.Y-l.list.y)/m.rowHeight()
 		if index >= m.count() {
 			return nil
 		}

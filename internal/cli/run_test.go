@@ -107,3 +107,21 @@ func TestPipelineHooksHistoryAndFailure(t *testing.T) {
 		t.Fatal("recorded blocked invocation")
 	}
 }
+
+func TestRunSessionName(t *testing.T) {
+	for _, args := range [][]string{{"-n", "Release plan", "raw", "task"}, {"raw", "--name", "Release plan", "task"}, {"--name=Release plan", "raw", "task"}} {
+		o, _, err := runOptions(args)
+		if err != nil || o.Name != "Release plan" || o.Question != "task" {
+			t.Fatal(o, err)
+		}
+	}
+	for _, args := range [][]string{{"raw", "-n"}, {"raw", "--name", "--codex"}} {
+		if _, _, err := runOptions(args); err == nil {
+			t.Fatal("missing name accepted", args)
+		}
+	}
+	o, _, err := runOptions([]string{"raw", "--", "-n", "literal"})
+	if err != nil || o.Name != "" || o.Question != "-n literal" {
+		t.Fatal(o, err)
+	}
+}

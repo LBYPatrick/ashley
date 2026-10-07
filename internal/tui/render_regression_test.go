@@ -50,6 +50,7 @@ func TestHistorySelectionDoesNotSpillIntoDetails(t *testing.T) {
 	trueColor(t)
 	m := newModel(t)
 	m.open("history")
+	m.showMetadata = true
 	m.historyRows = []history.Invocation{{ID: 42, Skill: "coding", Question: "test", CWD: "/workspace"}}
 	m.updatePreview()
 	view := m.View()

@@ -103,7 +103,7 @@ func (s *Store) initialize() error {
 	if err != nil {
 		return err
 	}
-	for _, column := range [][2]string{{"exit_code", "INTEGER DEFAULT NULL"}, {"duration_s", "REAL DEFAULT NULL"}, {"outcome", "TEXT NOT NULL DEFAULT 'unknown'"}, {"agent_type", "TEXT NOT NULL DEFAULT 'claude'"}, {"agent_session_id", "TEXT NOT NULL DEFAULT ''"}} {
+	for _, column := range [][2]string{{"exit_code", "INTEGER DEFAULT NULL"}, {"duration_s", "REAL DEFAULT NULL"}, {"outcome", "TEXT NOT NULL DEFAULT 'unknown'"}, {"agent_type", "TEXT NOT NULL DEFAULT 'claude'"}, {"agent_session_id", "TEXT NOT NULL DEFAULT ''"}, {"name", "TEXT NOT NULL DEFAULT ''"}} {
 		if !existing[column[0]] {
 			if _, err := conn.ExecContext(context.Background(), "ALTER TABLE invocations ADD COLUMN "+column[0]+" "+column[1]); err != nil {
 				return err
@@ -117,8 +117,16 @@ func (s *Store) initialize() error {
 // Close releases the database handle.
 func (s *Store) Close() error { return s.db.Close() }
 
+// Rename updates an invocation and any records belonging to its Ashley session.
+// Names are labels only; conversation IDs and prompts remain unchanged.
+func (s *Store) Rename(id int64, sessionID, name string) error {
+	_, err := s.db.Exec(`UPDATE invocations SET name=? WHERE id=? OR (session_id<>'' AND session_id=?)`, strings.TrimSpace(name), id, sessionID)
+	return err
+}
+
 // Invocation mirrors legacy history rows, including unknown outcomes.
 type Invocation struct {
+	Name           string   `json:"name"`
 	ID             int64    `json:"id"`
 	Timestamp      string   `json:"timestamp"`
 	Skill          string   `json:"skill"`
@@ -145,7 +153,7 @@ func (s *Store) Record(v Invocation) (int64, error) {
 	if v.AgentType == "" {
 		v.AgentType = "claude"
 	}
-	result, err := s.db.Exec(`INSERT INTO invocations (timestamp,skill,question,cwd,permission,detached,session_id,agent_type,agent_session_id) VALUES (?,?,?,?,?,?,?,?,?)`, v.Timestamp, v.Skill, v.Question, v.CWD, v.Permission, v.Detached, v.SessionID, v.AgentType, v.AgentSessionID)
+	result, err := s.db.Exec(`INSERT INTO invocations (timestamp,skill,question,cwd,permission,detached,session_id,agent_type,agent_session_id,name) VALUES (?,?,?,?,?,?,?,?,?,?)`, v.Timestamp, v.Skill, v.Question, v.CWD, v.Permission, v.Detached, v.SessionID, v.AgentType, v.AgentSessionID, v.Name)
 	if err != nil {
 		return 0, err
 	}
@@ -179,9 +187,9 @@ func (f Filter) where() (string, []any) {
 		args = append(args, f.Agent)
 	}
 	if f.Search != "" {
-		conditions = append(conditions, "(question LIKE ? OR cwd LIKE ? OR skill LIKE ?)")
+		conditions = append(conditions, "(question LIKE ? OR cwd LIKE ? OR skill LIKE ? OR name LIKE ?)")
 		p := "%" + f.Search + "%"
-		args = append(args, p, p, p)
+		args = append(args, p, p, p, p)
 	}
 	if len(conditions) == 0 {
 		return "", args
@@ -193,7 +201,7 @@ func (f Filter) where() (string, []any) {
 func (s *Store) Query(filter Filter, limit, offset int) ([]Invocation, error) {
 	where, args := filter.where()
 	args = append(args, limit, offset)
-	rows, err := s.db.Query(`SELECT id,timestamp,skill,question,cwd,permission,detached,session_id,exit_code,duration_s,COALESCE(NULLIF(outcome,''),'unknown'),COALESCE(NULLIF(agent_type,''),'claude'),agent_session_id FROM invocations`+where+` ORDER BY timestamp DESC,id DESC LIMIT ? OFFSET ?`, args...)
+	rows, err := s.db.Query(`SELECT id,timestamp,skill,question,cwd,permission,detached,session_id,exit_code,duration_s,COALESCE(NULLIF(outcome,''),'unknown'),COALESCE(NULLIF(agent_type,''),'claude'),agent_session_id,name FROM invocations`+where+` ORDER BY timestamp DESC,id DESC LIMIT ? OFFSET ?`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +209,7 @@ func (s *Store) Query(filter Filter, limit, offset int) ([]Invocation, error) {
 	result := []Invocation{}
 	for rows.Next() {
 		var v Invocation
-		if err := rows.Scan(&v.ID, &v.Timestamp, &v.Skill, &v.Question, &v.CWD, &v.Permission, &v.Detached, &v.SessionID, &v.ExitCode, &v.DurationS, &v.Outcome, &v.AgentType, &v.AgentSessionID); err != nil {
+		if err := rows.Scan(&v.ID, &v.Timestamp, &v.Skill, &v.Question, &v.CWD, &v.Permission, &v.Detached, &v.SessionID, &v.ExitCode, &v.DurationS, &v.Outcome, &v.AgentType, &v.AgentSessionID, &v.Name); err != nil {
 			return nil, err
 		}
 		result = append(result, v)

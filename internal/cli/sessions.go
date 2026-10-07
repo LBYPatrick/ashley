@@ -19,10 +19,23 @@ func attachSession(m sessions.Manager, s sessions.Session, stdout, stderr io.Wri
 	if !m.Alive(s) {
 		return fmt.Errorf("session %s is not running; view its log with ash logs %s", s.ID, s.ID)
 	}
-	if err := sessions.ConfigureScrolling(m.Run, s.TmuxSession); err != nil {
-		return err
+	var cmd *exec.Cmd
+	if s.Backend == "zellij" {
+		binary, err := sessions.ZellijBinary()
+		if err != nil {
+			return err
+		}
+		cmd = exec.Command(binary, "attach", s.ZellijSession)
+	} else {
+		run := m.Run
+		if run == nil {
+			run = sessions.Tmux
+		}
+		if err := sessions.ConfigureScrolling(run, s.TmuxSession); err != nil {
+			return err
+		}
+		cmd = exec.Command("tmux", "attach-session", "-t", s.TmuxSession)
 	}
-	cmd := exec.Command("tmux", "attach-session", "-t", s.TmuxSession)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -30,7 +43,7 @@ func attachSession(m sessions.Manager, s sessions.Session, stdout, stderr io.Wri
 	if m.Alive(s) {
 		fmt.Fprintf(stdout, "Session %s remains available: ash attach %s\n", s.ID, s.ID)
 	} else if err == nil {
-		err = m.Remove(s, true)
+		err = m.Remove(s, false)
 	}
 	return err
 }
@@ -88,9 +101,9 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 			if agent == "" {
 				agent = "claude"
 			}
-			rows = append(rows, []string{s.ID, s.Skill, agent, state, s.Elapsed(time.Now())})
+			rows = append(rows, []string{s.ID, s.Name, s.Skill, agent, state, s.Elapsed(time.Now())})
 		}
-		p.table([]string{"ID", "Skill", "Agent", "Status", "Elapsed"}, rows)
+		p.table([]string{"ID", "Name", "Skill", "Agent", "Status", "Elapsed"}, rows)
 		p.section("Next")
 		p.line("ash attach <id> · Resume   ash logs <id> · View output")
 		return nil

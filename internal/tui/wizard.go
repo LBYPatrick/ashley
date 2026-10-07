@@ -220,7 +220,7 @@ func (m *Model) wizardKey(msg tea.KeyMsg) tea.Cmd {
 		w.collect()
 		if w.stage == 0 {
 			m.wizard = nil
-			m.open("hub")
+			m.open(m.backDestination())
 		} else {
 			w.stage--
 			w.field = 0

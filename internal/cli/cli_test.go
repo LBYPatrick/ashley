@@ -113,6 +113,8 @@ func TestCustomRepository(t *testing.T) {
 }
 
 func TestUsageErrors(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
 	for _, args := range [][]string{{"run", "feat"}, {"prompt"}, {"prompt", "absent"}, {"list", "extra"}, {"generate", "extra"}, {"--unknown"}, {"prompt", "--project", "/nonexistent-ashley-project", "feat"}} {
 		if _, err := invoke(args...); err == nil {
 			t.Errorf("expected error for %v", args)

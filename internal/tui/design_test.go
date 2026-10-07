@@ -78,11 +78,12 @@ func TestPopulatedBrowsersPreserveAllDetails(t *testing.T) {
 	m := newModel(t)
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	m.open("history")
+	m.showMetadata = true
 	m.historyRows = []history.Invocation{{ID: 183, Skill: "feat", Question: "Polish every terminal page", CWD: "/workspace/ashley", AgentType: "codex", Permission: "auto", Detached: true, SessionID: "demo-session"}}
 	m.total = 183
 	m.updatePreview()
 	view := m.View()
-	for _, field := range []string{"History (183)", "Page 1/4", "Invocation #183", "Question:", "Directory:", "Permission:", "Detached:", "Database:"} {
+	for _, field := range []string{"183 total", "Page 1/4", "Invocation #183", "Question:", "Directory:", "Permission:", "Detached:", "Database:"} {
 		if !strings.Contains(ansi.Strip(view), field) {
 			t.Fatal(field)
 		}
@@ -115,8 +116,8 @@ func TestBrowserLayoutUsesWideTerminalAndResizes(t *testing.T) {
 			if l.left.x != 2 || l.right.x+l.right.w != width-2 {
 				t.Fatalf("%s at %d leaves unused margins: %+v", screen, width, l)
 			}
-			if screen == "vibe" && (l.input.w != min(132, width-4) || l.mode.x != l.input.x || l.mode.w != l.input.w) {
-				t.Fatalf("prompt and mode controls must share bounded edges: %+v", l)
+			if screen == "vibe" && (l.input.w != l.left.w || l.input.x != l.left.x) {
+				t.Fatalf("search must align with skill list: %+v", l)
 			}
 			if m.preview.Width != l.detail.w {
 				t.Fatalf("%s viewport did not resize: %d != %d", screen, m.preview.Width, l.detail.w)

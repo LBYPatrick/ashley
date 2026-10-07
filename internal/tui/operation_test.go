@@ -123,7 +123,7 @@ func TestHelpRestoresDraftAndPaletteScroll(t *testing.T) {
 	}
 	m.Update(tea.WindowSizeMsg{Width: 50, Height: 20})
 	m.Update(tea.KeyMsg{Type: tea.KeyCtrlP})
-	for range 12 {
+	for range len(paletteCommands) {
 		key(m, "down")
 	}
 	if !strings.Contains(ansi.Strip(m.View()), "› Quit") {

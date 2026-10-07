@@ -12,7 +12,7 @@ import (
 )
 
 func TestLegacyMetadataAndSorting(t *testing.T) {
-	m := Manager{Dir: t.TempDir()}
+	m := Manager{Backend: "tmux", Dir: t.TempDir()}
 	legacy := `{"id":"abc1","skill":"feat","question":"old","tmux_session":"ashley-abc1","log_file":"/tmp/old.log","started_at":"2024-01-01T00:00:00","cwd":"/tmp"}`
 	if err := os.WriteFile(filepath.Join(m.Dir, "abc1.json"), []byte(legacy), 0600); err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestRealSessionLifecycle(t *testing.T) {
 		return Tmux(append([]string{"-L", socket, "-f", "/dev/null"}, args...), input)
 	}
 	t.Cleanup(func() { run([]string{"kill-server"}, "") })
-	m := Manager{Dir: t.TempDir(), Run: run}
+	m := Manager{Backend: "tmux", Dir: t.TempDir(), Run: run}
 	s, err := m.Create(Session{Skill: "raw", CWD: t.TempDir(), Agent: "codex"}, []string{"printf", "first output\nworking\r\x1b[2Kcomplete\nlast line\n"})
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +133,7 @@ func TestRealSessionLifecycle(t *testing.T) {
 	}
 }
 func TestLogsAndDeadCleanup(t *testing.T) {
-	m := Manager{Dir: t.TempDir(), Run: func([]string, string) (string, error) { return "", fmt.Errorf("not running") }}
+	m := Manager{Backend: "tmux", Dir: t.TempDir(), Run: func([]string, string) (string, error) { return "", fmt.Errorf("not running") }}
 	s := Session{ID: "dead", TmuxSession: "ashley-dead", LogFile: filepath.Join(m.Dir, "dead.log")}
 	if text, err := ReadLog(s, 10); err != nil || text != "(no log file)" {
 		t.Fatal(text, err)

@@ -73,7 +73,7 @@ func TestMalformedAndMissing(t *testing.T) {
 	for _, data := range []string{"{bad", "[]", "null", `{"agent":42,"mode":false,"preset":[]}`, `{"agent":"unknown","mode":"neon","preset":"unknown"}`} {
 		write(t, s, "prefs.json", data)
 		write(t, s, "theme.json", data)
-		if s.LoadAgent() != "claude" || s.LoadTheme() != (Theme{"clear", "blue"}) {
+		if s.LoadAgent() != "claude" || s.LoadTheme() != (Theme{"auto", "blue"}) {
 			t.Fatal(data)
 		}
 	}
@@ -101,7 +101,7 @@ func TestPreferencesPreserveUserData(t *testing.T) {
 		t.Fatal("accepted unknown agent")
 	}
 	for _, p := range Presets() {
-		for _, mode := range []string{"clear", "light", "dark"} {
+		for _, mode := range []string{"auto", "light", "dark"} {
 			want := Theme{mode, p.Key}
 			if err := s.SaveTheme(want); err != nil {
 				t.Fatal(err)
@@ -147,5 +147,18 @@ func TestScalarCompatibility(t *testing.T) {
 	}
 	if len(s.Load().ResolvePipeline("empty")) != 0 {
 		t.Fatal("empty pipeline expanded to a skill")
+	}
+}
+
+func TestLegacyClearLoadsAsAuto(t *testing.T) {
+	s := Store{Dir: t.TempDir()}
+	if err := s.writeJSON("theme.json", Theme{Mode: "clear", Preset: "rose"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.LoadTheme(); got != (Theme{Mode: "auto", Preset: "rose"}) {
+		t.Fatal(got)
+	}
+	if err := s.SaveTheme(Theme{Mode: "clear", Preset: "rose"}); err == nil {
+		t.Fatal("removed mode accepted")
 	}
 }

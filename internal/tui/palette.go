@@ -12,12 +12,17 @@ import (
 )
 
 var paletteCommands = [][2]string{
-	{"Skills.sh", "Find and manage community skills"}, {"Home", "Open the Ashley hub"}, {"Skills", "Browse skills and start a run"}, {"Sessions", "Inspect detached runs and their logs"}, {"History", "Browse past invocations"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Analytics", "Explore skill and agent usage"}, {"Theme", "Open Settings and change appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+	{"New run", "Write a task and choose an agent"},
+	{"Home", "Start or continue work"}, {"Activity", "Open running sessions and their logs"}, {"History", "Find and resume past conversations"}, {"Library", "Browse, create, sync, and manage skills.sh community skills"}, {"Choose a skill", "Browse skills and start a run"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Usage", "Explore skill and agent analytics"}, {"Settings", "Change your default agent, theme, and appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
 }
 
 func (m *Model) paletteItems() [][2]string {
 	var items [][2]string
-	for _, item := range paletteCommands {
+	commands := append([][2]string{}, paletteCommands...)
+	if m.screen == "sessions" {
+		commands = append(commands, [2]string{"Clean finished sessions", "Remove finished session records and logs"})
+	}
+	for _, item := range commands {
 		if strings.Contains(strings.ToLower(item[0]+" "+item[1]), strings.ToLower(m.paletteQuery)) {
 			items = append(items, item)
 		}
@@ -54,6 +59,9 @@ func (m *Model) paletteView(f *frame, a appearance) {
 }
 func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
+	case " ":
+		m.paletteQuery += " "
+		m.paletteCursor = 0
 	case "esc", "ctrl+p":
 		m.paletteOpen = false
 	case "ctrl+c":
@@ -76,16 +84,21 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		choice := items[m.paletteCursor][0]
 		m.paletteOpen = false
 		switch choice {
+		case "Clean finished sessions":
+			m.requestConfirmation("cleanup")
 		case "Quit":
 			return m.quit()
-		case "Skills.sh", "Home", "Skills", "Sessions", "History", "Sync", "Create", "Analytics", "Theme":
-			screens := map[string]string{"Skills.sh": "skills.sh", "Home": "hub", "Skills": "vibe", "Sessions": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Analytics": "stats", "Theme": "settings"}
+		case "New run", "Library", "Home", "Choose a skill", "Activity", "History", "Sync", "Create", "Usage", "Settings":
+			screens := map[string]string{"New run": "compose", "Library": "skills.sh", "Home": "hub", "Choose a skill": "vibe", "Activity": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Usage": "stats", "Settings": "settings"}
 			m.open(screens[choice])
+			if choice == "New run" {
+				return m.composer.Focus()
+			}
 			if choice == "Sync" {
 				return m.startOperation("sync")
 			}
 		case "Maximize":
-			if m.screen == "hub" || m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" {
+			if m.width >= 76 && (m.screen == "vibe" || m.screen == "sessions" || m.screen == "history") {
 				m.maximized = !m.maximized
 				m.updatePreview()
 			}
@@ -95,7 +108,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 				m.helpPreview = m.preview
 				m.helpLogContent = m.logContent
 			}
-			m.logContent = "Keyboard shortcuts\n\nArrows select · Enter opens or runs\nTab changes focus · / searches\nPgUp/PgDn scroll details\nEsc returns · Ctrl+P opens commands\n\nVibe: M mode · P copy prompt\nSessions: C copy ID · L log · S sort\nK kill · X kill all · D delete · R refresh\nHistory: Enter resume · N/P pages · D delete\nCreator: Ctrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\nSettings: Arrows or Tab/Shift+Tab move · Enter selects\nSync: Enter/R generates and installs skills for detected agents · I agent CLI"
+			m.logContent = "Keyboard shortcuts\n\nCtrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library · Ctrl+5 Settings\nCtrl+P commands · ? help · Esc back · Ctrl+C quit\n\nNew run\nWrite a multiline task. Ctrl+R starts the conversation.\nCtrl+S chooses a skill; Ctrl+D removes it.\nTab moves through task, agent, permissions, and Start.\nEnter changes an option; Enter in the task inserts a newline.\n\nSkill browser\n/ searches · Enter selects · PgUp/PgDn previews\nV shows details on narrow terminals · I shows metadata\n\nActivity\nT switches Sessions and History · Enter attaches or resumes\nI toggles the inspector · L opens a session log\nR refreshes · S sorts sessions · C copies the session ID\nK stops one session · X stops all · D deletes a record\nN/P change history pages · / searches history\n\nLibrary\nBrowse your skills, create a workflow, or sync installed skills.\nChoose Find or Add to discover community skills.\n\nCreator\nCtrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\n\nSettings\nArrows or Tab/Shift+Tab move · Enter selects\nChanges save automatically. Esc returns Home."
 			m.sizeLogPreview()
 			m.preview.GotoTop()
 			m.screen = "help"

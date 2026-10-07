@@ -40,7 +40,7 @@ func (m *Model) createKey(msg tea.KeyMsg) tea.Cmd {
 	}
 	switch msg.String() {
 	case "esc":
-		m.open("hub")
+		m.open(m.backDestination())
 		return nil
 	case "ctrl+s":
 		m.saveCreated()

@@ -113,7 +113,7 @@ func TestSettingsAllThemesAndFirstRun(t *testing.T) {
 	m := newModel(t)
 	m.open("settings")
 	m.Update(tea.WindowSizeMsg{Width: 100, Height: 32})
-	for _, mode := range []string{"clear", "dark", "light"} {
+	for _, mode := range []string{"auto", "dark", "light"} {
 		for _, preset := range config.Presets() {
 			m.theme = config.Theme{Mode: mode, Preset: preset.Key}
 			text := ansi.Strip(m.View())
@@ -130,9 +130,10 @@ func TestSettingsAllThemesAndFirstRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(ansi.Strip(first.View()), "Welcome to Ashley") {
-		t.Fatal("onboarding title missing")
+	if first.screen != "vibe" {
+		t.Fatal("setup interrupted requested workflow")
 	}
+	first.open("settings")
 	clickSetting(t, first, "kilo")
 	clickSetting(t, first, "light")
 	clickSetting(t, first, "ocean")

@@ -21,8 +21,9 @@ type ExitError struct{ Code int }
 
 func (e ExitError) Error() string { return fmt.Sprintf("agent exited with status %d", e.Code) }
 
-// Job is the private serialized context handed to the supervisor inside tmux.
+// Job is the private serialized context handed to the supervisor inside the session backend.
 type Job struct {
+	LogFile        string
 	Args           []string
 	Context        hooks.Context
 	Hooks          config.Hooks
@@ -49,7 +50,12 @@ func Run(ctx context.Context, job Job, stdin io.Reader, stdout, stderr io.Writer
 	if trackingErr != nil {
 		fmt.Fprintln(stderr, "Conversation tracking:", trackingErr)
 	}
-	runErr := cmd.Run()
+	var runErr error
+	if job.LogFile != "" {
+		runErr = runLogged(cmd, job.LogFile, stdin, stdout)
+	} else {
+		runErr = cmd.Run()
+	}
 	code := 0
 	if runErr != nil {
 		code = 1
@@ -84,7 +90,7 @@ func Run(ctx context.Context, job Job, stdin io.Reader, stdout, stderr io.Writer
 	return err
 }
 
-// SaveJob writes private context without putting large prompts on tmux's command line.
+// SaveJob writes private context without putting large prompts on the session backend's command line.
 func SaveJob(dir string, job Job) (string, error) {
 	data, err := json.Marshal(job)
 	if err != nil {

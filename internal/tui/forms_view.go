@@ -18,11 +18,11 @@ type settingControl struct {
 // Settings use a readable column even in an ultrawide terminal.
 func (m *Model) settingsBounds() rect {
 	width := min(86, max(20, m.width)-4)
-	return rect{(max(20, m.width) - width) / 2, 2, width, 28}
+	return rect{2, 2, width, 28}
 }
 func (m *Model) settingsControls() []settingControl {
 	b := m.settingsBounds()
-	x, inner := b.x+2, b.w-4
+	x, inner := b.x, b.w
 	var controls []settingControl
 	for index, key := range agents.Keys() {
 		controls = append(controls, settingControl{rect{x, 9 + index, inner, 1}, 0, index, key, agents.Get(key).Label})
@@ -51,7 +51,7 @@ func (m *Model) settingsContentHeight() int {
 func (m *Model) settingsView(f *frame, a appearance) {
 	content := newFrame(f.width, m.settingsContentHeight(), a.base)
 	b := m.settingsBounds()
-	x, inner := b.x+2, b.w-4
+	x, inner := b.x, b.w
 	title := "Settings"
 	subtitle := "Make Ashley feel like yours. Changes save automatically."
 	if m.firstRun {
@@ -64,31 +64,24 @@ func (m *Model) settingsView(f *frame, a appearance) {
 		y     int
 		label string
 	}{{7, "Coding agent"}, {16, "Appearance"}, {21 + (2/min(3, max(1, (inner+2)/12)))*2, "Accent color"}} {
-		content.put(x, section.y, a.base.Bold(true).Render(section.label))
+		content.section(rect{x, section.y, inner, 1}, section.label, a)
 	}
-	surface := a.base
-	if !a.clear {
-		surface = surface.Background(lipgloss.Color(terminalColor(m.themePalette()["surface-lighten-1"])))
-	}
+	surface := a.base.Background(lipgloss.Color(terminalColor(m.themePalette()["surface-lighten-1"])))
 	for _, control := range m.settingsControls() {
 		r := control.rect
 		selected := control.key == m.agent || control.key == m.theme.Mode || control.key == m.theme.Preset
 		focused := control.row == m.settingsRow && control.column == m.settingsColumn
 		style := surface
 		if focused {
-			if a.clear {
-				style = style.Underline(true).Bold(true)
-			} else {
-				style = style.Background(lipgloss.Color(blendColor(a.accent, a.bg, .18)))
-			}
+			style = style.Background(lipgloss.Color(blendColor(a.accent, a.bg, .18)))
 		}
 		if selected {
 			style = style.Foreground(lipgloss.Color(a.accent)).Bold(true)
-			if m.theme.Mode == "light" {
+			if m.effectiveMode() == "light" {
 				style = style.Foreground(lipgloss.Color(a.fg))
 			}
 		}
-		if control.row == 4 && !a.clear {
+		if control.row == 4 {
 			style = a.base.Background(lipgloss.Color(a.accent)).Foreground(lipgloss.Color("#161616")).Bold(true)
 		}
 		content.fill(r, style)

@@ -1,4 +1,4 @@
-// Package sessions manages persistent tmux agent sessions.
+// Package sessions manages persistent Zellij and legacy tmux agent sessions.
 package sessions
 
 import (

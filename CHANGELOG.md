@@ -7,15 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-06
+
 ### Added
+
+- Add optional `ash run -n/--name` session labels, editable in the TUI and persisted in SQLite history and session metadata.
 
 - Add native conversation tracking and history resume for Claude Code, Codex, Grok, OpenCode, and Kilo through `ash history resume ID` and Enter in the history browser.
 
 ### Changed
 
+- Use Zellij for new sessions with verified automatic installation, private keybindings, persistent PTY logs, and compatibility with existing tmux sessions.
+
+- Replace F1–F5 workspace shortcuts with Ctrl+1–5, supporting enhanced terminal keyboard reporting and keeping all five tabs tappable on narrow screens.
+
+- Align TUI content to a shared grid with ruled panel headings. Replace Clear with Auto, the default mode: follow terminal brightness and fall back to Dark when unavailable. Load saved Clear preferences as Auto.
+
+- Rebuild the TUI around a multiline task composer, task-focused Home with recent conversations, Activity tabs, and a unified skill Library. Preserve drafts and browsing context across navigation, add a compact detail view, and confirm destructive actions.
 - Expand Go coding and formatting guidance using Google's style guide, prefer Go for standalone scripts, and require Domain Driven Design boundaries for backend servers.
 
 ### Fixed
+
+- Send remote clipboard requests through OSC 52, preserve terminal resize detection, accept separate space events in command searches, and focus task input after palette navigation. Add real SSH/Mosh transport and Zellij interaction coverage.
+- Isolate the CLI usage-error test so test runs cannot create sessions in the user's environment.
 
 - Explicitly enable Codex Full Access alongside YOLO for DSP and AFK modes, including `--leon`.
 - Forward both mouse wheel directions to mouse-aware agents and retain tmux scrollback for other applications.

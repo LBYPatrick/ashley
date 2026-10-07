@@ -57,10 +57,14 @@ func key(m *Model, key string) {
 func TestHubSkillBrowserAndRunModes(t *testing.T) {
 	m := newModel(t)
 	m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
-	if !strings.Contains(m.View(), "Vibe") {
+	if !strings.Contains(m.View(), "New run") {
 		t.Fatal(m.View())
 	}
 	key(m, "enter")
+	if m.screen != "compose" {
+		t.Fatal("home did not open composer")
+	}
+	key(m, "ctrl+s")
 	if m.screen != "vibe" || len(m.names) != 14 {
 		t.Fatal(m.screen, m.names)
 	}
@@ -68,12 +72,6 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 	key(m, "up")
 	if m.cursor != 0 {
 		t.Fatal(m.cursor)
-	}
-	for i := 0; i < 4; i++ {
-		if !strings.Contains(m.View(), []string{"Normal", "DSP", "AUTO", "AFK"}[i]) {
-			t.Fatal(m.View())
-		}
-		key(m, "m")
 	}
 	key(m, "/")
 	key(m, "find and fix bugs")
@@ -83,13 +81,12 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 	key(m, "enter")
 	var args []string
 	m.options.Execute = func(argv []string) tea.Cmd { args = argv; return nil }
-	key(m, "tab")
-	key(m, "hello --literal")
 	key(m, "enter")
-	if !reflect.DeepEqual(args, []string{"run", "--normal", "debug", "--", "hello --literal"}) {
+	key(m, "hello --literal")
+	key(m, "ctrl+r")
+	if !reflect.DeepEqual(args, []string{"run", "--claude", "--normal", "debug", "--", "hello --literal"}) {
 		t.Fatal(args)
 	}
-	key(m, "esc")
 	key(m, "esc")
 	if m.screen != "hub" {
 		t.Fatal(m.screen)
@@ -159,9 +156,10 @@ func TestSettingsPersistAllChoices(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !first.firstRun || first.screen != "settings" {
-		t.Fatal("first-run appearance skipped")
+	if !first.firstRun || first.screen != "vibe" {
+		t.Fatal("appearance setup blocked the requested screen")
 	}
+	first.open("settings")
 	key(first, "esc")
 	if first.screen != "vibe" {
 		t.Fatal(first.screen)
@@ -181,7 +179,7 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 		}
 	}
 	m.open("history")
-	if m.total != 55 || len(m.historyRows) != 50 || !strings.Contains(m.View(), "History (55)") {
+	if m.total != 55 || len(m.historyRows) != 50 || !strings.Contains(m.View(), "55 total") {
 		t.Fatal(m.View())
 	}
 	key(m, "n")
@@ -193,6 +191,8 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 		t.Fatal(m.offset)
 	}
 	key(m, "d")
+	key(m, "tab")
+	key(m, "enter")
 	if m.total != 54 {
 		t.Fatal(m.total)
 	}
@@ -235,6 +235,8 @@ func TestSessionsSortingLogsAndCleanup(t *testing.T) {
 	key(m, "esc")
 	m.open("sessions")
 	key(m, "d")
+	key(m, "tab")
+	key(m, "enter")
 	if len(m.sessionRows) != 0 {
 		t.Fatal(m.sessionRows)
 	}
@@ -292,11 +294,8 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 	click := func(x, y int) {
 		m.Update(tea.MouseMsg{X: x, Y: y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
 	}
-	click(5, 6)
-	if m.cursor != 1 {
-		t.Fatal("session row not selected", m.cursor)
-	}
-	click(5, 6)
+	c := m.homeControls()[1]
+	click(c.x, c.y)
 	if m.screen != "sessions" {
 		t.Fatal(m.screen)
 	}
@@ -323,12 +322,12 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 		t.Fatal(m.focus)
 	}
 	key(m, "tab")
-	if m.focus != "question" {
+	if m.focus != "" {
 		t.Fatal(m.focus)
 	}
 	key(m, "tab")
-	if m.focus != "" {
-		t.Fatal(m.focus)
+	if m.screen != "compose" {
+		t.Fatal(m.screen)
 	}
 	m.Update(tea.WindowSizeMsg{Width: 50, Height: 20})
 	if m.width != 50 {
@@ -387,7 +386,7 @@ func TestClipboardCopiesPromptAndReportsUnavailableCommand(t *testing.T) {
 	}
 	t.Setenv("PATH", bin)
 	m.open("vibe")
-	m.question.SetValue("Make this work")
+	m.composer.SetValue("Make this work")
 	cmd := m.copyPrompt()
 	if cmd == nil {
 		t.Fatal("no clipboard action")
@@ -434,6 +433,7 @@ func TestHistoryEnterResumesSelectedEntry(t *testing.T) {
 	if !reflect.DeepEqual(args, []string{"history", "resume", "42"}) {
 		t.Fatal(args)
 	}
+	m.showMetadata = true
 	if !strings.Contains(m.detailText(), "conversation-42") {
 		t.Fatal(m.detailText())
 	}

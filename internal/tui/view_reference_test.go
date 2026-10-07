@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	ashley "github.com/LBYPatrick/ashley"
 	"github.com/LBYPatrick/ashley/internal/history"
 	"github.com/LBYPatrick/ashley/internal/sessions"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,15 +34,15 @@ func TestScreenHierarchyAndContent(t *testing.T) {
 				os.WriteFile(filepath.Join(directory, screen+".ansi"), []byte(rendered), 0600)
 			}
 			rows := strings.Split(ansi.Strip(rendered), "\n")
-			if !strings.Contains(rows[0], "Ashley v"+ashley.Version()) {
-				t.Fatal("missing original header", rows[0])
+			if !strings.Contains(rows[0], "Ashley  /  ") {
+				t.Fatal("missing location header", rows[0])
 			}
 			expected := map[string][]string{
-				"hub":      {"Home", "Sync", "Skill Browser"},
-				"vibe":     {"Skills", "Overview", "Workflow", "Run mode"},
-				"sessions": {"Sessions", "No sessions found.", "Log (last 50 lines)"},
+				"hub":      {"Home", "New run", "RECENT CONVERSATIONS"},
+				"vibe":     {"Choose a skill", "Overview", "Workflow", "Search skills"},
+				"sessions": {"Sessions", "No sessions found."},
 				"history":  {"History", "Page 1/1", "No history yet.", "Search history"},
-				"stats":    {"Analytics", "Total invocations", "No invocations recorded yet."},
+				"stats":    {"Usage", "Total invocations", "No invocations recorded yet."},
 				"create":   {"Create skill", "Step 1/4", "Name", "Description", "Extends"},
 			}
 			plain := ansi.Strip(rendered)
@@ -93,10 +92,11 @@ func TestOriginalInformationPanelsAndIndependentLogScroll(t *testing.T) {
 	log := filepath.Join(t.TempDir(), "run.log")
 	os.WriteFile(log, []byte("first log line\n"+strings.Repeat("more output\n", 35)+"last log line"), 0600)
 	m.open("sessions")
+	m.showMetadata = true
 	m.options.Screen = "sessions"
 	m.sessionRows = []sessions.Session{{ID: "uitest123", Skill: "feat", Question: "Investigate missing details", StartedAt: "2026-09-08T00:00:00Z", CWD: "/workspace/example", PermissionMode: "auto", Agent: "codex", TmuxSession: "ashley-ui-test-nonexistent", LogFile: log}}
 	m.updatePreview()
-	for _, field := range []string{"Session uitest123", "Status:", "Question:", "Started:", "Elapsed:", "Directory:", "Permission:", "tmux:", "Log:", "Log (last 50 lines)", "first log line"} {
+	for _, field := range []string{"Session uitest123", "Status:", "Question:", "Started:", "Elapsed:", "Directory:", "Permission:", "tmux:", "Log:", "Recent output", "first log line"} {
 		if !strings.Contains(ansi.Strip(m.View()), field) {
 			t.Fatal("missing session information", field)
 		}

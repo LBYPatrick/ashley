@@ -26,7 +26,7 @@ func TestHistoryResumeLaunchAndReattach(t *testing.T) {
 			bin := filepath.Join(home, "bin")
 			os.MkdirAll(bin, 0700)
 			os.WriteFile(filepath.Join(bin, agent), []byte("#!/bin/sh\nexit 0\n"), 0700)
-			os.WriteFile(filepath.Join(bin, "tmux"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\" >> \"$HOME/tmux-args\"\n"), 0700)
+			os.WriteFile(filepath.Join(bin, "zellij"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\" >> \"$HOME/zellij-args\"\ncase \"$1\" in\n--version) echo 'zellij 0.45.1';;\n--config) echo \"$5\" > \"$HOME/zellij-live\";;\nlist-sessions) /bin/cat \"$HOME/zellij-live\";;\nesac\n"), 0700)
 			t.Setenv("PATH", bin)
 			// A changed preference must not change the original invocation's permissions.
 			os.MkdirAll(filepath.Join(home, ".ashley"), 0700)
@@ -75,8 +75,8 @@ func TestHistoryResumeLaunchAndReattach(t *testing.T) {
 			if count != 2 {
 				t.Fatal("duplicate conversation launched", count)
 			}
-			calls, _ := os.ReadFile(filepath.Join(home, "tmux-args"))
-			if strings.Count(string(calls), "new-session\n") != 1 || strings.Count(string(calls), "attach-session\n") != 2 {
+			calls, _ := os.ReadFile(filepath.Join(home, "zellij-args"))
+			if strings.Count(string(calls), "--create-background\n") != 1 || strings.Count(string(calls), "attach\n") != 3 {
 				t.Fatal(string(calls))
 			}
 		})

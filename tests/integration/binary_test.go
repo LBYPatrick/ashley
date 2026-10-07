@@ -190,16 +190,13 @@ func TestLocalInstallerReplacesOnlyLauncher(t *testing.T) {
 	requireContains(t, s.must(filepath.Join(dest, "ash"), "--version"), version)
 }
 func TestDetachedRunAndCompletionHooks(t *testing.T) {
-	tmux, e := exec.LookPath("tmux")
+	_, e := exec.LookPath("zellij")
 	if e != nil {
-		t.Skip("tmux not installed")
+		t.Skip("zellij not installed")
 	}
 	s := newSandbox(t)
-	socket := fmt.Sprintf("ashley-go-test-%d", time.Now().UnixNano())
-	defer exec.Command(tmux, "-L", socket, "kill-server").Run()
 	tools := filepath.Join(s.home, "tools")
 	quote := func(v string) string { return "'" + strings.ReplaceAll(v, "'", "'\\''") + "'" }
-	write(t, filepath.Join(tools, "tmux"), "#!/bin/sh\nexec "+quote(tmux)+" -L "+socket+" -f /dev/null \"$@\"\n", 0700)
 	payload, _ := json.Marshal(map[string]string{"session_id": "tracked-codex-conversation", "cwd": s.home, "source": "startup"})
 	write(t, filepath.Join(tools, "codex"), "#!/bin/sh\nset -eu\n"+
 		"[ \"$1\" = --no-daemon ]\nshift\n[ \"$1\" = -c ]\ncase \"$2\" in hooks.SessionStart=*) ;; *) exit 12;; esac\nshift 2\n"+

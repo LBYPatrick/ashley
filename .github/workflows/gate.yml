@@ -24,7 +24,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - name: Install tmux for session integration tests
+      - name: Install tmux for legacy-session integration tests
         run: |
           if ! command -v tmux >/dev/null 2>&1; then
             if [ "$RUNNER_OS" = "macOS" ]; then
@@ -33,6 +33,17 @@ jobs:
               sudo apt-get update
               sudo apt-get install -y tmux
             fi
+          fi
+      - name: Install verified Zellij for session integration tests
+        run: |
+          go run ./cmd/ash __ensure-zellij
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install Mosh for remote transport integration tests
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install mosh
+          else
+            sudo apt-get install -y mosh
           fi
       - run: make gate
       - uses: actions/upload-artifact@v7

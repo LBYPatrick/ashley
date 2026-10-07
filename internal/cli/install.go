@@ -184,6 +184,10 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	}
 
 	if !skillsOnly {
+		p.section("Session backend")
+		if err := ensureZellij(io.MultiWriter(vendorOut, log), io.MultiWriter(vendorErr, log)); err != nil {
+			return err
+		}
 		p.section("Agent setup")
 		for _, key := range keys {
 			p.line(agents.Get(key).Label)

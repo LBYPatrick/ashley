@@ -15,6 +15,9 @@ import (
 
 // Session preserves metadata written by the Python session manager.
 type Session struct {
+	Backend        string   `json:"backend,omitempty"`
+	ZellijSession  string   `json:"zellij_session,omitempty"`
+	Name           string   `json:"name"`
 	ID             string   `json:"id"`
 	Skill          string   `json:"skill"`
 	Question       string   `json:"question"`
@@ -27,10 +30,12 @@ type Session struct {
 	ExtraFlags     []string `json:"extra_flags"`
 }
 
-// Manager locates persistent metadata and executes tmux commands.
+// Manager locates persistent metadata and dispatches to the recorded backend.
 type Manager struct {
-	Dir string
-	Run Commander
+	Dir       string
+	Run       Commander
+	Backend   string
+	ZellijRun Commander
 }
 
 func (m Manager) command(args ...string) (string, error) {
@@ -47,7 +52,7 @@ func User() (Manager, error) {
 	if err != nil {
 		return Manager{}, err
 	}
-	return Manager{Dir: filepath.Join(home, ".ashley", "sessions"), Run: Tmux}, nil
+	return Manager{Dir: filepath.Join(home, ".ashley", "sessions")}, nil
 }
 func validID(id string) bool {
 	return id != "" && id != "." && filepath.Base(id) == id && !strings.ContainsAny(id, "/\\")
@@ -91,7 +96,7 @@ func (m Manager) Load(id string) (Session, error) {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return Session{}, err
 	}
-	if s.ID != id || s.TmuxSession == "" || s.LogFile == "" {
+	if s.ID != id || s.SessionName() == "" || s.LogFile == "" || (s.Backend != "" && s.Backend != "tmux" && s.Backend != "zellij") {
 		return Session{}, fmt.Errorf("invalid session metadata: %s", id)
 	}
 	return s, nil
@@ -156,8 +161,20 @@ func (m Manager) Resolve(prefix string) (Session, error) {
 	return matches[0], nil
 }
 
-// Alive reports whether the tmux session still exists.
+// Alive reports whether the session's recorded backend is still running.
 func (m Manager) Alive(s Session) bool {
+	if s.Backend == "zellij" {
+		out, err := m.zellij("list-sessions", "--no-formatting", "--short")
+		if err != nil {
+			return false
+		}
+		for _, name := range strings.Split(out, "\n") {
+			if strings.TrimSpace(name) == s.ZellijSession {
+				return true
+			}
+		}
+		return false
+	}
 	_, err := m.command("has-session", "-t", s.TmuxSession)
 	return err == nil
 }
@@ -168,6 +185,10 @@ func (m Manager) Remove(s Session, log bool) error {
 		return fmt.Errorf("invalid session ID: %s", s.ID)
 	}
 	err := os.Remove(filepath.Join(m.Dir, s.ID+".json"))
+	if s.Backend == "zellij" {
+		os.Remove(filepath.Join(m.Dir, s.ID+".kdl"))
+		os.Remove(filepath.Join(m.Dir, s.ID+"-layout.kdl"))
+	}
 	if errors.Is(err, os.ErrNotExist) {
 		err = nil
 	}
@@ -182,6 +203,14 @@ func (m Manager) Remove(s Session, log bool) error {
 
 // Kill terminates a running session and retains the log for later inspection.
 func (m Manager) Kill(s Session) error {
+	if s.Backend == "zellij" {
+		if m.Alive(s) {
+			if _, err := m.zellij("kill-session", s.ZellijSession); err != nil {
+				return err
+			}
+		}
+		return m.Remove(s, false)
+	}
 	if m.Alive(s) {
 		if _, err := m.command("kill-session", "-t", s.TmuxSession); err != nil {
 			return err
@@ -313,7 +342,15 @@ func (m Manager) Prepare(s Session) (Session, error) {
 		return Session{}, err
 	}
 	s.ID = hex.EncodeToString(id)
-	s.TmuxSession = "ashley-" + s.ID
+	s.Backend = m.Backend
+	if s.Backend == "" {
+		s.Backend = "zellij"
+	}
+	if s.Backend == "tmux" {
+		s.TmuxSession = "ashley-" + s.ID
+	} else {
+		s.ZellijSession = "ashley-" + s.ID
+	}
 	s.LogFile = filepath.Join(m.Dir, s.ID+".log")
 	s.StartedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	return s, nil
@@ -321,6 +358,9 @@ func (m Manager) Prepare(s Session) (Session, error) {
 
 // Start launches a prepared session after callers finish recording its context.
 func (m Manager) Start(s Session, args []string) (Session, error) {
+	if s.Backend == "zellij" {
+		return m.startZellij(s, args)
+	}
 	if !validID(s.ID) || s.TmuxSession != "ashley-"+s.ID || len(args) == 0 {
 		return Session{}, fmt.Errorf("invalid prepared session")
 	}

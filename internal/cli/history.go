@@ -103,9 +103,9 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 			if v.Detached {
 				skill += " ⇢"
 			}
-			rows = append(rows, []string{fmt.Sprint(v.ID), v.TimeDisplay(), skill, v.AgentType, v.CWD, v.QuestionShort()})
+			rows = append(rows, []string{fmt.Sprint(v.ID), v.TimeDisplay(), v.Name, skill, v.AgentType, v.CWD, v.QuestionShort()})
 		}
-		p.table([]string{"ID", "Time", "Skill", "Agent", "Directory", "Question"}, rows)
+		p.table([]string{"ID", "Time", "Name", "Skill", "Agent", "Directory", "Question"}, rows)
 	case "stats":
 		stats, err := store.Stats(filter)
 		if err != nil {

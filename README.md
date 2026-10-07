@@ -20,7 +20,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 - **Lifecycle hooks** — run shell commands before/after any skill execution
 - **Project detection** — auto-detects tech stack for context-aware prompts
 - **Interactive TUI** — hub with skill browser, session manager, history, analytics, and themeable appearance
-- **tmux-backed sessions** — every run is crash-resilient; detach to background with `--detached`
+- **Zellij-backed sessions** — every run is crash-resilient; detach to background with `--detached`
 - **Invocation history** — every run logged to SQLite for search and review
 
 ---
@@ -29,7 +29,7 @@ Ashley provides 14 composable, production-ready skills that encode software engi
 
 Ashley ships as one Go executable for macOS and Linux on arm64 and amd64.
 Skills, components, and resources are embedded: users need no Go, Python, uv,
-or source checkout. Coding-agent CLIs and tmux remain separate dependencies.
+or source checkout. Coding-agent CLIs and Zellij are installed automatically during full setup.
 The project stays open source; development and release tooling use Go.
 
 Existing YAML settings, JSON preferences, SQLite history, and tmux sessions
@@ -45,7 +45,7 @@ commands are documented in [binary release development](docs/releases.md).
 |-------------|---------|-------|
 | macOS or Linux | arm64 or amd64 | A matching prebuilt release; no language runtime needed |
 | Claude Code, Codex, Grok Build, OpenCode, or Kilo Code | latest | For running skills — installed for you |
-| [tmux](https://github.com/tmux/tmux) | latest | Required — every run launches in a tmux session |
+| [Zellij](https://zellij.dev) | 0.45+ | Detected automatically; a verified release is installed when missing |
 
 ### One-Line Install
 
@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remo
 ```
 
 Downloads and verifies the matching release binary into `~/.local/bin/ash`,
-then installs skills and the selected agent. No checkout, Python, uv, or Go
+then installs Zellij, skills, and the selected agent. No checkout, Python, uv, or Go
 toolchain is installed. Native release assets are available starting with v0.4.0.
 
 The optional [skills.sh CLI](https://skills.sh/docs/cli) is **not installed by
@@ -150,7 +150,7 @@ make build GOOS=windows GOARCH=amd64  # build/ash-go.exe
 ```
 
 Without Make, `go build -o ash ./cmd/ash` builds directly from the repository root
-(use `-o ash.exe` on Windows). Full agent, hook, and tmux workflows are supported
+(use `-o ash.exe` on Windows). Full agent, hook, and Zellij workflows are supported
 on macOS and Linux; use WSL for those workflows on Windows. A successful Windows
 build does not imply native Windows support for Unix tools.
 
@@ -236,6 +236,9 @@ ash
 # Run a skill directly
 ash run feat "Add a login page"
 ash run debug "Fix the 500 error on /api/users"
+
+# Give the session a persistent, searchable name
+ash run -n "Login API" debug "Fix the 500 error on /api/users"
 
 # Autonomous mode (no prompts)
 ash run -afk feat "Add dark mode toggle"
@@ -362,20 +365,48 @@ Hook points: `before_run`, `after_run`, `on_error`. A non-zero `before_run` abor
 
 ## Interactive TUI
 
-Run `ash` to launch the hub:
+Run `ash` to open a workspace for starting and continuing agent conversations.
+Home prioritizes new work, active sessions, and recent conversations. Select a
+recent task to resume it directly. First launch uses the default agent and theme;
+appearance setup never blocks starting work.
 
 | Feature | Description | Direct CLI |
 |---------|-------------|------------|
-| **Vibe** | Skill browser — preview, pick a run mode, and launch | `ash vibe` |
-| **Skills.sh** | Find, add, list, remove, check, and update community skills; set up the Emil + find-skills bundle | Hub or command palette |
-| **Sessions** | Manage detached runs | `ash sessions` |
-| **History** | Browse invocation log | `ash history browse` |
+| **New run** | Multiline task composer with optional skill, agent, and permission controls | Ctrl+2 |
+| **Library** | Browse, create, sync, and manage community skills | Ctrl+4; `ash vibe` opens the skill chooser |
+| **Activity** | Sessions and History, with task titles, logs, and conversation resume | Ctrl+3; `ash sessions` or `ash history browse` |
 | **Sync** | Generate skills, then install for all detected agents | — |
 | **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
-| **Settings** | Coding agent, theme & colour | — |
+| **Settings** | Default coding agent, theme & colour | Ctrl+5 |
 
-Open **Skills.sh** from the hub or the `Ctrl+P` command palette. Select an action
+The persistent navigation is **Ctrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library ·
+Ctrl+5 Settings** (`^1`–`^5` in the tab bar). The TUI enables enhanced keyboard
+reporting for terminals that support it. On older terminals that cannot distinguish
+Ctrl+number combinations, tap a tab or use `Ctrl+P`. `?` opens shortcut help outside text fields.
+
+In **New run**, write a multiline task. `Ctrl+S` opens the searchable skill
+chooser; Enter selects a skill and returns to your draft. `Ctrl+D` removes the
+skill for a direct conversation. Tab moves between the task, agent, permissions,
+and Start; Enter changes an option, while Enter in the task inserts a newline.
+`Ctrl+R` launches using the options shown. Drafts and browser positions survive
+workspace navigation for the lifetime of the TUI.
+
+`Ctrl+N` names a draft; `Shift+N` renames a selected session or history entry.
+The CLI accepts `-n NAME` or `--name NAME`. Names are saved in the local SQLite
+history database and session metadata, appear in lists, and are searchable in
+History. An empty name restores the task title; IDs and resume links stay stable.
+
+The interface uses aligned columns, shared section rules, and distinct text,
+metadata, and accent tiers.
+
+In **Activity**, `T` or the visible tabs switch between Sessions and History.
+Enter attaches a running session, opens a finished session's log, or resumes a
+history conversation. `I` opens the technical inspector. Narrow terminals use
+a single list; `V` opens details and Esc returns to the list. Stop and delete
+actions require confirmation, with Cancel selected by default.
+
+Open **Library** from Home or the `Ctrl+P` command palette. Select an action
 with arrows and Enter; Find and Add accept a search term or repository/URL.
 Add, List, and Remove operate on globally installed skills. Native Skills prompts
 handle skill/agent selection and missing-dependency consent. Command output remains
@@ -390,7 +421,6 @@ log stays visible; use PgUp/PgDn or Home/End to scroll, and `R` to rerun.
 Press `I` to set up the agent selected in Settings. Standalone `ash generate` and
 `ash install` commands remain available for scripts and explicit CLI use.
 
-On first launch the TUI runs a quick setup wizard to pick your appearance.
 The whole TUI is fully keyboard-operable (Tab, arrows, Enter, Esc) — no mouse
 required, so it works over SSH/mosh.
 
@@ -400,10 +430,9 @@ Ctrl+S to save. In the workflow step, Ctrl+A adds a step, Ctrl+D removes it,
 and Ctrl+Left/Right switches steps. Ctrl+E opens the advanced JSON editor.
 New definitions live in `~/.ashley/skills` (or `--root/skills` for a checkout).
 
-Inside **Vibe** you can pick a run mode before launching — **Normal** (standard
-permission prompts), **DSP** (skip all permission checks), **AUTO** (auto-accept
-edits), or **AFK** (fully autonomous, implies DSP). Press `m` to cycle modes or
-click a chip; these map to the same flags as `ash run`.
+The composer's permission choices map to the existing CLI modes: **Ask first**
+(Normal), **Full access** (DSP), **Auto edits** (AUTO), and **Autonomous** (AFK).
+The selected agent and permissions are passed explicitly for each launch.
 
 ---
 
@@ -519,41 +548,72 @@ See the [Grok permission guide](https://github.com/xai-org/grok-build/blob/main/
 
 ## Appearance
 
-Ashley's look is configurable from the **Settings** screen in the TUI (or the
-first-run wizard). Choose:
+Ashley's look is configurable from the **Settings** screen in the TUI. Choose:
 
-- **Mode** — Clear (default), Dark, or Light
+- **Mode** — Auto (default), Dark, or Light
 - **Colour** — a primary colour (Blue, Green, Purple, Orange, Rose, Cyan) or a
   dual-tone preset (Ocean, Sunset, Grape, Forest)
 
 Changes preview instantly and are saved to `~/.ashley/theme.json`, then
-auto-loaded on every launch. The default is **Blue + dark**.
+auto-loaded on every launch. The default is **Blue + Auto**. Auto follows terminal
+brightness and uses Dark when brightness cannot be determined. Saved Clear
+preferences load as Auto; existing Dark and Light selections are preserved.
 
 ---
 
+## Remote terminals (SSH and Mosh)
+
+Run Ashley on the remote host; sessions and history stay on that host. Reconnect
+and use `ash attach ID` or Activity to continue the same agent. SSH disconnects
+and terminal resizes do not require restarting the agent. Mosh itself provides
+connection recovery; Zellij keeps the work alive after the Mosh client exits.
+
+- Ctrl+1–5 uses enhanced keyboard reporting where supported. Legacy terminals
+  and Mosh may not distinguish these combinations: all five tabs remain tappable
+  on narrow screens, and Ctrl+P offers the same navigation without function keys.
+- Remote copies target the client clipboard via OSC 52 (explicit `c` selector).
+  Enable clipboard writes in your terminal; use Mosh 1.4+ on the server. Ashley
+  reports that it sent a request because the terminal does not acknowledge writes.
+  Remote copies are limited to 64 KiB; save larger prompts with `ash prompt`.
+- Auto appearance falls back to Dark when a terminal cannot report brightness.
+  Choose Light or Dark explicitly in Settings if the remote terminal proxy reports
+  a different background. No animation or special fonts are required.
+- Multiline paste, Unicode text, mouse scrolling, resize, detach/reattach, and
+  agent logs are covered by PTY integration tests. Loopback SSH and Mosh tests
+  exercise their actual transports when those programs are installed.
+- `ash sessions --json`, `ash history show --json`, `ash logs`, and
+  `ash prompt` remain available for scripts and non-interactive connections.
+
+Protocol references: [Zellij compatibility](https://zellij.dev/documentation/compatibility.html),
+[Zellij session controls](https://zellij.dev/documentation/programmatic-control.html),
+and [enhanced keyboard reporting](https://sw.kovidgoyal.net/kitty/keyboard-protocol/).
+
 ## Sessions
 
-Every run launches the coding agent inside a tmux session for crash
-resilience. Without
-`--detached`, Ashley attaches to it immediately (exiting cleans it up); with
-`--detached`, it runs in the background for you to manage later.
+New runs use Zellij with a private Ashley configuration and a single agent pane.
+Ashley detects Zellij 0.45 or newer during full installation and before a run.
+If missing or outdated, it installs the official 0.45.1 binary to
+`~/.local/bin/zellij`, verifies its pinned SHA-256 checksum, and validates its
+version. No root privileges or language toolchain are required. Skills-only and
+binary-only installs defer session setup until the first run.
 
-Ashley routes wheel events to agents that enable mouse input, so their own
-conversation scrolling works in both directions. For agents without mouse
-input, wheel up opens tmux scrollback. Press `q` (or `Esc` in vi copy mode)
-to return to typing and pasting. Existing sessions receive these settings
-when reattached with `ash attach`.
+Without `--detached`, Ashley attaches immediately; detached runs continue in
+the background. Closing an SSH/Mosh connection detaches the client. Agent output
+is recorded by Ashley's PTY supervisor before the agent starts, so logs and
+completion hooks keep working while detached. Finished-session logs are retained.
 
-Ashley also enables tmux's `set-clipboard on` so agents can copy through
-OSC 52 to your terminal clipboard. This option is server-wide and applies
-to other sessions on the same tmux server; mouse bindings remain scoped to
-Ashley sessions. Your terminal must allow clipboard escape sequences.
-Terminal-native selection may require a mouse override modifier (such as
-Shift or Option, depending on your terminal) while mouse reporting is active.
-See [tmux clipboard support](https://github.com/tmux/tmux/wiki/Clipboard).
+Existing tmux sessions remain attachable and manageable until they finish; new
+runs use Zellij. Your global tmux and Zellij configuration files are not replaced.
+
+Zellij starts in locked mode so agent shortcuts pass through. Press **Ctrl+B,
+then D** to detach; **Ctrl+B, then S** enters scrollback. In scrollback use arrows,
+PageUp/PageDown, Home/End, and Q or Esc to return to typing. Ctrl+B then B sends a
+literal Ctrl+B. Mouse selection copies through OSC 52, and wheel events reach
+mouse-aware agents. Hold the terminal's mouse override modifier (often Shift) for
+native selection. Pasting uses the terminal's normal paste action.
 
 ```bash
-ash run feat "Add OAuth support"            # runs in tmux, attaches immediately
+ash run feat "Add OAuth support"            # runs in Zellij, attaches immediately
 ash run --detached feat "Add OAuth support" # background session
 ash sessions               # TUI session manager
 ash attach <session-id>    # Attach to interact
@@ -569,7 +629,9 @@ background, just like `--detached`.
 
 | Key | Action |
 |-----|--------|
-| Enter | Attach to session |
+| Enter | Attach to a running session or open a finished session's log |
+| t | Switch to History |
+| i | Toggle the technical inspector |
 | c | Copy session ID to clipboard |
 | l | View full log |
 | s | Cycle sort (newest / skill) |
@@ -577,7 +639,7 @@ background, just like `--detached`.
 | X | Kill all running sessions |
 | d | Delete record |
 | r | Refresh |
-| k | Cleanup dead sessions |
+| Ctrl+P → Clean finished sessions | Confirm removal of finished session records and logs |
 
 ---
 
@@ -601,11 +663,11 @@ migrated automatically on the next run — invocations logged before multi-agent
 support are counted as Claude Code.
 
 Press **Enter** on a history entry to reattach its running session, or resume
-its recorded agent conversation in a new tmux session. Resuming preserves
+its recorded agent conversation in a new Zellij session. Resuming preserves
 the original working directory, agent, and permission mode, without replaying
 the original prompt. Each new launch gets its own history entry linked to
 the same conversation. The details panel and `ash history show --json` expose
-the conversation ID separately from the tmux session ID.
+the conversation ID separately from the multiplexer session ID.
 
 | Agent | Conversation tracking | Native resume command |
 |--------|-----------------------|-----------------------|
@@ -672,7 +734,7 @@ ash --version                    Print version
 | `--auto` | Auto-accept safe tools |
 | `--normal` | Use normal permissions, overriding the configured default |
 | `-afk` / `--away-from-keyboard` | Fully autonomous, implies `-dsp` |
-| `--detached` | Run in background tmux session |
+| `--detached` | Run in background Zellij session |
 | `-c` / `--claude` | Use Claude Code for this run |
 | `-o` / `--codex` | Use OpenAI Codex for this run |
 | `--grok` / `--opencode` / `--kilo` | Use the named agent for this run |
@@ -748,5 +810,3 @@ make format         # Format Go and check shell syntax
 ## License
 
 [MIT](LICENSE)
-
-Clear mode uses your terminal’s background and foreground, so configured transparency or blur remains visible. It does not enable terminal transparency itself. Existing saved Dark or Light preferences are preserved; choose Clear in Settings to switch.

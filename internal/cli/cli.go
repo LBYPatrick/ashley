@@ -48,7 +48,8 @@ Commands:
   upgrade [AGENT...] [--all] [--check]
                                Detect or upgrade coding-agent CLIs
   run [OPTIONS] SKILL [QUESTION...]
-                               Launch an agent in a persistent tmux session
+                               Launch an agent in a persistent Zellij session
+                               -n, --name NAME sets a persistent session label
   pipe [OPTIONS] PIPELINE [QUESTION...]
                                Run a named or plus-separated skill pipeline
   sessions [--list|--json]      List persistent sessions
@@ -131,6 +132,8 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 		defer cancel()
 		return execution.Run(ctx, job, os.Stdin, stdout, stderr)
+	case "__ensure-zellij":
+		return ensureZellij(stdout, stderr)
 	case "history":
 		if len(args) > 1 && args[1] == "resume" {
 			return resumeHistory(args[2:], catalog, stdout, stderr)

@@ -25,7 +25,7 @@ func TestSkillsActions(t *testing.T) {
 		t.Run(skillsActions[tc.index].label, func(t *testing.T) {
 			m := newModel(t)
 			m.open("skills.sh")
-			m.cursor = tc.index
+			m.cursor = tc.index + 3
 			var got []string
 			m.options.Execute = func(args []string) tea.Cmd { got = args; return nil }
 			if tc.index < 2 {
@@ -43,7 +43,7 @@ func TestSkillsActions(t *testing.T) {
 func TestSkillsInputValidationAndNavigation(t *testing.T) {
 	m := newModel(t)
 	m.open("skills.sh")
-	m.cursor = 1
+	m.cursor = 4
 	m.activate()
 	for _, input := range []string{"", "--all"} {
 		m.question.SetValue(input)

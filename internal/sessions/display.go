@@ -10,7 +10,13 @@ import (
 // contain redraw instructions, not a sequence of printable transcript lines.
 func (m Manager) Preview(s Session, n int, live bool) (string, error) {
 	if live {
-		content, err := m.command("capture-pane", "-p", "-t", s.TmuxSession, "-S", "-50")
+		var content string
+		var err error
+		if s.Backend == "zellij" {
+			content, err = m.zellij("--session", s.ZellijSession, "action", "dump-screen", "--full")
+		} else {
+			content, err = m.command("capture-pane", "-p", "-t", s.TmuxSession, "-S", "-50")
+		}
 		if err == nil {
 			return tailDisplay(strings.TrimRight(content, "\n"), n), nil
 		}

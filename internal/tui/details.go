@@ -13,25 +13,15 @@ import (
 	"github.com/titanous/json5"
 )
 
-var featureTitles = []string{"Vibe · Skill Browser", "Sessions", "History", "Sync", "Create skill", "Analytics", "Settings", "Skills.sh"}
-
-var featureDescriptions = []string{
-	"Browse skills, preview workflows, and launch your coding agent with a skill prompt.",
-	"Manage background agent sessions. Attach, view logs, or kill running sessions.",
-	"Browse your full invocation history. Search, filter, prune, or clear past runs.",
-	"Generate skills, then install them for every detected coding agent.",
-	"Build a new skill interactively with a step-by-step wizard.",
-	"See which skills and coding agents you use most.",
-	"Choose the default coding agent, clear, dark or light mode, and a colour preset.",
-	"Find, install, update, and remove skills from skills.sh, or set up the community bundle.",
-}
-
 func (m *Model) detailText() string {
 	switch m.screen {
 	case "skills.sh":
 		return m.skillsDetail()
 	case "hub":
-		return featureTitles[m.cursor] + "\n\n" + featureDescriptions[m.cursor] + "\n\nPress Enter to open"
+		if m.cursor >= len(hub) {
+			return "Resume conversation"
+		}
+		return homeTitles[m.cursor] + "\n\n" + homeDescriptions[m.cursor] + "\n\nPress Enter to open"
 	case "vibe":
 		if len(m.names) == 0 {
 			return "No skills found."
@@ -73,12 +63,19 @@ func (m *Model) detailText() string {
 				text += fmt.Sprintf("\n  %2d  %s", index+1, step.Name)
 			}
 		}
-		return text + "\n\nType a question below and press Enter to run · p to copy the prompt"
+		return text + "\n\nEnter to use this skill in your conversation"
 	case "sessions":
 		if len(m.sessionRows) == 0 {
 			return "No sessions found.\n\nStart one with: ash run --detached <skill> <question>"
 		}
 		s := m.sessionRows[m.cursor]
+		if !m.showMetadata {
+			state := "Finished · Enter to open the log"
+			if m.sessionAlive[s.ID] {
+				state = "Running · Enter to attach"
+			}
+			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + state + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\nI shows session details"
+		}
 		state := "EXITED"
 		if m.sessionAlive[s.ID] {
 			state = "RUNNING"
@@ -94,7 +91,11 @@ func (m *Model) detailText() string {
 		started = strings.ReplaceAll(started, "T", " ")
 		text := fmt.Sprintf("Session %s\n\nStatus:     %s\nSkill:      %s\nQuestion:   %s\nStarted:    %s UTC\nElapsed:    %s\nDirectory:  %s", s.ID, state, s.Skill, question, started, s.Elapsed(time.Now()), s.CWD)
 		text += "\nAgent:      " + agents.Get(s.Agent).Label + "\nPermission: " + s.PermissionMode
-		text += "\ntmux:       " + s.TmuxSession
+		if s.Backend == "zellij" {
+			text += "\nZellij:     " + s.ZellijSession
+		} else {
+			text += "\ntmux:       " + s.TmuxSession
+		}
 		text += "\nLog:        " + s.LogFile
 		return text
 	case "history":
@@ -111,6 +112,13 @@ func (m *Model) detailText() string {
 		conversation := v.AgentSessionID
 		if conversation == "" {
 			conversation = "Unavailable (running sessions can still attach)"
+		}
+		if !m.showMetadata {
+			resume := "Enter to resume this conversation"
+			if v.AgentSessionID == "" {
+				resume = "No conversation ID saved. Enter can still attach a running session."
+			}
+			return taskTitle(v.Skill, v.Question, v.Name) + "\n\n" + agents.Get(v.AgentType).Label + " · " + v.Skill + "\n" + v.TimeDisplay() + "\n\n" + v.CWD + "\n\n" + resume + "\n\nI shows invocation details"
 		}
 		detached := "No"
 		if v.Detached {

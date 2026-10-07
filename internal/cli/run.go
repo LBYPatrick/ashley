@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"runtime"
 	"strings"
@@ -26,12 +25,19 @@ func runOptions(args []string) (invocation.Options, bool, error) {
 	detached := false
 	var keys, positionals []string
 	literal := false
-	for _, arg := range args {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
 		if literal {
 			positionals = append(positionals, arg)
 			continue
 		}
 		switch arg {
+		case "-n", "--name":
+			if i+1 == len(args) || strings.HasPrefix(args[i+1], "-") {
+				return o, false, fmt.Errorf("%s requires a session name", arg)
+			}
+			i++
+			o.Name = strings.TrimSpace(args[i])
 		case "--":
 			literal = true
 		case "-c", "--claude":
@@ -51,6 +57,11 @@ func runOptions(args []string) (invocation.Options, bool, error) {
 		case "--detached":
 			detached = true
 		default:
+			if strings.HasPrefix(arg, "--name=") || strings.HasPrefix(arg, "-n=") {
+				_, o.Name, _ = strings.Cut(arg, "=")
+				o.Name = strings.TrimSpace(o.Name)
+				continue
+			}
 			if strings.HasPrefix(arg, "-") {
 				return o, false, fmt.Errorf("unknown run option: %s (use -- before literal question text)", arg)
 			}
@@ -144,14 +155,17 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 		p.success("Pipeline complete.")
 		return nil
 	}
-	if err := ensureTmux(stdout, stderr); err != nil {
+	if _, err := agents.FindBinary(agents.Get(o.Agent).Binary); err != nil {
+		return fmt.Errorf("%s not found; install the agent before starting a session", agents.Get(o.Agent).Label)
+	}
+	if err := ensureZellij(stdout, stderr); err != nil {
 		return err
 	}
 	manager, err := sessions.User()
 	if err != nil {
 		return err
 	}
-	session, err := manager.Prepare(sessions.Session{Skill: o.Skill, Question: o.Question, CWD: cwd, Agent: o.Agent})
+	session, err := manager.Prepare(sessions.Session{Name: o.Name, Skill: o.Skill, Question: o.Question, CWD: cwd, Agent: o.Agent})
 	if err != nil {
 		return err
 	}
@@ -160,6 +174,7 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 		return err
 	}
 	session.PermissionMode = job.Context.Permission
+	job.LogFile = session.LogFile
 	if err := os.MkdirAll(manager.Dir, 0700); err != nil {
 		return err
 	}
@@ -185,6 +200,9 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 	p := present(stdout)
 	p.heading("Session started")
 	p.field("Session", session.ID)
+	if session.Name != "" {
+		p.field("Name", session.Name)
+	}
 	p.field("Agent", agents.Get(o.Agent).Label)
 	p.field("Log", session.LogFile)
 	p.field("Attach", "ash attach "+session.ID)
@@ -218,42 +236,10 @@ func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Op
 		return execution.Job{}, err
 	}
 	defer store.Close()
-	id, err := store.Record(history.Invocation{Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent, AgentSessionID: agentSessionID})
+	id, err := store.Record(history.Invocation{Name: o.Name, Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent, AgentSessionID: agentSessionID})
 	if err != nil {
 		return execution.Job{}, err
 	}
 	return execution.Job{Args: v.Args, Context: hookContext, Hooks: h, HistoryPath: dbPath, InvocationID: id, Agent: o.Agent, AgentSessionID: agentSessionID}, nil
 }
-func ensureTmux(stdout, stderr io.Writer) error {
-	if _, err := exec.LookPath("tmux"); err == nil {
-		return nil
-	}
-	var commands [][]string
-	if runtime.GOOS == "darwin" {
-		commands = [][]string{{"brew", "install", "tmux"}}
-	} else {
-		for _, candidate := range []struct {
-			name string
-			args [][]string
-		}{{"apt-get", [][]string{{"sudo", "apt-get", "update", "-qq"}, {"sudo", "apt-get", "install", "-y", "tmux"}}}, {"dnf", [][]string{{"sudo", "dnf", "install", "-y", "tmux"}}}, {"pacman", [][]string{{"sudo", "pacman", "-S", "--noconfirm", "tmux"}}}} {
-			if _, err := exec.LookPath(candidate.name); err == nil {
-				commands = candidate.args
-				break
-			}
-		}
-	}
-	if len(commands) == 0 {
-		return fmt.Errorf("tmux is required; install it with your system package manager")
-	}
-	for _, argv := range commands {
-		cmd := exec.Command(argv[0], argv[1:]...)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("install tmux: %w", err)
-		}
-	}
-	_, err := exec.LookPath("tmux")
-	return err
-}
+func ensureZellij(stdout, stderr io.Writer) error { return sessions.EnsureZellij(stdout) }

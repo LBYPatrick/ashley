@@ -26,6 +26,7 @@ type Builder struct {
 
 // Options selects a backend, skill, permissions and optional extra CLI arguments.
 type Options struct {
+	Name                     string
 	Agent, Skill, Question   string
 	DSP, Auto, AFK, Detached bool
 	// Normal explicitly overrides the configured default permission mode.
