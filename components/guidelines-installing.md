@@ -4,6 +4,7 @@ When a task requires installing software or dependencies:
 
 ## Package Manager First
 - If the project has a package manager configured (`uv`, `pnpm`, `cargo`, `go mod`), **use it**. Do not introduce a second one.
+- For web frontend setup, follow the Web Frontend Tooling rules. Prefer Vite+ and use pnpm if Vite+ cannot meet the requirements. Vite+ can use the existing package manager and lockfile.
 
 ## Custom Install Scripts
 - If no package manager is available, create `scripts/install-xxx.sh` (where `xxx` is the tool name).

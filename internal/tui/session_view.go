@@ -5,6 +5,25 @@ import (
 	"strings"
 )
 
+func (m *Model) sessionActionControls() []settingControl {
+	if m.screen != "sessions" || m.compactDetail {
+		return nil
+	}
+	l := m.layout()
+	labels := []string{"X Kill all", "D Clean dead"}
+	if l.list.w < 27 {
+		labels = []string{"X All", "D Dead"}
+	}
+	var controls []settingControl
+	x := l.list.x
+	for i, key := range []string{"X", "cleanup"} {
+		width := ansi.StringWidth(labels[i]) + 2
+		controls = append(controls, settingControl{rect: rect{x, l.list.y - 1, width, 1}, key: key, label: labels[i]})
+		x += width + 1
+	}
+	return controls
+}
+
 // Share the exact visible rectangles between rendering, wrapping, and scrolling.
 func (m *Model) sessionPanels() (detail, log, body rect) {
 	l := m.layout()

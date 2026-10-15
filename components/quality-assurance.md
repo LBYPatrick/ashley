@@ -6,6 +6,8 @@ After completing coding work, run these checks in order. Skip any whose tooling 
 Detect formatter: Python (`tidy.sh`, `[tool.ruff]` in pyproject.toml) | TS/JS (`.prettierrc`, `eslint.config.js`) | Rust (`rustfmt.toml`) | Go (`gofmt`) | General (`tidy.sh`, `make format`/`make tidy`).
 Run: (1) `tidy.sh` if exists, (2) `make format`/`make tidy` if available, (3) language-specific formatter.
 
+For web frontends, follow Web Frontend Tooling. Detect `vite-plus` and Oxlint configurations. Run `vp check` for Vite+ projects. With the pnpm fallback, check formatting and run `pnpm exec oxlint .`. Keep required framework and TypeScript checks.
+
 ## 2. Test
 Detect framework: Python (`pytest.ini`, `[tool.pytest]`, `conftest.py`, `tests/`, `test_*.py`) | TS/JS (`jest.config.*`, `vitest.config.*`, `*.test.ts`) | Rust (`#[cfg(test)]`, `tests/`) | Go (`*_test.go`) | General (`make test`).
 If found: write tests for new/modified code → run tests → fix code (not tests) until passing. No framework? Use build command as minimum check.

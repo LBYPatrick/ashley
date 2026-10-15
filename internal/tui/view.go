@@ -130,7 +130,7 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "compose":
 		text = "^R Start  ^N Name  ^S Skill  tab Options  esc Home"
 	case "sessions":
-		text = "enter Open  t History  l Log  N Rename  i Inspector  K Stop"
+		text = "enter Open  X Kill all  D Clean dead  K Stop  l Log  N Rename  i Inspector  t History"
 		if m.options.Screen == "sessions" {
 			text += "  q Quit"
 		}

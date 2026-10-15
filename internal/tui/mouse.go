@@ -141,6 +141,14 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		return nil
 	}
 	l := m.layout()
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		for _, control := range m.sessionActionControls() {
+			if control.contains(msg.X, msg.Y) {
+				m.requestConfirmation(control.key)
+				return nil
+			}
+		}
+	}
 	if !m.compactDetail && (m.screen == "sessions" || m.screen == "history") && msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == l.left.y {
 		if msg.X >= l.left.x && msg.X < l.left.x+10 {
 			m.open("sessions")

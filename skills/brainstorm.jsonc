@@ -5,6 +5,8 @@
   "name": "a-brainstorm",
   "description": "Design and build a new project from user requirements",
   "components": [
+    "components/guidelines-wording.md",
+    "components/guidelines-web.md",
     "components/guidelines-coding.md",
     "components/guidelines-style-google.md",
     "components/guidelines-installing.md",

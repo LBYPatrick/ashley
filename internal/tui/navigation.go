@@ -103,10 +103,10 @@ func (m *Model) requestConfirmation(key string) bool {
 	}
 	if m.screen == "sessions" {
 		if key == "cleanup" {
-			title, body = "Remove finished sessions?", "Delete saved records and logs for finished sessions. Running sessions will remain."
+			title, body = "Remove finished sessions?", "Remove saved records for finished sessions. Keep their logs and all running sessions."
 		}
 		if key == "X" && len(m.sessionRows) > 0 {
-			title, body = "Stop all running sessions?", "Every active Ashley agent will stop. In-progress work may be interrupted. Session logs will remain."
+			title, body = "Stop all running sessions?", "Stop all running Ashley sessions and remove all session records. Keep their logs. Work in progress can be interrupted."
 		} else if len(m.sessionRows) > 0 {
 			s := m.sessionRows[m.cursor]
 			if key == "K" {

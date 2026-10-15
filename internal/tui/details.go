@@ -71,13 +71,17 @@ func (m *Model) detailText() string {
 		s := m.sessionRows[m.cursor]
 		if !m.showMetadata {
 			state := "Finished · Enter to open the log"
-			if m.sessionAlive[s.ID] {
+			if alive, known := m.sessionAlive[s.ID]; !known {
+				state = "Checking session status…"
+			} else if alive {
 				state = "Running · Enter to attach"
 			}
 			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + state + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\nI shows session details"
 		}
 		state := "EXITED"
-		if m.sessionAlive[s.ID] {
+		if alive, known := m.sessionAlive[s.ID]; !known {
+			state = "CHECKING"
+		} else if alive {
 			state = "RUNNING"
 		}
 		question := s.Question
@@ -141,22 +145,13 @@ func (m *Model) detailText() string {
 	return ""
 }
 func (m *Model) refreshSessionDetails() {
-	if m.sessionAlive == nil {
-		m.sessionAlive = map[string]bool{}
-		for _, s := range m.sessionRows {
-			m.sessionAlive[s.ID] = m.manager().Alive(s)
-		}
+	m.sessionRequest++
+	if len(m.sessionRows) == 0 {
+		m.sessionLog, m.sessionLogID = "", ""
+		return
 	}
-	m.sessionLog = ""
-	if len(m.sessionRows) > 0 {
-		s := m.sessionRows[m.cursor]
-		content, err := m.manager().Preview(s, 50, m.sessionAlive[s.ID])
-		if err != nil {
-			content = err.Error()
-		}
-		m.sessionLog = content
-		if strings.TrimSpace(m.sessionLog) == "" {
-			m.sessionLog = "(empty log)"
-		}
+	if id := m.sessionRows[m.cursor].ID; id != m.sessionLogID {
+		m.sessionLog, m.sessionLogID = "Loading output…", id
 	}
+	m.queueSessionDetails()
 }

@@ -6,6 +6,8 @@
   "name": "a-claudemd",
   "description": "Generate or update a project's CLAUDE.md with tailored development guidelines (commit conventions, coding standards, CI, benchmarks). Use when user says \"create CLAUDE.md\", \"setup guidelines\", \"configure Claude Code\", or wants project-level conventions.",
   "components": [
+    "components/guidelines-wording.md",
+    "components/guidelines-web.md",
     "components/commit-message.md",
     "components/changelog-update.md",
     "components/guidelines-coding.md",

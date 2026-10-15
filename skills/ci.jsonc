@@ -5,6 +5,8 @@
   "name": "a-ci",
   "description": "Set up or fix CI pipeline (Makefile targets, GitHub Actions, test framework, coverage). Use when user says \"CI\", \"pipeline\", \"GitHub Actions\", \"tests failing\", \"add tests\", \"coverage\", or wants a green check.",
   "components": [
+    "components/guidelines-wording.md",
+    "components/guidelines-web.md",
     "components/ci-github-actions.md",
     "components/guidelines-style-google.md",
     "components/quality-assurance.md"

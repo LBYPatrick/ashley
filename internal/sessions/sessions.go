@@ -179,6 +179,42 @@ func (m Manager) Alive(s Session) bool {
 	return err == nil
 }
 
+// AliveAll checks each backend once, regardless of the number of saved sessions.
+func (m Manager) AliveAll(input []Session) map[string]bool {
+	result := make(map[string]bool, len(input))
+	for _, backend := range []string{"tmux", "zellij"} {
+		needed := false
+		for _, s := range input {
+			if (s.Backend == "zellij") == (backend == "zellij") {
+				needed = true
+				break
+			}
+		}
+		if !needed {
+			continue
+		}
+		var output string
+		var err error
+		if backend == "zellij" {
+			output, err = m.zellij("list-sessions", "--no-formatting", "--short")
+		} else {
+			output, err = m.command("list-sessions", "-F", "#{session_name}")
+		}
+		names := map[string]bool{}
+		if err == nil {
+			for _, name := range strings.Split(output, "\n") {
+				names[strings.TrimSpace(name)] = true
+			}
+		}
+		for _, s := range input {
+			if (s.Backend == "zellij") == (backend == "zellij") {
+				result[s.ID] = names[s.SessionName()]
+			}
+		}
+	}
+	return result
+}
+
 // Remove deletes metadata and optionally its log.
 func (m Manager) Remove(s Session, log bool) error {
 	if !validID(s.ID) {
@@ -288,7 +324,7 @@ func (s Session) Elapsed(now time.Time) string {
 	if err != nil {
 		return "?"
 	}
-	seconds := int(now.Sub(started).Seconds())
+	seconds := max(0, int(now.Sub(started).Seconds()))
 	if seconds < 60 {
 		return fmt.Sprintf("%ds", seconds)
 	}

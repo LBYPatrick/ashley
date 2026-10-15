@@ -4,6 +4,7 @@
   "name": "a-readme",
   "description": "Write a polished README for the project",
   "components": [
+    "components/guidelines-wording.md",
     "components/readme-template.md",
     "components/readme-update.md"
   ],

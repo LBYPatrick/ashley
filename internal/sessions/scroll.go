@@ -2,10 +2,12 @@
 package sessions
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // Commander executes tmux commands, optionally accepting configuration on stdin.
@@ -13,7 +15,9 @@ type Commander func(args []string, input string) (string, error)
 
 // Tmux executes the installed tmux client.
 func Tmux(args []string, input string) (string, error) {
-	cmd := exec.Command("tmux", args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "tmux", args...)
 	cmd.Stdin = strings.NewReader(input)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

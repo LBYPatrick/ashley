@@ -9,7 +9,7 @@ Honor explicit user language/framework choices. For existing projects, follow th
 2. **Python** for machine learning or data analytics when the user can tolerate lower runtime performance. Do not assume that tolerance when performance requirements are strict or unknown.
 3. **Go** for all other backend cases, including performance-sensitive ML/data services that do not meet the Rust condition.
 
-For a new web frontend with no framework specified, use **Vue + TypeScript + Vite**. A request for TypeScript alone does not imply React. Use React + TypeScript when explicitly requested or already established in the project. Keep the Vue and React stack references available, and apply only the matching framework guidance.
+For a new web frontend with no framework specified, use **Vue + TypeScript**. Follow the Web Frontend Tooling rules for Vite+, the pnpm fallback, and Oxlint. A request for TypeScript alone does not imply React. Use React + TypeScript when explicitly requested or already established in the project. Keep the Vue and React stack references available, and apply only the matching framework guidance.
 
 ## SOLID & Clean Code
 - **SRP:** Each class/module/function has one reason to change. Split multi-purpose functions.

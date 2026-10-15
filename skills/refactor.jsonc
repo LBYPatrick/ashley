@@ -5,6 +5,8 @@
   "name": "a-refactor",
   "description": "Refactor given scope (or current folder) for quality, readability, and performance based on coding guidelines. Use when user says \"refactor\", \"clean up\", \"restructure\", or wants code quality improvements.",
   "components": [
+    "components/guidelines-wording.md",
+    "components/guidelines-web.md",
     "components/guidelines-coding.md",
     "components/guidelines-style-google.md",
     "components/quality-assurance.md",

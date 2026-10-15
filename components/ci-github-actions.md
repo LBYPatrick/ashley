@@ -12,13 +12,16 @@ Ensure the project Makefile has these CI-relevant targets (create them if missin
 
 If these targets don't exist, compose them based on the detected stack:
 - **Python:** `ruff check . && ruff format --check .` for format-check, `pytest` for test.
-- **TypeScript:** `pnpm exec prettier --check "src/**/*.{ts,tsx}" && pnpm exec eslint .` for format-check, `pnpm test` for test.
+- **Web frontends:** Follow Web Frontend Tooling. Use `vp check` with Vite+. With the pnpm fallback, use Prettier checks and `pnpm exec oxlint .`. Run the configured test task and framework type checks.
+- **Non-web TypeScript:** Keep the configured formatter, linter, and test commands. Use the project's package manager.
 - **Go:** `gofmt -l . | grep . && exit 1` for format-check, `go test ./...` for test.
 - **Rust:** `cargo fmt -- --check` for format-check, `cargo test` for test.
 
 ## GitHub Actions Workflow
 
 Check for `.github/workflows/` directory. If no CI workflow exists, create `.github/workflows/ci.yml`:
+
+The Node.js steps below show the pnpm fallback. For a Vite+ project, use the [Vite+ CI guide](https://www.viteplus.dev/guide/ci). Install from the existing lockfile, run `vp check`, and keep required test and framework checks.
 
 ```yaml
 name: CI
@@ -90,9 +93,10 @@ If the project has **no test framework configured**, set one up:
 - Add `make test` target: `uv run pytest --cov=<package> --cov-report=term-missing`.
 
 ### TypeScript
-- Install `vitest` (preferred) or `jest`: `pnpm add -D vitest`.
+- Use the integrated Vitest runner for Vite+ projects. Do not add a second test runner when the integrated runner meets the requirements.
+- With the pnpm fallback, install `vitest` (preferred) or `jest`: `pnpm add -D vitest`.
 - Create a test file alongside source (e.g., `src/utils/__tests__/helper.test.ts`).
-- Add `"test": "vitest run"` to `package.json` scripts and `make test` target: `pnpm test`.
+- Connect the test task to `make test`. Use `vp run test` for a configured Vite+ task or `pnpm test` with the fallback.
 
 ### Go
 - Tests are built-in. Create `*_test.go` files. `make test` target: `go test -race -coverprofile=coverage.out ./...`.

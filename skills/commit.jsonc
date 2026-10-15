@@ -4,6 +4,7 @@
   "name": "a-commit",
   "description": "Stage, format, and commit changes with a conventional (commitizen) commit message, then optionally push",
   "components": [
+    "components/guidelines-wording.md",
     "components/commit-staging.md",
     "components/commit-message.md",
     "components/changelog-update.md",

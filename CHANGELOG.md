@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-15
+
+### Added
+
+- Show filled circles for active sessions and empty circles for finished sessions. Keep time since session creation visible in short terminals.
+- Add visible Kill all and Clean dead controls, mouse actions, and a `D` cleanup shortcut. Expose both actions in the command palette.
+
+### Changed
+
+- Require ASD-STE100 wording for documentation and messages to the user in all built-in skills.
+- Prefer Vite+ for new web tooling, with pnpm as the fallback. Use Oxlint with both paths and retain required framework checks.
+
+### Fixed
+
+- Keep session navigation responsive by loading status and previews in the background. Batch status queries and discard previews for a different selection.
+- Keep useful output when a timer refresh arrives during a slow read. Limit tmux command duration and prevent negative elapsed times.
+- Correct cleanup descriptions to state that logs are retained. Correct the generated a-rebase skill's YAML description.
+
 ## [1.4.0] - 2026-10-06
 
 ### Added

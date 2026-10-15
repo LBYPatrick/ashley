@@ -29,6 +29,7 @@ import (
 // Options supplies application data and an optional custom repository.
 type Options struct {
 	Catalog            skills.Catalog
+	Sessions           *sessions.Manager
 	Home, Root, Screen string
 	Execute            func([]string) tea.Cmd
 	Background         func(context.Context, []string) (string, error)
@@ -41,6 +42,11 @@ var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
+	pendingCommands                     []tea.Cmd
+	sessionBusy                         bool
+	sessionRequest                      uint64
+	sessionStatusesDirty                bool
+	sessionLogID                        string
 	terminalOutput                      io.Writer
 	rename                              *nameEditor
 	runName                             string
@@ -137,6 +143,9 @@ func (m *Model) prefs() config.Store {
 	return config.Store{Dir: filepath.Join(m.options.Home, ".ashley")}
 }
 func (m *Model) manager() sessions.Manager {
+	if m.options.Sessions != nil {
+		return *m.options.Sessions
+	}
 	return sessions.Manager{Dir: filepath.Join(m.options.Home, ".ashley", "sessions")}
 }
 func (m *Model) db() (*history.Store, error) {
@@ -174,7 +183,7 @@ func (m *Model) refresh() {
 		}
 		sort.SliceStable(m.names, func(i, j int) bool { return skillRank(m.names[i], query) < skillRank(m.names[j], query) })
 	case "sessions":
-		m.sessionAlive = nil
+		m.sessionStatusesDirty = true
 		rows, err := m.manager().All()
 		if err != nil {
 			m.status = err.Error()
@@ -227,6 +236,11 @@ func (m *Model) updatePreview() {
 	if m.screen == "sessions" {
 		m.refreshSessionDetails()
 	}
+	m.setPreviewContent()
+	m.preview.GotoTop()
+}
+
+func (m *Model) setPreviewContent() {
 	l := m.layout()
 	m.preview.Width = l.detail.w
 	m.preview.Height = l.detail.h
@@ -235,12 +249,17 @@ func (m *Model) updatePreview() {
 		m.preview.Height = detail.h
 	}
 	m.preview.SetContent(ansi.Wrap(m.detailText(), max(1, l.detail.w), ""))
-	m.preview.GotoTop()
 }
 
 // Init starts periodic session refreshes.
 func (m *Model) Init() tea.Cmd {
-	return tea.Tick(3*time.Second, func(t time.Time) tea.Msg { return tick(t) })
+	return tea.Batch(tea.Tick(3*time.Second, func(t time.Time) tea.Msg { return tick(t) }), m.takeCommands())
+}
+
+func (m *Model) takeCommands() tea.Cmd {
+	commands := m.pendingCommands
+	m.pendingCommands = nil
+	return tea.Batch(commands...)
 }
 func (m *Model) execute(args ...string) tea.Cmd {
 	if m.options.Execute != nil {
@@ -308,9 +327,13 @@ func (m *Model) open(screen string) {
 }
 
 // Update handles navigation, editable fields, and screen-specific actions.
-func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
+	defer func() { command = tea.Batch(command, m.takeCommands()) }()
 	message = extendedKey(message)
 	switch msg := message.(type) {
+	case sessionDetailsLoaded:
+		m.acceptSessionDetails(msg)
+		return m, nil
 	case clipboardSent:
 		m.status = "Clipboard request sent to your terminal"
 		return m, nil
@@ -570,6 +593,10 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.refresh()
 			}
+		case "D":
+			if m.screen == "sessions" {
+				m.requestConfirmation("cleanup")
+			}
 		case "c", "l", "K", "X", "d":
 			if m.screen == "hub" && key == "c" && len(m.recent) > 0 {
 				return m, m.execute("history", "resume", fmt.Sprint(m.recent[0].ID))
@@ -631,6 +658,9 @@ func (m *Model) activate() tea.Cmd {
 		}
 	case "sessions":
 		if len(m.sessionRows) > 0 {
+			if _, known := m.sessionAlive[m.sessionRows[m.cursor].ID]; !known {
+				return nil
+			}
 			if !m.sessionAlive[m.sessionRows[m.cursor].ID] {
 				return m.recordAction("l")
 			}

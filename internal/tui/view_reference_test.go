@@ -96,6 +96,7 @@ func TestOriginalInformationPanelsAndIndependentLogScroll(t *testing.T) {
 	m.options.Screen = "sessions"
 	m.sessionRows = []sessions.Session{{ID: "uitest123", Skill: "feat", Question: "Investigate missing details", StartedAt: "2026-09-08T00:00:00Z", CWD: "/workspace/example", PermissionMode: "auto", Agent: "codex", TmuxSession: "ashley-ui-test-nonexistent", LogFile: log}}
 	m.updatePreview()
+	finishSessionReads(t, m)
 	for _, field := range []string{"Session uitest123", "Status:", "Question:", "Started:", "Elapsed:", "Directory:", "Permission:", "tmux:", "Log:", "Recent output", "first log line"} {
 		if !strings.Contains(ansi.Strip(m.View()), field) {
 			t.Fatal("missing session information", field)
@@ -151,6 +152,7 @@ func TestSessionRefreshPreservesSelectionAndScroll(t *testing.T) {
 	}
 	os.WriteFile(session.LogFile, []byte(strings.Repeat("line\n", 30)), 0600)
 	m.open("sessions")
+	finishSessionReads(t, m)
 	m.preview.SetYOffset(2)
 	m.logOffset = 4
 	newer := session

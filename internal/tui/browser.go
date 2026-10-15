@@ -48,11 +48,13 @@ func (m *Model) browserView(f *frame, a appearance) {
 		heading, hint = "Activity · Sessions", "t History   r Refresh   s Sort"
 		for _, s := range m.sessionRows {
 			state := "Finished"
-			if m.sessionAlive[s.ID] {
+			if alive, known := m.sessionAlive[s.ID]; !known {
+				state = "Checking"
+			} else if alive {
 				state = "Running"
 			}
 			titles = append(titles, taskTitle(s.Skill, s.Question, s.Name))
-			subtitles = append(subtitles, state+" · "+s.Skill+" · "+s.Elapsed(time.Now()))
+			subtitles = append(subtitles, state+" · "+s.Skill)
 		}
 	case "history":
 		heading = fmt.Sprintf("History (%d)", m.total)
@@ -83,6 +85,9 @@ func (m *Model) browserView(f *frame, a appearance) {
 		} else {
 			f.put(l.left.x, l.left.y+1, a.muted.Render(ansi.Truncate(hint, l.left.w, "…")))
 		}
+		for _, control := range m.sessionActionControls() {
+			f.put(control.x, control.y, a.panel.Render(" "+control.label+" "))
+		}
 		visible := m.visibleRows()
 		start := max(0, m.cursor-visible+1)
 		for i := start; i < min(len(titles), start+visible); i++ {
@@ -91,8 +96,20 @@ func (m *Model) browserView(f *frame, a appearance) {
 				style, marker = a.selected, "› "
 			}
 			y := l.list.y + (i-start)*m.rowHeight()
-			label := ansi.Truncate(marker+titles[i], l.list.w, "…")
-			f.put(l.list.x, y, style.Render(label+strings.Repeat(" ", max(0, l.list.w-ansi.StringWidth(label)))))
+			title, titleWidth, suffix := titles[i], l.list.w, ""
+			if m.screen == "sessions" {
+				indicator := "○ "
+				if alive, known := m.sessionAlive[m.sessionRows[i].ID]; !known {
+					indicator = "? "
+				} else if alive {
+					indicator = "● "
+				}
+				title = indicator + title
+				suffix = " " + m.sessionRows[i].Elapsed(time.Now())
+				titleWidth -= ansi.StringWidth(suffix)
+			}
+			label := ansi.Truncate(marker+title, titleWidth, "…")
+			f.put(l.list.x, y, style.Render(label+strings.Repeat(" ", max(0, titleWidth-ansi.StringWidth(label)))+suffix))
 			if m.rowHeight() > 1 && i < len(subtitles) {
 				f.put(l.list.x+2, y+1, a.muted.Render(ansi.Truncate(subtitles[i], l.list.w-2, "…")))
 			}

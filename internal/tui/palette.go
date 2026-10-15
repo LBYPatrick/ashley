@@ -20,7 +20,9 @@ func (m *Model) paletteItems() [][2]string {
 	var items [][2]string
 	commands := append([][2]string{}, paletteCommands...)
 	if m.screen == "sessions" {
-		commands = append(commands, [2]string{"Clean finished sessions", "Remove finished session records and logs"})
+		commands = append(commands,
+			[2]string{"Kill all sessions", "Stop all Ashley sessions and keep their logs"},
+			[2]string{"Clean finished sessions", "Remove finished session records and keep their logs"})
 	}
 	for _, item := range commands {
 		if strings.Contains(strings.ToLower(item[0]+" "+item[1]), strings.ToLower(m.paletteQuery)) {
@@ -84,6 +86,8 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		choice := items[m.paletteCursor][0]
 		m.paletteOpen = false
 		switch choice {
+		case "Kill all sessions":
+			m.requestConfirmation("X")
 		case "Clean finished sessions":
 			m.requestConfirmation("cleanup")
 		case "Quit":
@@ -108,7 +112,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 				m.helpPreview = m.preview
 				m.helpLogContent = m.logContent
 			}
-			m.logContent = "Keyboard shortcuts\n\nCtrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library · Ctrl+5 Settings\nCtrl+P commands · ? help · Esc back · Ctrl+C quit\n\nNew run\nWrite a multiline task. Ctrl+R starts the conversation.\nCtrl+S chooses a skill; Ctrl+D removes it.\nTab moves through task, agent, permissions, and Start.\nEnter changes an option; Enter in the task inserts a newline.\n\nSkill browser\n/ searches · Enter selects · PgUp/PgDn previews\nV shows details on narrow terminals · I shows metadata\n\nActivity\nT switches Sessions and History · Enter attaches or resumes\nI toggles the inspector · L opens a session log\nR refreshes · S sorts sessions · C copies the session ID\nK stops one session · X stops all · D deletes a record\nN/P change history pages · / searches history\n\nLibrary\nBrowse your skills, create a workflow, or sync installed skills.\nChoose Find or Add to discover community skills.\n\nCreator\nCtrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\n\nSettings\nArrows or Tab/Shift+Tab move · Enter selects\nChanges save automatically. Esc returns Home."
+			m.logContent = "Keyboard shortcuts\n\nCtrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library · Ctrl+5 Settings\nCtrl+P commands · ? help · Esc back · Ctrl+C quit\n\nNew run\nWrite a multiline task. Ctrl+R starts the conversation.\nCtrl+S chooses a skill; Ctrl+D removes it.\nTab moves through task, agent, permissions, and Start.\nEnter changes an option; Enter in the task inserts a newline.\n\nSkill browser\n/ searches · Enter selects · PgUp/PgDn previews\nV shows details on narrow terminals · I shows metadata\n\nActivity\nT switches Sessions and History · Enter attaches or resumes\nI toggles the inspector · L opens a session log\nR refreshes · S sorts sessions · C copies the session ID\nK stops one session · X stops all\nD cleans finished records and keeps logs · d deletes a record\nN/P change history pages · / searches history\n\nLibrary\nBrowse your skills, create a workflow, or sync installed skills.\nChoose Find or Add to discover community skills.\n\nCreator\nCtrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\n\nSettings\nArrows or Tab/Shift+Tab move · Enter selects\nChanges save automatically. Esc returns Home."
 			m.sizeLogPreview()
 			m.preview.GotoTop()
 			m.screen = "help"

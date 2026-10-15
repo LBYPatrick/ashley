@@ -80,6 +80,23 @@ func TestShellQuotingAndPromptFiles(t *testing.T) {
 		t.Fatal("question executed")
 	}
 }
+
+func TestElapsed(t *testing.T) {
+	now := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
+	for _, test := range []struct{ started, want string }{
+		{"2026-10-15T11:59:15Z", "45s"},
+		{"2026-10-15T11:57:30Z", "2m 30s"},
+		{"2026-10-15T09:55:00Z", "2h 5m"},
+		{"2026-10-15T11:59:15", "45s"},
+		{"2026-10-15T12:01:00Z", "0s"},
+		{"invalid", "?"},
+	} {
+		s := Session{StartedAt: test.started}
+		if got := s.Elapsed(now); got != test.want {
+			t.Errorf("Elapsed(%q) = %q, want %q", test.started, got, test.want)
+		}
+	}
+}
 func TestRealSessionLifecycle(t *testing.T) {
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("tmux not installed")

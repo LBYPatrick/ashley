@@ -101,6 +101,77 @@ func TestTemplatePythonParity(t *testing.T) {
 	}
 }
 
+func TestBundledSkillsIncludeWordingRulesOnce(t *testing.T) {
+	const component = "components/guidelines-wording.md"
+	for _, source := range []fs.FS{ashley.Assets, os.DirFS("../..")} {
+		catalog := skills.Catalog{Source: source}
+		names, err := catalog.Names()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rules, err := fs.ReadFile(source, component)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range names {
+			def, err := catalog.Load(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			count := 0
+			for _, path := range def.Components {
+				if path == component {
+					count++
+				}
+			}
+			if count != 1 {
+				t.Errorf("%s resolves %d wording components, want 1", name, count)
+			}
+			result, err := catalog.Assemble(name, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Count(result.Content, string(rules)) != 1 {
+				t.Errorf("%s does not contain exactly one complete wording component", name)
+			}
+		}
+	}
+}
+
+func TestWebToolingComponentScope(t *testing.T) {
+	const component = "components/guidelines-web.md"
+	want := map[string]bool{}
+	for _, name := range strings.Fields("brainstorm ci claudemd coding debug feat optimize pretty refactor scaffold") {
+		want[name] = true
+	}
+	for _, source := range []fs.FS{ashley.Assets, os.DirFS("../..")} {
+		catalog := skills.Catalog{Source: source}
+		names, err := catalog.Names()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range names {
+			def, err := catalog.Load(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			count := 0
+			for _, path := range def.Components {
+				if path == component {
+					count++
+				}
+			}
+			expected := 0
+			if want[name] {
+				expected = 1
+			}
+			if count != expected {
+				t.Errorf("%s resolves %d web tooling components, want %d", name, count, expected)
+			}
+		}
+	}
+}
+
 func TestCustomPythonParity(t *testing.T) {
 	f := loadFixtures(t)
 	source := fstest.MapFS{}

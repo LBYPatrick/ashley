@@ -406,6 +406,18 @@ history conversation. `I` opens the technical inspector. Narrow terminals use
 a single list; `V` opens details and Esc returns to the list. Stop and delete
 actions require confirmation, with Cancel selected by default.
 
+Each session row shows `●` for an active session or `○` for a finished or inactive session.
+The elapsed time appears at the right and measures time since session creation,
+including for finished sessions. Short terminals keep both the symbol and elapsed
+time visible. `?` means that the first status check is still in progress.
+
+Status checks and output previews run in the background so that cursor moves do
+not wait for a backend command. Each refresh uses at most one status query for each backend.
+
+Use **X Kill all** and **D Clean dead** above the session list, or press `X` and `D`.
+Cleanup removes finished session records and keeps their logs. Both actions are
+also in the `Ctrl+P` command palette.
+
 Open **Library** from Home or the `Ctrl+P` command palette. Select an action
 with arrows and Enter; Find and Add accept a search term or repository/URL.
 Add, List, and Remove operate on globally installed skills. Native Skills prompts
@@ -651,9 +663,11 @@ background, just like `--detached`.
 | s | Cycle sort (newest / skill) |
 | K | Kill session |
 | X | Kill all running sessions |
+| D | Clean finished session records; keep their logs |
 | d | Delete record |
 | r | Refresh |
-| Ctrl+P → Clean finished sessions | Confirm removal of finished session records and logs |
+| Ctrl+P → Kill all sessions | Stop all running sessions and keep their logs |
+| Ctrl+P → Clean finished sessions | Confirm removal of finished session records; keep their logs |
 
 ---
 
@@ -777,8 +791,14 @@ directly, without a generated copy. Build outputs (`build/`, `dist/`, and
 For new projects without an explicit stack, coding guidance selects Rust for
 edge workloads requiring extreme performance, Python for ML/data analytics when
 lower runtime performance is acceptable, and Go otherwise. Web frontends default
-to Vue + TypeScript + Vite. Explicit choices and existing stacks take precedence;
+to Vue + TypeScript. Explicit choices and existing stacks take precedence;
 both Vue and React component references remain bundled.
+
+For new JavaScript and TypeScript web tooling, try [Vite+](https://www.viteplus.dev/guide/)
+first. Use pnpm when Vite+ cannot meet the project requirements.
+[Oxlint](https://oxc.rs/docs/guide/usage/linter.html) is the primary web linter in
+both paths. Keep required framework checks and use ESLint only for required rules
+that Oxlint cannot run. The Vue, React, formatter, and CI components share these rules.
 
 Coding guidance prefers Go for new standalone test scripts and one-shot
 automation while retaining each project's native unit-test framework. Backend
@@ -789,6 +809,11 @@ covers `gofmt`, optional `goimports`, and `go vet` alongside the Python and
 TypeScript tooling.
 
 Skills are JSONC files referencing reusable components and code resources. The generator assembles them into self-contained markdown prompts with all resources inlined. Project detection provides tech stack context to Jinja2 templates for conditional content.
+
+All built-in skills require [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/)
+for documentation and messages to the user. This includes progress reports and
+completion reports. The shared rules keep technical terms consistent and preserve
+exact code, commands, and identifiers.
 
 ---
 

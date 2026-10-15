@@ -3,8 +3,9 @@
   // Cleans up branch history by squashing/merging related commits, reformatting
   // messages to Conventional Commits, and force-pushing the tidied branch.
   "name": "a-rebase",
-  "description": "Clean up branch commits: squash related changes, reformat messages to Conventional Commits, and force-push. Use when user says \"rebase\", \"clean up commits\", \"squash\", or wants tidy PR history.",
+  "description": "Clean up branch commits. Squash related changes, reformat messages to Conventional Commits, and force-push. Use when user says \"rebase\", \"clean up commits\", \"squash\", or wants tidy PR history.",
   "components": [
+    "components/guidelines-wording.md",
     "components/commit-message.md"
   ],
   "resources": [],

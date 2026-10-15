@@ -4,6 +4,8 @@
   "name": "a-pretty",
   "description": "Set up formatter and linter tooling for the project",
   "components": [
+    "components/guidelines-wording.md",
+    "components/guidelines-web.md",
     "components/guidelines-installing.md",
     "components/formatter-python.md",
     "components/formatter-go.md",
@@ -24,7 +26,7 @@
         "name": "Detect Language and Existing Tooling",
         "instructions": [
           "Read project files to identify the primary language(s).",
-          "Check for existing formatter/linter configs (ruff.toml, .prettierrc, eslint.config.js, etc.).",
+          "Check for existing formatter and linter settings, including Vite+, Oxlint, ruff, Prettier, and ESLint.",
           "Check for existing tidy.sh or Makefile format targets."
         ],
         "validation": "Report detected language and existing tooling before proceeding."
@@ -32,7 +34,7 @@
       {
         "name": "Install Tools",
         "instructions": [
-          "Based on the detected language: **Go** — use bundled gofmt and go vet, preserving any configured goimports or golangci-lint; **Python** — set up ruff and uv-sort; **TypeScript/JavaScript** — set up Prettier and ESLint v9+; **Other** — research and install appropriate tools.",
+          "For Go, use gofmt and go vet. For Python, use ruff and uv-sort. For web frontends, follow Web Frontend Tooling and use Oxlint. For non-web TypeScript, keep the established tools or use the non-web setup reference. Research appropriate tools for other languages.",
           "Create `scripts/install-formatter.sh` — installs all formatter/linter tools."
         ],
         "validation": "Verify the tools are installed and accessible via command line."
