@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Prefer WeasyPrint for PDF deliverables. Install it when needed and inspect the rendered pages before delivery.
+- Rename `a-claudemd` to `a-agentsmd`. Generate project instructions in `AGENTS.md`.
+
+### Fixed
+
+- Send shared wording and PDF rules directly to agents for skill launches, including installed skill triggers.
+
 ## [1.5.0] - 2026-10-15
 
 ### Added

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	ashley "github.com/LBYPatrick/ashley"
 	"github.com/LBYPatrick/ashley/internal/agents"
@@ -196,5 +197,80 @@ func TestEveryInstallRegeneratesAndLogsAllStages(t *testing.T) {
 		if strings.Count(text, action) != 28 {
 			t.Fatal("incomplete agent log", text)
 		}
+	}
+}
+
+func TestAgentsmdRenameRemovesOnlyManagedLegacyLinks(t *testing.T) {
+	for _, kind := range []string{"managed", "unrelated link", "custom directory"} {
+		t.Run(kind, func(t *testing.T) {
+			i := Installer{Home: t.TempDir(), Getenv: func(string) string { return "" }, Catalog: skills.Catalog{Source: ashley.Assets}}
+			legacyPackage := filepath.Join(i.generated(), "a-claudemd")
+			if err := os.MkdirAll(legacyPackage, 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(legacyPackage, "SKILL.md"), []byte("legacy instructions"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			for _, key := range agents.Keys() {
+				if err := os.MkdirAll(i.directory(key), 0700); err != nil {
+					t.Fatal(err)
+				}
+				old := filepath.Join(i.directory(key), "a-claudemd")
+				target := legacyPackage
+				if kind == "unrelated link" {
+					target = t.TempDir()
+				}
+				var err error
+				if kind == "custom directory" {
+					err = os.Mkdir(old, 0700)
+				} else {
+					err = os.Symlink(target, old)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			result, err := i.Install(agents.Keys())
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantRemoved := 0
+			if kind == "managed" {
+				wantRemoved = len(agents.Keys())
+			}
+			if result.Removed != wantRemoved || result.Installed != 14*len(agents.Keys()) {
+				t.Fatal(result)
+			}
+			for _, key := range agents.Keys() {
+				_, err := os.Lstat(filepath.Join(i.directory(key), "a-claudemd"))
+				if kind == "managed" && !os.IsNotExist(err) || kind != "managed" && err != nil {
+					t.Fatal("wrong legacy link handling", key, kind, err)
+				}
+				data, err := os.ReadFile(filepath.Join(i.directory(key), "a-agentsmd", "SKILL.md"))
+				if err != nil || !strings.Contains(string(data), "Generate AGENTS.md") {
+					t.Fatal("renamed skill unavailable", key, err)
+				}
+			}
+			if data, err := os.ReadFile(filepath.Join(legacyPackage, "SKILL.md")); err != nil || string(data) != "legacy instructions" {
+				t.Fatal("legacy source was modified", err)
+			}
+			// Another refresh must not rediscover the retained legacy package.
+			if result, err := i.Install(agents.Keys()); err != nil || result.Removed != 0 || result.Installed+result.Skipped != 14*len(agents.Keys()) {
+				t.Fatal(result, err)
+			}
+		})
+	}
+}
+
+func TestAgentsmdRenameRetainsExplicitCustomLegacyDefinition(t *testing.T) {
+	source := skills.Overlay{User: fstest.MapFS{"skills/claudemd.jsonc": {Data: []byte(`{"name":"a-claudemd","description":"Custom legacy skill","output":"generated/a-claudemd/SKILL.md","preamble":"Keep custom instructions."}`)}}, Base: ashley.Assets}
+	i := Installer{Home: t.TempDir(), Getenv: func(string) string { return "" }, Catalog: skills.Catalog{Source: source}}
+	result, err := i.Install([]string{"codex"})
+	if err != nil || result.Installed != 15 || result.Removed != 0 {
+		t.Fatal(result, err)
+	}
+	data, err := os.ReadFile(filepath.Join(i.directory("codex"), "a-claudemd", "SKILL.md"))
+	if err != nil || !strings.Contains(string(data), "Keep custom instructions.") {
+		t.Fatal("explicit custom skill lost", err)
 	}
 }

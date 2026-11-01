@@ -319,7 +319,10 @@ built-in catalog remains available through `ash list` and `ash install`.
 | `a-ci` | Set up or fix CI pipeline |
 | `a-readme` | Write a polished README |
 | `a-changelog` | Create or update CHANGELOG.md |
-| `a-claudemd` | Generate project CLAUDE.md guidelines |
+| `a-agentsmd` | Generate project AGENTS.md guidelines |
+
+`a-agentsmd` replaces `a-claudemd` and writes `AGENTS.md`. It can use an existing
+`CLAUDE.md` as a reference when `AGENTS.md` does not exist.
 
 ---
 
@@ -814,6 +817,17 @@ All built-in skills require [ASD-STE100 Simplified Technical English](https://ww
 for documentation and messages to the user. This includes progress reports and
 completion reports. The shared rules keep technical terms consistent and preserve
 exact code, commands, and identifiers.
+
+Ashley also sends the shared wording and PDF rules directly to each agent for
+skill launches, including installed skill triggers. Raw and resumed sessions
+receive no added output rules. Prompt delivery does not prove full ASD-STE100
+compliance.
+
+For PDF deliverables, use WeasyPrint first. Install it when needed, using the
+[official platform instructions](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation).
+Check the generated pages before delivery. Use another tool when a required
+feature, installation failure, or explicit user choice requires it. Existing PDF
+operations, such as merging or OCR, can use suitable tools.
 
 ---
 

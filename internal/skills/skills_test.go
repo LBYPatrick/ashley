@@ -101,8 +101,14 @@ func TestTemplatePythonParity(t *testing.T) {
 	}
 }
 
-func TestBundledSkillsIncludeWordingRulesOnce(t *testing.T) {
-	const component = "components/guidelines-wording.md"
+func TestBundledSkillsIncludeOutputRulesOnce(t *testing.T) {
+	for _, component := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md"} {
+		t.Run(component, func(t *testing.T) { testBundledComponentOnce(t, component) })
+	}
+}
+
+func testBundledComponentOnce(t *testing.T, component string) {
+	t.Helper()
 	for _, source := range []fs.FS{ashley.Assets, os.DirFS("../..")} {
 		catalog := skills.Catalog{Source: source}
 		names, err := catalog.Names()
@@ -125,14 +131,14 @@ func TestBundledSkillsIncludeWordingRulesOnce(t *testing.T) {
 				}
 			}
 			if count != 1 {
-				t.Errorf("%s resolves %d wording components, want 1", name, count)
+				t.Errorf("%s resolves %d instances of %s, want 1", name, count, component)
 			}
 			result, err := catalog.Assemble(name, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if strings.Count(result.Content, string(rules)) != 1 {
-				t.Errorf("%s does not contain exactly one complete wording component", name)
+				t.Errorf("%s does not contain exactly one complete %s", name, component)
 			}
 		}
 	}
@@ -141,7 +147,7 @@ func TestBundledSkillsIncludeWordingRulesOnce(t *testing.T) {
 func TestWebToolingComponentScope(t *testing.T) {
 	const component = "components/guidelines-web.md"
 	want := map[string]bool{}
-	for _, name := range strings.Fields("brainstorm ci claudemd coding debug feat optimize pretty refactor scaffold") {
+	for _, name := range strings.Fields("brainstorm ci agentsmd coding debug feat optimize pretty refactor scaffold") {
 		want[name] = true
 	}
 	for _, source := range []fs.FS{ashley.Assets, os.DirFS("../..")} {

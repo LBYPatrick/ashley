@@ -2,11 +2,13 @@ package invocation
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	ashley "github.com/LBYPatrick/ashley"
 	"github.com/LBYPatrick/ashley/internal/agents"
@@ -38,8 +40,12 @@ func TestInstalledAndInlineAllAgents(t *testing.T) {
 			if !strings.Contains(joined, afkAddendum) {
 				t.Fatal("missing autonomous instructions")
 			}
+			assertOutputRules(t, b, v)
 			if installed && !strings.Contains(joined, agents.Trigger(key, "feat", "add login")) {
 				t.Fatal(joined)
+			}
+			if installed && !strings.HasPrefix(v.Args[len(v.Args)-1], agents.Trigger(key, "feat", "add login")) {
+				t.Fatal("native skill trigger must start the user prompt", v.Args)
 			}
 			if !installed && !strings.Contains(joined, "add login") {
 				t.Fatal(joined)
@@ -149,5 +155,53 @@ func TestResumeDoesNotReplayPrompt(t *testing.T) {
 	b := builder(t)
 	if _, err := b.Build(Options{Agent: "codex", Skill: "raw", ResumeID: "../bad"}); err == nil {
 		t.Fatal("accepted invalid ID")
+	}
+}
+
+func assertOutputRules(t *testing.T, b Builder, v Invocation) {
+	t.Helper()
+	args := slices.Clone(v.Args)
+	for i, arg := range args {
+		if strings.HasPrefix(arg, sessions.PromptFileMarker) {
+			data, err := os.ReadFile(strings.TrimPrefix(arg, sessions.PromptFileMarker))
+			if err != nil {
+				t.Fatal(err)
+			}
+			args[i] = string(data)
+		}
+	}
+	rules, err := b.outputRules()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range rules {
+		if count := strings.Count(strings.Join(args, "\n"), rule); count != 1 {
+			t.Fatalf("want one complete output rule, got %d: %q", count, args)
+		}
+	}
+}
+
+func TestOutputRulesCustomCatalogAndReadFailure(t *testing.T) {
+	b := builder(t)
+	path := filepath.Join(agents.SkillsDir("codex", b.Home, b.Getenv), "a-coding")
+	if err := os.MkdirAll(path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("custom"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	b.Catalog.Source = fstest.MapFS{"components/guidelines-wording.md": {Data: []byte("Use the custom writing rules.")}}
+	v, err := b.Build(Options{Agent: "codex", Skill: "coding", Question: "Create a PDF"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertOutputRules(t, b, v)
+	if !strings.Contains(strings.Join(v.Args, "\n"), "Use the custom writing rules.") {
+		t.Fatal("custom rules ignored")
+	}
+	// Missing custom components fall back; unreadable components must fail.
+	b.Catalog.Source = fstest.MapFS{"components/guidelines-wording.md": {Mode: fs.ModeDir}}
+	if _, err := b.Build(Options{Agent: "codex", Skill: "coding"}); err == nil {
+		t.Fatal("unreadable output rules ignored")
 	}
 }

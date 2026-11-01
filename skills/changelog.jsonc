@@ -6,6 +6,7 @@
   "description": "Create or update CHANGELOG.md following Keep a Changelog format. Use when user says \"changelog\", \"release notes\", \"what changed\", or wants to document changes.",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/changelog-update.md"
   ],
   "resources": [],

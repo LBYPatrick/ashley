@@ -5,6 +5,7 @@
   "description": "Set up formatter and linter tooling for the project",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/guidelines-web.md",
     "components/guidelines-installing.md",
     "components/formatter-python.md",

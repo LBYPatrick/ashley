@@ -6,6 +6,7 @@
   "description": "Clean up branch commits. Squash related changes, reformat messages to Conventional Commits, and force-push. Use when user says \"rebase\", \"clean up commits\", \"squash\", or wants tidy PR history.",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/commit-message.md"
   ],
   "resources": [],

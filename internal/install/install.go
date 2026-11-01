@@ -160,6 +160,11 @@ func (i Installer) Materialize() ([]string, error) {
 		if !entry.IsDir() || slices.Contains(installed, entry.Name()) {
 			continue
 		}
+		// Keep the old package on disk, but do not reinstall the retired skill.
+		// An explicit custom definition can still retain the old name.
+		if entry.Name() == "a-claudemd" && slices.Contains(installed, "a-agentsmd") {
+			continue
+		}
 		if info, err := os.Stat(filepath.Join(root, entry.Name(), "SKILL.md")); err == nil && info.Mode().IsRegular() {
 			installed = append(installed, entry.Name())
 		}
@@ -258,6 +263,16 @@ func (i Installer) Install(keys []string) (Result, error) {
 		directory := i.directory(key)
 		if err := os.MkdirAll(directory, 0755); err != nil {
 			return result, err
+		}
+		if slices.Contains(names, "a-agentsmd") && !slices.Contains(names, "a-claudemd") {
+			old := filepath.Join(directory, "a-claudemd")
+			if i.owned(old) {
+				if err := os.Remove(old); err != nil {
+					return result, err
+				}
+				i.logf("Removed renamed skill link: %s", old)
+				result.Removed++
+			}
 		}
 		for _, name := range names {
 			path := filepath.Join(directory, name)

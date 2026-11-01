@@ -5,6 +5,7 @@
   "description": "Write a polished README for the project",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/readme-template.md",
     "components/readme-update.md"
   ],

@@ -1,12 +1,13 @@
 {
-  // Skill: claudemd
-  // Generates or updates a project-level CLAUDE.md with concise, stack-specific
+  // Skill: agentsmd
+  // Generates or updates a project-level AGENTS.md with concise, stack-specific
   // development guidelines. Analyzes the project first, then selectively distills
   // knowledge from reference components into a tailored file.
-  "name": "a-claudemd",
-  "description": "Generate or update a project's CLAUDE.md with tailored development guidelines (commit conventions, coding standards, CI, benchmarks). Use when user says \"create CLAUDE.md\", \"setup guidelines\", \"configure Claude Code\", or wants project-level conventions.",
+  "name": "a-agentsmd",
+  "description": "Generate or update a project's AGENTS.md with tailored development guidelines (commit conventions, coding standards, CI, benchmarks). Use when user says \"create AGENTS.md\", \"setup guidelines\", \"configure coding agents\", or wants project-level conventions.",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/guidelines-web.md",
     "components/commit-message.md",
     "components/changelog-update.md",
@@ -23,15 +24,16 @@
     "components/scaffold-makefile.md"
   ],
   "resources": [],
-  "output": "generated/a-claudemd/SKILL.md",
-  "preamble": "You are a project configuration specialist. The user wants you to generate or update a `CLAUDE.md` file that gives Claude Code project-specific development guidelines. You analyze the project's actual tech stack, then selectively distill the relevant reference sections below into a tailored CLAUDE.md — no generic boilerplate. The file MUST stay under 200 lines. Every line should be specific to this project.\n\nThe sections below (after the workflow) are your **knowledge base** — curated best practices for commits, changelogs, coding, quality assurance, formatters, and tech stacks. Do NOT copy them verbatim. Instead, read them, identify which apply to the detected project, and distill the relevant rules into concise, project-specific instructions.\n\nFor **benchmark/performance** sections: require before/after benchmarks with dynamic trial count (capped at 5 min per phase, min 3 trials), full statistics (mean, median, stdev, min, max, p95/p99), and Welch's t-test at alpha=0.05 with confidence scoring based on degrees of freedom (high df>=29, moderate 10-28, low <10).",
+  "output": "generated/a-agentsmd/SKILL.md",
+  "preamble": "You are a project configuration specialist. The user wants you to generate or update an `AGENTS.md` file that gives coding agents project-specific development guidelines. You analyze the project's actual tech stack, then selectively distill the relevant reference sections below into a tailored AGENTS.md — no generic boilerplate. The file MUST stay under 200 lines. Every line should be specific to this project.\n\nThe sections below (after the workflow) are your **knowledge base** — curated best practices for commits, changelogs, coding, quality assurance, formatters, and tech stacks. Do NOT copy them verbatim. Instead, read them, identify which apply to the detected project, and distill the relevant rules into concise, project-specific instructions.\n\nFor **benchmark/performance** sections: require before/after benchmarks with dynamic trial count (capped at 5 min per phase, min 3 trials), full statistics (mean, median, stdev, min, max, p95/p99), and Welch's t-test at alpha=0.05 with confidence scoring based on degrees of freedom (high df>=29, moderate 10-28, low <10).",
   "workflow": {
-    "name": "Generate CLAUDE.md",
+    "name": "Generate AGENTS.md",
     "steps": [
       {
         "name": "Analyze Project",
         "instructions": [
-          "Read the project root: directory structure, config files (package.json, pyproject.toml, Cargo.toml, go.mod, Makefile, etc.), README, and any existing CLAUDE.md.",
+          "Read the project root: directory structure, config files (package.json, pyproject.toml, Cargo.toml, go.mod, Makefile, etc.), README, and any existing AGENTS.md.",
+          "If AGENTS.md does not exist, read an existing CLAUDE.md as a reference. Write the new instructions to AGENTS.md.",
           "Determine: primary language(s), framework(s), package manager, build commands, formatter, linter, test framework, and CI setup.",
           "Check for version files (VERSION, package.json version, pyproject.toml version, etc.).",
           "Check for CHANGELOG.md and its format.",
@@ -43,14 +45,14 @@
           "  - Flutter project → use Flutter Stack reference in addition to the common references.",
           "  - Performance-sensitive project → additionally use the Benchmark Results reference.",
           "  - Project with Makefile → additionally use the Scaffold Makefile reference.",
-          "Note which sections will appear in CLAUDE.md — only those with matching stack or detected tooling."
+          "Note which sections will appear in AGENTS.md — only those with matching stack or detected tooling."
         ],
-        "validation": "Report detected stack, matched reference sections, and which CLAUDE.md sections will be generated."
+        "validation": "Report detected stack, matched reference sections, and which AGENTS.md sections will be generated."
       },
       {
-        "name": "Write CLAUDE.md",
+        "name": "Write AGENTS.md",
         "instructions": [
-          "Generate CLAUDE.md by distilling ONLY the matched reference sections from Step 1.",
+          "Generate AGENTS.md by distilling ONLY the matched reference sections from Step 1.",
           "Every instruction must reference **actual project commands** — never generic placeholders. If you detected `pytest`, write `pytest`. If you detected `pnpm build`, write `pnpm build`.",
           "**Git Workflow**: branch naming (detected from git history), PR expectations. Always include: never commit to main/master directly.",
           "**Commit Messages**: distill from the Commitizen-Style Commit Messages reference below. Include type/scope/summary format, type table, and 1-2 examples using this project's actual module names as scopes.",
@@ -63,36 +65,36 @@
           "**Project Structure** (if 10+ directories): distill from Scaffold Makefile reference if Makefile exists. Brief 5-10 line guide to key directories.",
           "Target 50-150 lines. MUST stay under 200 lines. Distill — don't duplicate."
         ],
-        "validation": "CLAUDE.md written with only relevant sections, all commands are real, content distilled from matched references."
+        "validation": "AGENTS.md written with only relevant sections, all commands are real, content distilled from matched references."
       },
       {
         "name": "Merge with Existing (if updating)",
         "instructions": [
-          "If CLAUDE.md already existed, diff your generated version against the original.",
+          "If AGENTS.md already existed, diff your generated version against the original.",
           "Preserve user-written sections that don't overlap (custom headings, project-specific notes).",
           "For overlapping sections, prefer the user's version if more specific; prefer yours if the user's is generic or outdated.",
-          "If the user's CLAUDE.md was already good, only add missing sections."
+          "If the user's AGENTS.md was already good, only add missing sections."
         ],
-        "validation": "Final CLAUDE.md preserves user customizations and adds missing guidelines."
+        "validation": "Final AGENTS.md preserves user customizations and adds missing guidelines."
       },
       {
         "name": "Verify",
         "instructions": [
-          "Read back the final CLAUDE.md.",
+          "Read back the final AGENTS.md.",
           "Verify: no placeholder text, no sections for unused tech, all commands are real, under 200 lines.",
-          "Verify CLAUDE.md is not in .gitignore."
+          "Verify AGENTS.md is not in .gitignore."
         ],
-        "validation": "CLAUDE.md is correct, concise, stack-specific, and under 200 lines."
+        "validation": "AGENTS.md is correct, concise, stack-specific, and under 200 lines."
       }
     ]
   },
   "checklist": [
     "Project tech stack detected and mapped to reference sections.",
-    "CLAUDE.md distills ONLY the relevant references for this stack.",
+    "AGENTS.md distills ONLY the relevant references for this stack.",
     "All commands reference real project tools (no placeholders).",
     "Commit message conventions included (Conventional Commits with project-specific scopes).",
     "Existing user customizations preserved (if updating).",
     "File is under 200 lines.",
-    "CLAUDE.md is not gitignored."
+    "AGENTS.md is not gitignored."
   ]
 }

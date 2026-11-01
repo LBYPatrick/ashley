@@ -4,10 +4,12 @@ package invocation
 import (
 	_ "embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
+	ashley "github.com/LBYPatrick/ashley"
 	"github.com/LBYPatrick/ashley/internal/agents"
 	"github.com/LBYPatrick/ashley/internal/sessions"
 	"github.com/LBYPatrick/ashley/internal/skills"
@@ -120,6 +122,17 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 			user = agents.Trigger(a.Key, o.Skill, "")
 		}
 	}
+	if o.Skill != "raw" {
+		rules, err := b.outputRules()
+		if err != nil {
+			return v, err
+		}
+		for _, rule := range rules {
+			if !strings.Contains(strings.Join(instructions, "\n\n"), rule) {
+				instructions = append(instructions, rule)
+			}
+		}
+	}
 	system := strings.Join(instructions, "\n\n")
 	defer func() {
 		if err != nil {
@@ -152,7 +165,11 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 		}
 		v.Args = append(v.Args, a.SystemPromptFlag, text)
 	} else if system != "" {
-		if user != "" {
+		if installed {
+			// Keep slash commands and skill mentions at the start for native
+			// dispatchers, with the shared rules included in their arguments.
+			user += "\n\n" + system
+		} else if user != "" {
 			user = system + "\n\n" + user
 		} else {
 			user = system
@@ -170,4 +187,24 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 		v.Args = append(v.Args, text)
 	}
 	return v, nil
+}
+
+// outputRules covers skill launches, including native skill triggers. A custom
+// catalog can override the rules; omitted files use the bundled defaults.
+func (b Builder) outputRules() ([]string, error) {
+	var source fs.FS = ashley.Assets
+	if b.Catalog.Source != nil {
+		source = skills.Overlay{User: b.Catalog.Source, Base: ashley.Assets}
+	}
+	var rules []string
+	for _, path := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md"} {
+		data, err := fs.ReadFile(source, path)
+		if err != nil {
+			return nil, fmt.Errorf("read output rules: %w", err)
+		}
+		if text := strings.TrimSpace(string(data)); text != "" {
+			rules = append(rules, text)
+		}
+	}
+	return rules, nil
 }

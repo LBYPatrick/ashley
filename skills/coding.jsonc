@@ -7,6 +7,7 @@
   "description": "Generic coding quality guard for daily tasks. Use for any coding work that is not explicitly a new feature, new project, refactor, or debug session.",
   "components": [
     "components/guidelines-wording.md",
+    "components/guidelines-pdf.md",
     "components/guidelines-web.md",
     "components/guidelines-coding.md",
     "components/guidelines-style-google.md",
