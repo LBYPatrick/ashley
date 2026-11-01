@@ -4,6 +4,7 @@ package history
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"os"
@@ -11,8 +12,15 @@ import (
 	"strings"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
+
+// SQLite's built-in lower function only changes ASCII characters.
+var registerLowerError = sqlite.RegisterDeterministicScalarFunction("ashley_lower", 1,
+	func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+		value, _ := args[0].(string)
+		return strings.ToLower(value), nil
+	})
 
 // Path returns the legacy database location for the given platform.
 func Path(home, platform, xdg string) string {
@@ -52,6 +60,9 @@ CREATE INDEX IF NOT EXISTS idx_invocations_skill ON invocations(skill);`
 
 // Open creates or migrates the existing database without changing its location or rows.
 func Open(path string) (*Store, error) {
+	if registerLowerError != nil {
+		return nil, fmt.Errorf("register directory search: %w", registerLowerError)
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
 	}
@@ -161,10 +172,10 @@ func (s *Store) Record(v Invocation) (int64, error) {
 }
 func stamp(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000000+00:00") }
 
-// Filter selects records by skill, coding agent, or a SQL LIKE substring search.
+// Filter selects records by skill, coding agent, directory, or a SQL LIKE search.
 type Filter struct {
-	Skill, Agent, Search, AgentSessionID string
-	ID                                   int64
+	Skill, Agent, Search, CWD, AgentSessionID string
+	ID                                        int64
 }
 
 func (f Filter) where() (string, []any) {
@@ -190,6 +201,10 @@ func (f Filter) where() (string, []any) {
 		conditions = append(conditions, "(question LIKE ? OR cwd LIKE ? OR skill LIKE ? OR name LIKE ?)")
 		p := "%" + f.Search + "%"
 		args = append(args, p, p, p, p)
+	}
+	if cwd := strings.TrimSpace(f.CWD); cwd != "" {
+		conditions = append(conditions, "instr(ashley_lower(cwd), ?) > 0")
+		args = append(args, strings.ToLower(cwd))
 	}
 	if len(conditions) == 0 {
 		return "", args

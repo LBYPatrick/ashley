@@ -81,6 +81,7 @@ type Model struct {
 	cursor, width, height, mode, offset int
 	names                               []string
 	filter, question                    textinput.Model
+	directoryOnly                       bool
 	focus                               string
 	preview                             viewport.Model
 	theme                               config.Theme
@@ -188,7 +189,11 @@ func (m *Model) refresh() {
 		if err != nil {
 			m.status = err.Error()
 		} else {
-			m.sessionRows = sessions.Sort(rows, m.sortMode)
+			f := sessions.Filter{Search: m.filter.Value()}
+			if m.directoryOnly {
+				f.Search, f.CWD = "", m.filter.Value()
+			}
+			m.sessionRows = sessions.Sort(sessions.FilterRows(rows, f), m.sortMode)
 		}
 	case "history", "stats":
 		store, err := m.db()
@@ -199,6 +204,9 @@ func (m *Model) refresh() {
 		defer store.Close()
 		if m.screen == "history" {
 			f := history.Filter{Search: m.filter.Value()}
+			if m.directoryOnly {
+				f.Search, f.CWD = "", m.filter.Value()
+			}
 			m.historyRows, err = store.Query(f, 50, m.offset)
 			if err == nil {
 				m.total, err = store.Count(f)
@@ -295,9 +303,11 @@ func (m *Model) open(screen string) {
 	m.offset = 0
 	m.focus = ""
 	m.filter.SetValue("")
+	m.directoryOnly = false
 	if place, ok := m.places[screen]; ok {
 		m.cursor, m.offset = place.cursor, place.offset
 		m.filter.SetValue(place.filter)
+		m.directoryOnly = place.directoryOnly
 	}
 	m.filter.Blur()
 	m.question.Blur()
@@ -418,14 +428,14 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		return m, m.Init()
 	case tea.KeyMsg:
 		key := msg.String()
+		if m.confirm != nil {
+			return m, m.confirmKey(key)
+		}
 		if m.rename != nil {
 			return m, m.nameKey(msg)
 		}
 		if key == "N" && (m.screen == "sessions" || m.screen == "history") && m.focus != "filter" {
 			return m, m.beginName()
-		}
-		if m.confirm != nil {
-			return m, m.confirmKey(key)
 		}
 		if m.paletteOpen {
 			return m, m.paletteKey(msg)
@@ -461,6 +471,16 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		if key == "ctrl+c" {
 			return m, m.quit()
 		}
+		if m.isActivity() && key == "ctrl+f" {
+			m.compactDetail = false
+			m.toggleSearchScope()
+			return m, nil
+		}
+		if m.isActivity() && key == "ctrl+u" {
+			m.filter.SetValue("")
+			m.applySearch()
+			return m, nil
+		}
 		if m.focus == "skills-input" && key == "enter" {
 			return m, m.activateSkills()
 		}
@@ -484,10 +504,11 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			}
 			var cmd tea.Cmd
 			if m.focus == "filter" {
+				previous := m.filter.Value()
 				m.filter, cmd = m.filter.Update(msg)
-				m.offset = 0
-				m.cursor = 0
-				m.refresh()
+				if m.filter.Value() != previous {
+					m.applySearch()
+				}
 			} else {
 				m.question, cmd = m.question.Update(msg)
 			}
@@ -513,10 +534,9 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 				m.open("sessions")
 				return m, nil
 			}
-			if m.screen == "history" && m.options.Screen == "history" && m.filter.Value() != "" {
+			if m.isActivity() && m.options.Screen == m.screen && m.filter.Value() != "" {
 				m.filter.SetValue("")
-				m.offset = 0
-				m.refresh()
+				m.applySearch()
 				return m, nil
 			}
 			if m.screen == "hub" {
@@ -559,7 +579,8 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			m.cursor = min(max(0, m.count()-1), m.cursor+1)
 			m.updatePreview()
 		case "/":
-			if m.screen == "vibe" || m.screen == "history" {
+			if m.screen == "vibe" || m.isActivity() {
+				m.compactDetail = false
 				m.focus = "filter"
 				return m, m.filter.Focus()
 			}
@@ -747,6 +768,7 @@ func (m *Model) recordAction(key string) tea.Cmd {
 			if err != nil {
 				m.status = err.Error()
 			} else {
+				m.rememberPlace()
 				m.screen = "log"
 				m.logContent = sessions.DisplayLog(text)
 				m.sizeLogPreview()

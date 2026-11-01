@@ -6,7 +6,7 @@ import (
 )
 
 func (m *Model) sessionActionControls() []settingControl {
-	if m.screen != "sessions" || m.compactDetail {
+	if m.screen != "sessions" || m.compactDetail || m.height < 12 {
 		return nil
 	}
 	l := m.layout()

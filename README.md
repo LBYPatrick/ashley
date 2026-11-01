@@ -409,6 +409,15 @@ history conversation. `I` opens the technical inspector. Narrow terminals use
 a single list; `V` opens details and Esc returns to the list. Stop and delete
 actions require confirmation, with Cancel selected by default.
 
+Press `/` to search either tab. Press `Ctrl+F` to switch between **All fields**
+and **Directory**. Press `Ctrl+U` to clear the search. You can also click the scope
+and clear controls. Each tab keeps its search, scope, and selection. Result rows
+show working directories. The details panel shows the full path.
+
+Confirmation dialogs use high-contrast text and explicit focus markers. Tab
+changes the selected button. Enter activates that button. Esc cancels the action.
+Use arrow keys, Page Up/Page Down, or the mouse wheel to read warnings in small dialogs.
+
 Each session row shows `●` for an active session or `○` for a finished or inactive session.
 The elapsed time appears at the right and measures time since session creation,
 including for finished sessions. Short terminals keep both the symbol and elapsed
@@ -645,6 +654,8 @@ native selection. Pasting uses the terminal's normal paste action.
 ash run feat "Add OAuth support"            # runs in Zellij, attaches immediately
 ash run --detached feat "Add OAuth support" # background session
 ash sessions               # TUI session manager
+ash sessions --cwd "$PWD"   # List sessions by working directory
+ash sessions --search OAuth --cwd /work/api
 ash attach <session-id>    # Attach to interact
 ash logs -f <session-id>   # Follow log in real time
 ash kill <session-id>      # Kill a session
@@ -660,6 +671,9 @@ background, just like `--detached`.
 |-----|--------|
 | Enter | Attach to a running session or open a finished session's log |
 | t | Switch to History |
+| / | Search sessions |
+| Ctrl+F | Switch between All fields and Directory search |
+| Ctrl+U | Clear the search |
 | i | Toggle the technical inspector |
 | c | Copy session ID to clipboard |
 | l | View full log |
@@ -681,10 +695,13 @@ Every `ash run` is logged to SQLite.
 ```bash
 ash history show                 # Recent invocations
 ash history show --skill feat    # Filter by skill
+ash history show --cwd "$PWD"     # Filter by working directory
+ash history show --cwd /work/api --search OAuth
 ash history browse               # Interactive browser (TUI)
 ash history resume 42            # Reattach or resume this invocation's conversation
 ash history stats                # Usage by skill and by agent
 ash history stats --agent codex  # Restrict analytics to one agent
+ash history stats --cwd /work/api # Restrict analytics to a directory
 ash history prune 30             # Delete entries older than 30 days
 ash history info                 # DB location and stats
 ```
@@ -692,6 +709,10 @@ ash history info                 # DB location and stats
 Each invocation records which coding agent ran it. Existing databases are
 migrated automatically on the next run — invocations logged before multi-agent
 support are counted as Claude Code.
+
+`--cwd` matches a literal part of the stored working directory without case
+sensitivity. It treats `%` and `_` as text. Combine it with other supported
+filters. Session cleanup with `--clean` cannot use active search or directory filters.
 
 Press **Enter** on a history entry to reattach its running session, or resume
 its recorded agent conversation in a new Zellij session. Resuming preserves
@@ -818,9 +839,14 @@ for documentation and messages to the user. This includes progress reports and
 completion reports. The shared rules keep technical terms consistent and preserve
 exact code, commands, and identifiers.
 
-Ashley also sends the shared wording and PDF rules directly to each agent for
-skill launches, including installed skill triggers. Raw and resumed sessions
-receive no added output rules. Prompt delivery does not prove full ASD-STE100
+Every bundled skill includes shared instructions for multiple agents. These
+instructions prefer parallel work when independent tasks can improve speed and
+quality. Agents divide work by business domain, then combine their results for
+final checks and fixes. The main agent controls integration and completion.
+
+Ashley also sends the shared agent, wording, and PDF rules directly to each agent
+for skill launches, including installed skill triggers. Raw and resumed sessions
+receive no added shared rules. Prompt delivery does not prove full ASD-STE100
 compliance.
 
 For PDF deliverables, use WeasyPrint first. Install it when needed, using the

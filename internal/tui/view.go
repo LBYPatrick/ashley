@@ -75,7 +75,7 @@ func (m *Model) layout() screenLayout {
 	l.list = rect{margin, 6, sidebar, max(1, bottom-6)}
 	l.detail = rect{l.right.x, 5, l.right.w, max(1, bottom-5)}
 	l.input = rect{margin, h - 5, available, 3}
-	if m.screen == "vibe" || m.screen == "history" {
+	if m.screen == "vibe" || m.isActivity() {
 		l.input = rect{margin, 4, sidebar, 3}
 		l.list.y = 8
 		l.list.h = max(1, bottom-8)
@@ -85,14 +85,14 @@ func (m *Model) layout() screenLayout {
 		l.left.w = available
 		l.right = rect{}
 		l.detail = rect{}
-		if m.screen == "vibe" || m.screen == "history" {
+		if m.screen == "vibe" || m.isActivity() {
 			l.input.w = available
 		}
 	}
 	if w < 76 {
 		l.left.w = available
 		l.list.w = available
-		if m.screen == "vibe" || m.screen == "history" {
+		if m.screen == "vibe" || m.isActivity() {
 			l.input.w = available
 		}
 		l.right = rect{}
@@ -100,6 +100,15 @@ func (m *Model) layout() screenLayout {
 		if m.compactDetail {
 			l.right = rect{margin, 3, available, max(1, bottom-3)}
 			l.detail = rect{margin, 4, available, max(1, bottom-4)}
+		}
+	}
+	if m.isActivity() && h < 12 {
+		l.left.y = 2
+		l.input = rect{l.left.x, 3, l.left.w, 1}
+		l.list.y, l.list.h = 5, max(1, bottom-5)
+		if l.detail.w > 0 {
+			l.right.y = 2
+			l.detail.y, l.detail.h = 3, max(1, bottom-3)
 		}
 	}
 	return l
@@ -130,12 +139,12 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "compose":
 		text = "^R Start  ^N Name  ^S Skill  tab Options  esc Home"
 	case "sessions":
-		text = "enter Open  X Kill all  D Clean dead  K Stop  l Log  N Rename  i Inspector  t History"
+		text = "/ Search  ^F Scope  ^U Clear  enter Open  t History  s Sort  r Refresh  X Kill all  D Clean dead  K Stop  l Log  N Rename  i Inspector"
 		if m.options.Screen == "sessions" {
 			text += "  q Quit"
 		}
 	case "history":
-		text = "enter Resume  t Sessions  / Search  N Rename  i Inspector  d Delete"
+		text = "/ Search  ^F Scope  ^U Clear  enter Resume  t Sessions  n/p Pages  N Rename  i Inspector  d Delete"
 		if m.options.Screen == "history" {
 			text += "  q Quit"
 		}
@@ -165,21 +174,39 @@ func (m *Model) footer(f *frame, a appearance) {
 		if m.screen == "skills.sh" {
 			text = "enter Open  v Details  esc Back"
 		}
+		if m.isActivity() {
+			text = "/ Search  ^F Scope  ^U Clear  v Details  enter Open  t Tabs  esc Back"
+			if m.filter.Value() != "" {
+				text = "^U Clear  / Search  ^F Scope  v Details  enter Open  t Tabs  esc Back"
+			}
+		}
 	}
 	if m.focus == "filter" {
 		text = "Type to search  enter Results  esc Done"
+		if m.isActivity() {
+			text = "^U Clear  ^F Scope  enter Results  esc Done"
+		}
 	}
 	if m.confirm != nil {
 		text = "tab Choose  enter Accept  esc Cancel"
+		if m.maxConfirmationScroll() > 0 {
+			text = "↑↓ Read  tab Choose  enter Accept  esc Cancel"
+		}
+	}
+	footerStyle := a.panel
+	shortcutStyle := a.panel.Foreground(lipgloss.Color(a.accent))
+	if m.confirm != nil {
+		footerStyle, _ = confirmationStyles(a)
+		shortcutStyle = footerStyle.Bold(true)
 	}
 	y := f.height - 1
-	f.fill(rect{0, y, f.width, 1}, a.panel)
-	f.put(2, y, a.panel.Render(ansi.Truncate(text, max(1, f.width-2), "…")))
+	f.fill(rect{0, y, f.width, 1}, footerStyle)
+	f.put(2, y, footerStyle.Render(ansi.Truncate(text, max(1, f.width-2), "…")))
 	x := 2
 	for _, binding := range strings.Split(text, "  ") {
 		key := strings.Fields(binding)
 		if len(key) > 0 && x+len(key[0]) < f.width-2 {
-			f.put(x, y, a.panel.Foreground(lipgloss.Color(a.accent)).Render(key[0]))
+			f.put(x, y, shortcutStyle.Render(key[0]))
 		}
 		x += ansi.StringWidth(binding) + 2
 	}
@@ -193,7 +220,12 @@ func (f *frame) input(r rect, value, placeholder string, focused bool, a appeara
 		border = a.title
 	}
 	f.fill(r, a.panel)
-	f.put(r.x, r.y+2, border.Render(strings.Repeat("─", r.w)))
+	padding, y := 3, r.y+1
+	if r.h == 1 {
+		padding, y = 1, r.y
+	} else {
+		f.put(r.x, r.y+2, border.Render(strings.Repeat("─", r.w)))
+	}
 	style := a.panel
 	empty := value == ""
 	if value == "" {
@@ -212,15 +244,15 @@ func (f *frame) input(r rect, value, placeholder string, focused bool, a appeara
 	caret := ansi.StringWidth(string(chars[:position]))
 	shift := 0
 	if focused {
-		shift = max(0, caret-max(1, r.w-6))
+		shift = max(0, caret-max(1, r.w-padding-3))
 	}
-	f.put(r.x+3, r.y+1, style.Render(ansi.Cut(value, shift, shift+max(1, r.w-5))))
+	f.put(r.x+padding, y, style.Render(ansi.Cut(value, shift, shift+max(1, r.w-padding-2))))
 	if focused {
 		glyph := " "
 		if position < len(chars) {
 			glyph = string(chars[position])
 		}
-		f.put(r.x+3+caret-shift, r.y+1, a.cursor().Render(glyph))
+		f.put(r.x+padding+caret-shift, y, a.cursor().Render(glyph))
 	}
 }
 

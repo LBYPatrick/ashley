@@ -40,6 +40,7 @@ Commands:
   detect [DIRECTORY]           Print detected project context as JSON
   history [show|stats|info|prune|clear]
                                Browse and manage invocation history
+                               show/stats: --cwd PATH filters working directories
   install [--all|--both|--AGENT] [--skills-only] [--verbose]
                                Install persistent skills and agent CLIs
   uninstall                    Remove Ashley skill links
@@ -53,6 +54,7 @@ Commands:
   pipe [OPTIONS] PIPELINE [QUESTION...]
                                Run a named or plus-separated skill pipeline
   sessions [--list|--json]      List persistent sessions
+                               --search TEXT and --cwd PATH filter the list
   attach ID / logs ID / kill ID Manage a session (kill all is supported)
   agent [NAME]                 Show or set the preferred coding agent
   config                       Initialize or edit configuration

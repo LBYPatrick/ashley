@@ -26,8 +26,12 @@ func TestSessionRowsKeepStatusAndElapsedVisible(t *testing.T) {
 			assertFrame(t, view, size[0], size[1])
 			lines := strings.Split(ansi.Strip(view), "\n")
 			list := m.layout().list
+			start := max(0, cursor-m.visibleRows()+1)
 			for i, expected := range []struct{ symbol, elapsed string }{{"●", "2h 0m"}, {"○", "?"}, {"?", "?"}} {
-				line := ansi.Cut(lines[list.y+i*m.rowHeight()], list.x, list.x+list.w)
+				if i < start || i >= start+m.visibleRows() {
+					continue
+				}
+				line := ansi.Cut(lines[list.y+(i-start)*m.rowHeight()], list.x, list.x+list.w)
 				if ansi.Cut(line, 2, 3) != expected.symbol || !strings.HasSuffix(line, expected.elapsed) {
 					t.Fatalf("size %v cursor %d row %d hides status or time: %q", size, cursor, i, line)
 				}
@@ -35,6 +39,19 @@ func TestSessionRowsKeepStatusAndElapsedVisible(t *testing.T) {
 				if selected != (cursor == i) {
 					t.Fatalf("selection does not match cursor: %q", line)
 				}
+			}
+		}
+	}
+}
+
+func TestActivityRowsFitBetweenSearchAndFooter(t *testing.T) {
+	for _, screen := range []string{"sessions", "history"} {
+		m := newModel(t)
+		m.open(screen)
+		for height := 8; height <= 24; height++ {
+			m.height = height
+			if rows, available := m.rowHeight(), m.layout().list.h; rows > available {
+				t.Fatalf("%s at height %d draws %d lines into %d result lines", screen, height, rows, available)
 			}
 		}
 	}

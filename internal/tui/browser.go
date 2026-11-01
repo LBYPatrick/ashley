@@ -23,8 +23,13 @@ func skillRank(name, query string) int {
 }
 
 func (m *Model) rowHeight() int {
-	if (m.screen == "sessions" || m.screen == "history") && m.height >= 20 {
-		return 3
+	if m.isActivity() {
+		if m.height >= 20 {
+			return min(3, m.layout().list.h)
+		}
+		if m.height >= 13 {
+			return min(2, m.layout().list.h)
+		}
 	}
 	return 1
 }
@@ -32,7 +37,7 @@ func (m *Model) visibleRows() int { return max(1, m.layout().list.h/m.rowHeight(
 
 func (m *Model) browserView(f *frame, a appearance) {
 	l := m.layout()
-	var titles, subtitles []string
+	var titles, subtitles, directories []string
 	heading, hint := "Choose a skill", "/ Search by name or purpose"
 	switch m.screen {
 	case "vibe":
@@ -55,6 +60,7 @@ func (m *Model) browserView(f *frame, a appearance) {
 			}
 			titles = append(titles, taskTitle(s.Skill, s.Question, s.Name))
 			subtitles = append(subtitles, state+" · "+s.Skill)
+			directories = append(directories, s.CWD)
 		}
 	case "history":
 		heading = fmt.Sprintf("History (%d)", m.total)
@@ -62,26 +68,25 @@ func (m *Model) browserView(f *frame, a appearance) {
 		for _, v := range m.historyRows {
 			titles = append(titles, taskTitle(v.Skill, v.Question, v.Name))
 			subtitles = append(subtitles, v.Skill+" · "+agents.Get(v.AgentType).Label+" · "+v.TimeDisplay())
+			directories = append(directories, v.CWD)
 		}
 	}
 	if !m.compactDetail {
 		f.section(rect{l.left.x, l.left.y, l.left.w, 1}, heading, a)
-		if m.screen == "sessions" || m.screen == "history" {
+		if m.isActivity() {
 			f.fill(rect{l.left.x, l.left.y, l.left.w, 1}, a.base)
-			for i, label := range []string{"Sessions", "History"} {
+			for _, control := range m.activityTabControls() {
 				style := a.muted
-				if (i == 0 && m.screen == "sessions") || (i == 1 && m.screen == "history") {
+				if control.key == m.screen {
 					style = a.selected
 				}
-				f.put(l.left.x+i*12, l.left.y, style.Render(" "+label+" "))
+				f.put(control.x, control.y, style.Render(" "+control.label+" "))
 			}
 		}
-		if m.screen == "vibe" || m.screen == "history" {
-			placeholder := "Search skills…"
-			if m.screen == "history" {
-				placeholder = "Search history…"
-			}
-			f.input(l.input, m.filter.Value(), placeholder, m.focus == "filter", a, m.filter.Position())
+		if m.isActivity() {
+			m.activitySearchView(f, a)
+		} else if m.screen == "vibe" {
+			f.input(l.input, m.filter.Value(), "Search skills…", m.focus == "filter", a, m.filter.Position())
 		} else {
 			f.put(l.left.x, l.left.y+1, a.muted.Render(ansi.Truncate(hint, l.left.w, "…")))
 		}
@@ -105,22 +110,40 @@ func (m *Model) browserView(f *frame, a appearance) {
 					indicator = "● "
 				}
 				title = indicator + title
-				suffix = " " + m.sessionRows[i].Elapsed(time.Now())
-				titleWidth -= ansi.StringWidth(suffix)
+				if l.list.w >= 12 {
+					suffix = " " + m.sessionRows[i].Elapsed(time.Now())
+					titleWidth = max(4, titleWidth-ansi.StringWidth(suffix))
+				}
+			}
+			if m.isActivity() && m.rowHeight() == 1 {
+				directoryWidth := max(1, (l.list.w-ansi.StringWidth(suffix)-6)/2)
+				suffix = " " + directoryLabel(directories[i], directoryWidth) + suffix
+				titleWidth = max(1, l.list.w-ansi.StringWidth(suffix))
 			}
 			label := ansi.Truncate(marker+title, titleWidth, "…")
 			f.put(l.list.x, y, style.Render(label+strings.Repeat(" ", max(0, titleWidth-ansi.StringWidth(label)))+suffix))
 			if m.rowHeight() > 1 && i < len(subtitles) {
-				f.put(l.list.x+2, y+1, a.muted.Render(ansi.Truncate(subtitles[i], l.list.w-2, "…")))
+				text := subtitles[i]
+				if m.rowHeight() == 2 {
+					text = directoryLabel(directories[i], l.list.w-2)
+				}
+				f.put(l.list.x+2, y+1, a.muted.Render(ansi.Truncate(text, l.list.w-2, "…")))
+				if m.rowHeight() == 3 {
+					f.put(l.list.x+2, y+2, a.muted.Render(directoryLabel(directories[i], l.list.w-2)))
+				}
 			}
 		}
 		if len(titles) == 0 {
-			f.text(rect{l.list.x, l.list.y, l.list.w, 4}, "Nothing here yet.\nCtrl+2 starts a new conversation.", a.muted, 0)
+			text := "Nothing here yet.\nCtrl+2 starts a new conversation."
+			if m.isActivity() && strings.TrimSpace(m.filter.Value()) != "" {
+				text = "No matching results.\nCtrl+U clears the search."
+			}
+			f.text(rect{l.list.x, l.list.y, l.list.w, min(4, l.list.h)}, text, a.muted, 0)
 		}
-		if len(titles) > visible {
+		if len(titles) > visible && m.height >= 12 {
 			f.put(l.list.x, m.height-3, a.muted.Render(fmt.Sprintf("%d of %d", m.cursor+1, len(titles))))
 		}
-		if m.screen == "history" {
+		if m.screen == "history" && m.height >= 12 {
 			f.put(l.list.x, m.height-3, a.muted.Render(ansi.Truncate(fmt.Sprintf("%d total · ", m.total)+hint, l.list.w, "…")))
 		}
 	}

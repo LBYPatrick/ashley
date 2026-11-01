@@ -12,6 +12,7 @@ import (
 type browserPlace struct {
 	cursor, offset, preview, log int
 	filter                       string
+	directoryOnly                bool
 }
 
 func (m *Model) rememberPlace() {
@@ -20,7 +21,10 @@ func (m *Model) rememberPlace() {
 		m.drafts = map[string]string{}
 		m.parents = map[string]string{}
 	}
-	m.places[m.screen] = browserPlace{m.cursor, m.offset, m.preview.YOffset, m.logOffset, m.filter.Value()}
+	m.places[m.screen] = browserPlace{
+		cursor: m.cursor, offset: m.offset, preview: m.preview.YOffset,
+		log: m.logOffset, filter: m.filter.Value(), directoryOnly: m.directoryOnly,
+	}
 	m.drafts[m.screen] = m.question.Value()
 }
 
@@ -93,6 +97,7 @@ func (m *Model) navControls() []settingControl {
 type confirmation struct {
 	title, body, key string
 	proceed          bool
+	scroll           int
 }
 
 func (m *Model) requestConfirmation(key string) bool {
@@ -103,10 +108,10 @@ func (m *Model) requestConfirmation(key string) bool {
 	}
 	if m.screen == "sessions" {
 		if key == "cleanup" {
-			title, body = "Remove finished sessions?", "Remove saved records for finished sessions. Keep their logs and all running sessions."
+			title, body = "Remove all finished sessions?", "Remove finished session records in every directory, including hidden results. Keep their logs and all running sessions."
 		}
-		if key == "X" && len(m.sessionRows) > 0 {
-			title, body = "Stop all running sessions?", "Stop all running Ashley sessions and remove all session records. Keep their logs. Work in progress can be interrupted."
+		if key == "X" {
+			title, body = "Stop all running sessions?", "Stop all running Ashley sessions in every directory, including hidden results. Remove all session records. Keep their logs. This can interrupt work."
 		} else if len(m.sessionRows) > 0 {
 			s := m.sessionRows[m.cursor]
 			if key == "K" {
@@ -132,6 +137,14 @@ func (m *Model) confirmKey(key string) tea.Cmd {
 		return m.quit()
 	case "tab", "shift+tab", "left", "right":
 		m.confirm.proceed = !m.confirm.proceed
+	case "up", "k":
+		m.scrollConfirmation(-1)
+	case "down", "j":
+		m.scrollConfirmation(1)
+	case "pgup":
+		m.scrollConfirmation(-m.confirmBodyRect().h)
+	case "pgdown", " ":
+		m.scrollConfirmation(m.confirmBodyRect().h)
 	case "enter":
 		c := m.confirm
 		m.confirm = nil
@@ -140,25 +153,4 @@ func (m *Model) confirmKey(key string) tea.Cmd {
 		}
 	}
 	return nil
-}
-
-func (m *Model) confirmBounds() rect {
-	w := min(62, max(20, m.width)-4)
-	h := min(max(8, m.height)-2, wrappedLines(m.confirm.body, w-6)+7)
-	return rect{(max(20, m.width) - w) / 2, (max(8, m.height) - h) / 2, w, h}
-}
-
-func (m *Model) confirmView(f *frame, a appearance) {
-	r := m.confirmBounds()
-	f.fill(r, a.panel)
-	f.box(r, a.border)
-	f.put(r.x+2, r.y+1, a.title.Render(ansi.Truncate(m.confirm.title, r.w-4, "…")))
-	f.text(rect{r.x + 3, r.y + 3, r.w - 6, max(1, r.h-6)}, m.confirm.body, a.panel, 0)
-	for i, label := range []string{"Cancel", "Confirm"} {
-		style := a.panel
-		if (i == 1) == m.confirm.proceed {
-			style = a.selected
-		}
-		f.put(r.x+3+i*13, r.y+r.h-2, style.Render(" "+label+" "))
-	}
 }

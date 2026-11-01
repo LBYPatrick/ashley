@@ -6,10 +6,62 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestFilterRows(t *testing.T) {
+	input := []Session{
+		{ID: "abc123", Name: "API work", Question: "Update handlers", Skill: "feat", Agent: "codex", CWD: "/Work/Project_100%/api"},
+		{ID: "def456", Name: "Web work", Question: "API work", Skill: "fix", Agent: "claude", CWD: "/Work/Project_100%/web"},
+		{ID: "legacy789", Skill: "commit", CWD: "/Work/ProjectX100Y/api"},
+	}
+	for _, tc := range []struct {
+		name   string
+		filter Filter
+		want   []string
+	}{
+		{"all", Filter{}, []string{"abc123", "def456", "legacy789"}},
+		{"directory", Filter{CWD: "project_100%"}, []string{"abc123", "def456"}},
+		{"combined", Filter{Search: "API WORK", CWD: "/API"}, []string{"abc123"}},
+		{"name", Filter{Search: "web work"}, []string{"def456"}},
+		{"question", Filter{Search: "handlers"}, []string{"abc123"}},
+		{"skill", Filter{Search: "commit"}, []string{"legacy789"}},
+		{"agent", Filter{Search: "CODEX"}, []string{"abc123"}},
+		{"default agent", Filter{Search: "claude"}, []string{"def456", "legacy789"}},
+		{"id", Filter{Search: "DEF456"}, []string{"def456"}},
+		{"search directory", Filter{Search: "100%/web"}, []string{"def456"}},
+		{"literal underscore", Filter{CWD: "_"}, []string{"abc123", "def456"}},
+		{"literal percent", Filter{CWD: "%"}, []string{"abc123", "def456"}},
+		{"blank", Filter{Search: " \t", CWD: " \t"}, []string{"abc123", "def456", "legacy789"}},
+		{"directory excludes question", Filter{CWD: "handlers"}, []string{}},
+		{"no matches", Filter{Search: "absent"}, []string{}},
+		{"combined no matches", Filter{Search: "codex", CWD: "/web"}, []string{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := []string{}
+			for _, row := range FilterRows(input, tc.filter) {
+				got = append(got, row.ID)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("FilterRows = %v, want %v", got, tc.want)
+			}
+		})
+	}
+	filtered := FilterRows(input, Filter{})
+	filtered[0].Name = "Changed"
+	if input[0].Name != "API work" {
+		t.Fatal("FilterRows changed the input")
+	}
+	if got := FilterRows(nil, Filter{}); got == nil || len(got) != 0 {
+		t.Fatalf("FilterRows(nil) = %v; want an empty slice", got)
+	}
+	if got := FilterRows([]Session{{CWD: "/Work/ÜBER/Änderungen"}}, Filter{CWD: "/über/änderungen"}); len(got) != 1 {
+		t.Fatalf("Unicode directory filter = %v; want one session", got)
+	}
+}
 
 func TestLegacyMetadataAndSorting(t *testing.T) {
 	m := Manager{Backend: "tmux", Dir: t.TempDir()}

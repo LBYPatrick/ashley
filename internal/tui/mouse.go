@@ -8,21 +8,25 @@ func settingsRows() [][]string {
 	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"auto", "dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
 }
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
-	if m.rename != nil {
-		return nil
-	}
 	if m.confirm != nil {
+		if m.confirmBounds().contains(msg.X, msg.Y) {
+			if msg.Button == tea.MouseButtonWheelDown {
+				m.scrollConfirmation(3)
+			} else if msg.Button == tea.MouseButtonWheelUp {
+				m.scrollConfirmation(-3)
+			}
+		}
 		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
-			r := m.confirmBounds()
-			if msg.Y == r.y+r.h-2 {
-				for i := 0; i < 2; i++ {
-					if msg.X >= r.x+3+i*13 && msg.X < r.x+12+i*13 {
-						m.confirm.proceed = i == 1
-						return m.confirmKey("enter")
-					}
+			for i, control := range m.confirmButtons() {
+				if control.contains(msg.X, msg.Y) {
+					m.confirm.proceed = i == 1
+					return m.confirmKey("enter")
 				}
 			}
 		}
+		return nil
+	}
+	if m.rename != nil {
 		return nil
 	}
 	if m.paletteOpen {
@@ -142,6 +146,17 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	}
 	l := m.layout()
 	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		for _, control := range m.activitySearchControls() {
+			if control.contains(msg.X, msg.Y) {
+				if control.key == "scope" {
+					m.toggleSearchScope()
+				} else {
+					m.filter.SetValue("")
+					m.applySearch()
+				}
+				return nil
+			}
+		}
 		for _, control := range m.sessionActionControls() {
 			if control.contains(msg.X, msg.Y) {
 				m.requestConfirmation(control.key)
@@ -149,14 +164,12 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 			}
 		}
 	}
-	if !m.compactDetail && (m.screen == "sessions" || m.screen == "history") && msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == l.left.y {
-		if msg.X >= l.left.x && msg.X < l.left.x+10 {
-			m.open("sessions")
-			return nil
-		}
-		if msg.X >= l.left.x+12 && msg.X < l.left.x+22 {
-			m.open("history")
-			return nil
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		for _, control := range m.activityTabControls() {
+			if control.contains(msg.X, msg.Y) {
+				m.open(control.key)
+				return nil
+			}
 		}
 	}
 	if wheel {
@@ -184,7 +197,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.compactDetail {
 		return nil
 	}
-	if (m.screen == "vibe" || m.screen == "history") && l.input.contains(msg.X, msg.Y) {
+	if (m.screen == "vibe" || m.isActivity()) && l.input.contains(msg.X, msg.Y) {
 		m.focus = "filter"
 		return m.filter.Focus()
 	}

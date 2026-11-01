@@ -66,6 +66,9 @@ func (m *Model) detailText() string {
 		return text + "\n\nEnter to use this skill in your conversation"
 	case "sessions":
 		if len(m.sessionRows) == 0 {
+			if strings.TrimSpace(m.filter.Value()) != "" {
+				return fmt.Sprintf("No results for %q\n\nCtrl+U clears the search.", m.filter.Value())
+			}
 			return "No sessions found.\n\nStart one with: ash run --detached <skill> <question>"
 		}
 		s := m.sessionRows[m.cursor]
@@ -104,8 +107,8 @@ func (m *Model) detailText() string {
 		return text
 	case "history":
 		if len(m.historyRows) == 0 {
-			if m.filter.Value() != "" {
-				return fmt.Sprintf("No results for %q", m.filter.Value())
+			if strings.TrimSpace(m.filter.Value()) != "" {
+				return fmt.Sprintf("No results for %q\n\nCtrl+U clears the search.", m.filter.Value())
 			}
 			if m.options.Screen == "history" {
 				return "No invocation history yet.\n\nRun a skill with: ash run <skill> <question>"

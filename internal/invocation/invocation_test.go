@@ -2,6 +2,7 @@ package invocation
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func TestInstalledAndInlineAllAgents(t *testing.T) {
 			if !strings.Contains(joined, afkAddendum) {
 				t.Fatal("missing autonomous instructions")
 			}
-			assertOutputRules(t, b, v)
+			assertSharedRules(t, b, v)
 			if installed && !strings.Contains(joined, agents.Trigger(key, "feat", "add login")) {
 				t.Fatal(joined)
 			}
@@ -137,7 +138,7 @@ func TestResumeDoesNotReplayPrompt(t *testing.T) {
 	for _, agent := range agents.Keys() {
 		for _, mode := range []string{"default", "auto", "dsp", "afk"} {
 			b := builder(t)
-			v, err := b.Build(Options{Agent: agent, Skill: "raw", Question: "do not repeat this task", ResumeID: "conversation-123", DSP: mode == "dsp", Auto: mode == "auto", AFK: mode == "afk"})
+			v, err := b.Build(Options{Agent: agent, Skill: "coding", Question: "do not repeat this task", ResumeID: "conversation-123", DSP: mode == "dsp", Auto: mode == "auto", AFK: mode == "afk"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -158,7 +159,7 @@ func TestResumeDoesNotReplayPrompt(t *testing.T) {
 	}
 }
 
-func assertOutputRules(t *testing.T, b Builder, v Invocation) {
+func assertSharedRules(t *testing.T, b Builder, v Invocation) {
 	t.Helper()
 	args := slices.Clone(v.Args)
 	for i, arg := range args {
@@ -170,18 +171,18 @@ func assertOutputRules(t *testing.T, b Builder, v Invocation) {
 			args[i] = string(data)
 		}
 	}
-	rules, err := b.outputRules()
+	rules, err := b.sharedRules()
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, rule := range rules {
 		if count := strings.Count(strings.Join(args, "\n"), rule); count != 1 {
-			t.Fatalf("want one complete output rule, got %d: %q", count, args)
+			t.Fatalf("want one complete shared rule, got %d: %q", count, args)
 		}
 	}
 }
 
-func TestOutputRulesCustomCatalogAndReadFailure(t *testing.T) {
+func TestSharedRulesCustomCatalogAndReadFailure(t *testing.T) {
 	b := builder(t)
 	path := filepath.Join(agents.SkillsDir("codex", b.Home, b.Getenv), "a-coding")
 	if err := os.MkdirAll(path, 0700); err != nil {
@@ -195,7 +196,7 @@ func TestOutputRulesCustomCatalogAndReadFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertOutputRules(t, b, v)
+	assertSharedRules(t, b, v)
 	if !strings.Contains(strings.Join(v.Args, "\n"), "Use the custom writing rules.") {
 		t.Fatal("custom rules ignored")
 	}
@@ -203,5 +204,57 @@ func TestOutputRulesCustomCatalogAndReadFailure(t *testing.T) {
 	b.Catalog.Source = fstest.MapFS{"components/guidelines-wording.md": {Mode: fs.ModeDir}}
 	if _, err := b.Build(Options{Agent: "codex", Skill: "coding"}); err == nil {
 		t.Fatal("unreadable output rules ignored")
+	}
+}
+
+func TestAgentRulesCustomOverrideAndFallback(t *testing.T) {
+	const component = "components/guidelines-agents.md"
+	data, err := fs.ReadFile(ashley.Assets, component)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundled := strings.TrimSpace(string(data))
+	for _, installed := range []bool{false, true} {
+		for _, test := range []struct {
+			name   string
+			source fs.FS
+			want   string
+		}{
+			{name: "fallback", source: fstest.MapFS{}, want: bundled},
+			{name: "override", source: fstest.MapFS{component: {Data: []byte("Use custom agent rules.")}}, want: "Use custom agent rules."},
+			{name: "empty override", source: fstest.MapFS{component: {Data: []byte("\n")}}},
+		} {
+			t.Run(fmt.Sprintf("%s/installed=%t", test.name, installed), func(t *testing.T) {
+				b := builder(t)
+				b.Catalog.Source = skills.Overlay{User: test.source, Base: ashley.Assets}
+				if installed {
+					b.Catalog.Source = test.source
+					path := filepath.Join(agents.SkillsDir("codex", b.Home, b.Getenv), "a-coding")
+					if err := os.MkdirAll(path, 0700); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(filepath.Join(path, "SKILL.md"), []byte("custom"), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				v, err := b.Build(Options{Agent: "codex", Skill: "coding", Question: "Update the application"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				assertSharedRules(t, b, v)
+				joined := strings.Join(v.Args, "\n")
+				if test.want != "" && strings.Count(joined, test.want) != 1 {
+					t.Fatal("agent rules must appear exactly once")
+				}
+				if test.want != bundled && strings.Contains(joined, bundled) {
+					t.Fatal("custom agent rules must replace the bundled rules")
+				}
+			})
+		}
+	}
+	b := builder(t)
+	b.Catalog.Source = skills.Overlay{User: fstest.MapFS{component: {Mode: fs.ModeDir}}, Base: ashley.Assets}
+	if _, err := b.sharedRules(); err == nil {
+		t.Fatal("unreadable agent rules ignored")
 	}
 }

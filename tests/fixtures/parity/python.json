@@ -116,73 +116,73 @@
   "bundled": {
     "brainstorm": {
       "output": "generated/a-brainstorm/SKILL.md",
-      "sha256": "8994c202e8d3439c28e18d8d67e7107ae318d8d60256abeef2b8b8d5fd00445e",
-      "prompt_sha256": "28e2f0395c07db2bce2114d4af54ac3afc1f75180bca62a7854e4873780e03d1"
+      "sha256": "8645c7914e0a9e4201b313f5db3a1c8b31c851d16324b79d0ce34b45897c33bb",
+      "prompt_sha256": "eb2730ba9bd4a2907cc772615046d85a3e89d5cace0cbfd03c20ba3445998863"
     },
     "changelog": {
       "output": "generated/a-changelog/SKILL.md",
-      "sha256": "2830567502bb0929da71922edd7be7aefd5d876587c455c6cf696eb7882d12e0",
-      "prompt_sha256": "6ea218b23cfb61f83b934578755f5305cc6c17d5f3d35e7911fd3d4fc9a9a1a1"
+      "sha256": "f3b94b944782559583e321b9a23c6f896d509aae4220f0931c6526da103282c0",
+      "prompt_sha256": "55f8b24d72178365b5d91c0b0532e590b31e21f4d54d95103c6fe21cc429a7e0"
     },
     "ci": {
       "output": "generated/a-ci/SKILL.md",
-      "sha256": "a64b195308a09713b2711d49cd41fa93bceb406a8e0e11fc3587468638a0ceb6",
-      "prompt_sha256": "7f855c43a94e52e6fd01c6c6cae2e968708aa170602a0add556a8f6b38f6989e"
+      "sha256": "94f735d59ac5176ba3361ebd7357e36add274868f13f5841669abbe7b18be23c",
+      "prompt_sha256": "7ed6c9faadb7bde03334c2808b5cd18ea778e8b7d3f0f064cbe1fd045d2a290b"
     },
     "agentsmd": {
       "output": "generated/a-agentsmd/SKILL.md",
-      "sha256": "95938f655bb8f82a8212ce6513e3b2cbb2cf12830b8b964fc20ed852e2cd02f6",
-      "prompt_sha256": "ce16c376504018ccf53502e683b76a76af55fc384e96303ebe944db120142133"
+      "sha256": "e8effd74278df6ce0020b0e4d90d9dcd96bce325804bbec2f9ea78a3c1eb6279",
+      "prompt_sha256": "be2afa66ab531223a8ff146cfaf477562f69235b627c86c7ed84527837a16635"
     },
     "coding": {
       "output": "generated/a-coding/SKILL.md",
-      "sha256": "c82530fedbe32e9ba21c7edb1819db00860f58ad8681cf2be14f440fa56824ca",
-      "prompt_sha256": "d8bb515e4295d498989a1badb9238b9a5d9e923a875e23ae5e48b485879bb195"
+      "sha256": "5574f9ad1aa13f71a6a6d377f6b6172a5e34ed86408e4c8b216f00d568c7c23e",
+      "prompt_sha256": "4900835533948315e09e7aa182b7a33b5250e54753cd273ad30b5fc823e75f02"
     },
     "commit": {
       "output": "generated/a-commit/SKILL.md",
-      "sha256": "cacdfdecab2d7a7644ffe8c4a6c4da2820b1c8fbf69bacb257b20ca214fec6a6",
-      "prompt_sha256": "a48e34eda1362bd476c120920377e7088a76ae09a5d44ffeccc82228c2aed957"
+      "sha256": "ca5fb00daeafbac1ea6e8f9e108bd461ab16159a5512de4e69bf648685b6457d",
+      "prompt_sha256": "9b70e9874f50fdbd3aef716a4ae772dbd44455af86ffb3656c72654d100ea473"
     },
     "debug": {
       "output": "generated/a-debug/SKILL.md",
-      "sha256": "18e7b266645fc3588ad4a2c0494fdfee093291a7d0df37fa38be7457f519511f",
-      "prompt_sha256": "c5850c4cc4d7d9516fcab2f65b8858f21172caf362de42408d997630e5e8e508"
+      "sha256": "15800357af528f5c113045edc97a35b25c16c6f9791571c772efeda000a42b57",
+      "prompt_sha256": "80b1e4ccce3051125dfc497320b8967f8f9c55936eced9b0380585416f4a2fd9"
     },
     "feat": {
       "output": "generated/a-feat/SKILL.md",
-      "sha256": "f673c07a6456ffb5434254fa3e2f448b882cf8db6a5b391b5b9df9ea38cfa711",
-      "prompt_sha256": "cc36802b46723b44bcef8b6a7954c53edf6e0beb5fb187edb8ab989475e57985"
+      "sha256": "fbe18691809da4527d48b17618e329d7aa758aeb371ec947db43092e241331a8",
+      "prompt_sha256": "7548a6f937537a81be3814feece7bcd2b1fbc1d2c974511bf790ecd0e99016ab"
     },
     "optimize": {
       "output": "generated/a-optimize/SKILL.md",
-      "sha256": "777765a4adee03a61c69cf758c60fbb8dfc422024136a961308e9cd47423635a",
-      "prompt_sha256": "6ad5df9dccdea579c873130a9ba444a69ae34cae42ebe1ef16217512a8fbf819"
+      "sha256": "f72fadfe8fade6de1b61925778a812e01a18c876e2ea0c8a448e0b511e3a4e09",
+      "prompt_sha256": "d9cfd36341000619fdeb92c4bcd2eaa447f48fbe367962e3c42db071dfed0f69"
     },
     "pretty": {
       "output": "generated/a-pretty/SKILL.md",
-      "sha256": "7ec4a128bd4e0110bf5498741941001b251ad81581c45bc3d2460722f2f46fd7",
-      "prompt_sha256": "7953517f762a47b50c17d80be887ba6a7203abd6750864acbfdb17261e0c8680"
+      "sha256": "12e57d19315dbdef3d1ba0063e6e607d3f0e7bec97753e759cbeedb3400fcd60",
+      "prompt_sha256": "0cf381a3a0ff821b2d4d72e05ccaf27c06b3a8bfbf522f377500bb47b64565c4"
     },
     "readme": {
       "output": "generated/a-readme/SKILL.md",
-      "sha256": "10e4447a43ab1e2836505913d620315957aefece1419e0fbb985851eb9deaff6",
-      "prompt_sha256": "08176be065ff87c6c9994e01b2ef191422ced5842dd018e804f7a90f465600ae"
+      "sha256": "54758cd6659ea15fe462322a0c22c46533912387c53f9c74759342430a4a1fc1",
+      "prompt_sha256": "3e29719936496895fc63ca35e3aa51e15da12a6c729f63ae9fab87681b7aa6c7"
     },
     "rebase": {
       "output": "generated/a-rebase/SKILL.md",
-      "sha256": "3fe0a6f42131372d5c21df894e2574c16bcb7c51cdc3f6e95611a2af18649c10",
-      "prompt_sha256": "b859fac522a17a7c3fb1ae4e590801fac2c3ee49a87b268c76b722ebbb1dfc29"
+      "sha256": "9408ac6085bf6c19c0b0fbb17353356a4a7d3a0737f0b656f45d2caef26b2795",
+      "prompt_sha256": "f86e74b696dcaea440850b51dcebd58f283b672bd9603c1e0165948da02591fd"
     },
     "refactor": {
       "output": "generated/a-refactor/SKILL.md",
-      "sha256": "fb6e2de0a3491c5aeea4437a8367a7defc2b3d83677f7dbc4bff435432dbce34",
-      "prompt_sha256": "b3e3f8e5ff4d4abb8011f08e87ed9ec73d2bea5ed8724990f07845d8580b824e"
+      "sha256": "33b4555b257d0bf92f50a954881c8f8d66cf6d1c6f92fc7c86b56d88c72a2bb6",
+      "prompt_sha256": "44139240d22edee86dc74e9884acdebd6c1a7ff1316f90a82e1fca4957f2cb02"
     },
     "scaffold": {
       "output": "generated/a-scaffold/SKILL.md",
-      "sha256": "c04d017a62df0cf8bbcb4dc2294027c85231baa8e2b32e731f8bfd0e224c6798",
-      "prompt_sha256": "d0c15edc3ca9cfb84705691994b396876cfe9fd83ada76483661edde60043ea3"
+      "sha256": "b0b99bd203ade37761dcefd812e2d2669f64c3d06ca2901df1963b7cc7ad75bc",
+      "prompt_sha256": "e9aabdffd0c5ff66795c1cddba4a546a2d9391446cbf0e95cccaf9de5024ac8c"
     }
   },
   "templates": [

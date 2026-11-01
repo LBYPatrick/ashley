@@ -123,7 +123,7 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 		}
 	}
 	if o.Skill != "raw" {
-		rules, err := b.outputRules()
+		rules, err := b.sharedRules()
 		if err != nil {
 			return v, err
 		}
@@ -189,18 +189,18 @@ func (b Builder) Build(o Options) (v Invocation, err error) {
 	return v, nil
 }
 
-// outputRules covers skill launches, including native skill triggers. A custom
+// sharedRules covers skill launches, including native skill triggers. A custom
 // catalog can override the rules; omitted files use the bundled defaults.
-func (b Builder) outputRules() ([]string, error) {
+func (b Builder) sharedRules() ([]string, error) {
 	var source fs.FS = ashley.Assets
 	if b.Catalog.Source != nil {
 		source = skills.Overlay{User: b.Catalog.Source, Base: ashley.Assets}
 	}
 	var rules []string
-	for _, path := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md"} {
+	for _, path := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md", "components/guidelines-agents.md"} {
 		data, err := fs.ReadFile(source, path)
 		if err != nil {
-			return nil, fmt.Errorf("read output rules: %w", err)
+			return nil, fmt.Errorf("read shared rules: %w", err)
 		}
 		if text := strings.TrimSpace(string(data)); text != "" {
 			rules = append(rules, text)

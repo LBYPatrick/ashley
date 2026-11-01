@@ -101,8 +101,8 @@ func TestTemplatePythonParity(t *testing.T) {
 	}
 }
 
-func TestBundledSkillsIncludeOutputRulesOnce(t *testing.T) {
-	for _, component := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md"} {
+func TestBundledSkillsIncludeSharedRulesOnce(t *testing.T) {
+	for _, component := range []string{"components/guidelines-wording.md", "components/guidelines-pdf.md", "components/guidelines-agents.md"} {
 		t.Run(component, func(t *testing.T) { testBundledComponentOnce(t, component) })
 	}
 }

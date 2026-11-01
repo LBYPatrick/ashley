@@ -111,6 +111,71 @@ func TestQueriesAnalyticsAndOutcomes(t *testing.T) {
 		t.Fatal(stats, err)
 	}
 }
+
+func TestDirectoryFiltersApplyToQueriesCountsAndStats(t *testing.T) {
+	s := openTest(t)
+	for _, row := range []Invocation{
+		{Skill: "feat", AgentType: "codex", Question: "API changes", CWD: "/Work/Project_100%/api"},
+		{Skill: "feat", AgentType: "claude", Question: "API changes", CWD: "/Work/Project_100%/web"},
+		{Skill: "commit", AgentType: "codex", Question: "API changes", CWD: "/Work/Project_100%/api"},
+		{Skill: "feat", AgentType: "codex", Question: "/Work/Project_100%/api", CWD: "/other"},
+		{Skill: "feat", AgentType: "codex", CWD: "/Work/ProjectX100Y/api"},
+	} {
+		if _, err := s.Record(row); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		name   string
+		filter Filter
+		want   int
+	}{
+		{"case insensitive", Filter{CWD: "/work/project_100%"}, 3},
+		{"combined filters", Filter{CWD: "project_100%/API", Skill: "feat", Agent: "codex", Search: "changes"}, 1},
+		{"literal underscore", Filter{CWD: "_"}, 3},
+		{"literal percent", Filter{CWD: "%"}, 3},
+		{"directory only", Filter{CWD: "/other"}, 1},
+		{"no matches", Filter{CWD: "/missing"}, 0},
+		{"blank", Filter{CWD: " \t"}, 5},
+		{"generic search unchanged", Filter{Search: "project_100%"}, 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rows, err := s.Query(tc.filter, -1, 0)
+			if err != nil || len(rows) != tc.want {
+				t.Fatalf("Query = %v, %v; want %d rows", rows, err, tc.want)
+			}
+			count, err := s.Count(tc.filter)
+			if err != nil || count != tc.want {
+				t.Fatalf("Count = %d, %v; want %d", count, err, tc.want)
+			}
+			stats, err := s.Stats(tc.filter)
+			if err != nil || stats.Total != tc.want {
+				t.Fatalf("Stats = %v, %v; want total %d", stats, err, tc.want)
+			}
+			skills, agents := 0, 0
+			for _, usage := range stats.TopSkills {
+				skills += usage.Count
+			}
+			for _, usage := range stats.ByAgent {
+				agents += usage.Count
+			}
+			if skills != tc.want || agents != tc.want {
+				t.Fatalf("Stats groups = %v; want %d entries", stats, tc.want)
+			}
+		})
+	}
+}
+
+func TestDirectoryFilterUnicodeCase(t *testing.T) {
+	s := openTest(t)
+	if _, err := s.Record(Invocation{Skill: "feat", CWD: "/Work/ÜBER/Änderungen"}); err != nil {
+		t.Fatal(err)
+	}
+	count, err := s.Count(Filter{CWD: "/über/änderungen"})
+	if err != nil || count != 1 {
+		t.Fatalf("Count = %d, %v; want 1", count, err)
+	}
+}
 func TestPruneAndDefaultFields(t *testing.T) {
 	s := openTest(t)
 	if _, err := s.Record(Invocation{Skill: "old", Timestamp: "2000-01-01T00:00:00+00:00"}); err != nil {

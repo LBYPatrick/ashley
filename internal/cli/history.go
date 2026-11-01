@@ -30,6 +30,7 @@ func historyCommand(args []string, stdout, stderr io.Writer) error {
 	case "show", "stats":
 		flags.StringVar(&filter.Skill, "skill", "", "Filter by skill")
 		flags.StringVar(&filter.Agent, "agent", "", "Filter by coding agent")
+		flags.StringVar(&filter.CWD, "cwd", "", "Filter by working directory substring")
 		flags.BoolVar(&jsonOutput, "json", false, "Print JSON")
 		if command == "show" {
 			flags.StringVar(&filter.Search, "search", "", "Search skill, question, or directory")

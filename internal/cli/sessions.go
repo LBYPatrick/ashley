@@ -3,6 +3,8 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -56,18 +58,30 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 	if command == "sessions" {
 		asJSON, clean := false, false
 		mode := "time"
-		for _, arg := range args {
-			switch arg {
-			case "--json":
-				asJSON = true
-			case "--list":
-			case "--clean":
-				clean = true
-			case "--sort=skill":
-				mode = "skill"
-			default:
-				return fmt.Errorf("unknown sessions option: %s", arg)
+		var filter sessions.Filter
+		var list bool
+		flags := flag.NewFlagSet("sessions", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		flags.BoolVar(&asJSON, "json", false, "Print JSON")
+		flags.BoolVar(&list, "list", false, "Print sessions")
+		flags.BoolVar(&clean, "clean", false, "Remove exited sessions")
+		flags.StringVar(&mode, "sort", "time", "Sort by time or skill")
+		flags.StringVar(&filter.Search, "search", "", "Search session text")
+		flags.StringVar(&filter.CWD, "cwd", "", "Filter by working directory substring")
+		if err := flags.Parse(args); err != nil {
+			if errors.Is(err, flag.ErrHelp) {
+				return nil
 			}
+			return err
+		}
+		if flags.NArg() != 0 {
+			return fmt.Errorf("sessions does not accept positional arguments")
+		}
+		if mode != "time" && mode != "skill" {
+			return fmt.Errorf("sort must be time or skill")
+		}
+		if clean && (strings.TrimSpace(filter.Search) != "" || strings.TrimSpace(filter.CWD) != "") {
+			return fmt.Errorf("--clean cannot be combined with --search or --cwd")
 		}
 		if clean {
 			n, err := manager.CleanDead()
@@ -82,13 +96,17 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 		if err != nil {
 			return err
 		}
-		all = sessions.Sort(all, mode)
+		all = sessions.Sort(sessions.FilterRows(all, filter), mode)
 		if asJSON {
 			return json.NewEncoder(stdout).Encode(all)
 		}
 		p.heading("Sessions")
 		if len(all) == 0 {
-			p.line("No sessions. Start one with ash run <skill>.")
+			if strings.TrimSpace(filter.Search) != "" || strings.TrimSpace(filter.CWD) != "" {
+				p.line("No sessions match the filters.")
+			} else {
+				p.line("No sessions. Start one with ash run <skill>.")
+			}
 			return nil
 		}
 		var rows [][]string
@@ -101,9 +119,9 @@ func sessionCommand(command string, args []string, stdout, stderr io.Writer) err
 			if agent == "" {
 				agent = "claude"
 			}
-			rows = append(rows, []string{s.ID, s.Name, s.Skill, agent, state, s.Elapsed(time.Now())})
+			rows = append(rows, []string{s.ID, s.Name, s.Skill, agent, state, s.Elapsed(time.Now()), s.CWD})
 		}
-		p.table([]string{"ID", "Name", "Skill", "Agent", "Status", "Elapsed"}, rows)
+		p.table([]string{"ID", "Name", "Skill", "Agent", "Status", "Elapsed", "Directory"}, rows)
 		p.section("Next")
 		p.line("ash attach <id> · Resume   ash logs <id> · View output")
 		return nil

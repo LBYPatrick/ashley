@@ -30,6 +30,43 @@ type Session struct {
 	ExtraFlags     []string `json:"extra_flags"`
 }
 
+// Filter selects sessions by text and working directory.
+type Filter struct {
+	Search string
+	CWD    string
+}
+
+// FilterRows returns matching sessions in their original order.
+// Both filters use case-insensitive literal substring matching.
+func FilterRows(input []Session, filter Filter) []Session {
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
+	cwd := strings.ToLower(strings.TrimSpace(filter.CWD))
+	result := make([]Session, 0, len(input))
+	for _, row := range input {
+		if cwd != "" && !strings.Contains(strings.ToLower(row.CWD), cwd) {
+			continue
+		}
+		if search != "" {
+			agent := row.Agent
+			if agent == "" {
+				agent = "claude"
+			}
+			matched := false
+			for _, field := range []string{row.Name, row.Question, row.Skill, agent, row.CWD, row.ID} {
+				if strings.Contains(strings.ToLower(field), search) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		result = append(result, row)
+	}
+	return result
+}
+
 // Manager locates persistent metadata and dispatches to the recorded backend.
 type Manager struct {
 	Dir       string

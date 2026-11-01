@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add shared instructions for multiple agents to every bundled skill and installed skill launch. Divide independent work by business domain and verify the combined results.
+- Add directory search to Sessions and History, with retained search state, visible paths, and CLI `--cwd` filters.
+
 ### Changed
 
 - Prefer WeasyPrint for PDF deliverables. Install it when needed and inspect the rendered pages before delivery.
@@ -15,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Send shared wording and PDF rules directly to agents for skill launches, including installed skill triggers.
+- Improve confirmation dialog contrast, focus visibility, and small-terminal layout. Support scrolling through long warnings.
+- Require confirmation before stopping hidden sessions when search results are empty. Preserve Activity search when returning from session logs.
 
 ## [1.5.0] - 2026-10-15
 
