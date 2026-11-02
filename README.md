@@ -408,8 +408,8 @@ The interface uses aligned columns, shared section rules, and distinct text,
 metadata, and accent tiers.
 
 In **Activity**, `T` or the visible tabs switch between Sessions and History.
-Enter attaches a running session, opens a finished session's log, or resumes a
-history conversation. `I` opens the technical inspector. Narrow terminals use
+Enter attaches a running session or resumes a finished conversation in either tab.
+Press `L` in Sessions to open its log. `I` opens the technical inspector. Narrow terminals use
 a single list; `V` opens details and Esc returns to the list. Stop and delete
 actions require confirmation, with Cancel selected by default.
 
@@ -675,7 +675,7 @@ background, just like `--detached`.
 
 | Key | Action |
 |-----|--------|
-| Enter | Attach to a running session or open a finished session's log |
+| Enter | Attach to a running session or resume a finished conversation |
 | t | Switch to History |
 | / | Search sessions |
 | Ctrl+F | Switch between All fields and Directory search |

@@ -699,13 +699,37 @@ func (m *Model) activate() tea.Cmd {
 				return nil
 			}
 			if !m.sessionAlive[m.sessionRows[m.cursor].ID] {
-				return m.recordAction("l")
+				return m.resumeSession(m.sessionRows[m.cursor].ID)
 			}
 			return m.execute("attach", m.sessionRows[m.cursor].ID)
 		}
 	}
 	return nil
 }
+
+func (m *Model) resumeSession(sessionID string) tea.Cmd {
+	if sessionID == "" {
+		m.status = "This session has no saved ID. Press L to view its log."
+		return nil
+	}
+	store, err := m.db()
+	if err != nil {
+		m.status = err.Error()
+		return nil
+	}
+	defer store.Close()
+	entries, err := store.Query(history.Filter{SessionID: sessionID}, 1, 0)
+	if err != nil {
+		m.status = err.Error()
+		return nil
+	}
+	if len(entries) == 0 {
+		m.status = "No history entry is linked to this session. Press L to view its log."
+		return nil
+	}
+	return m.execute("history", "resume", fmt.Sprint(entries[0].ID))
+}
+
 func (m *Model) settingsKey(key string) tea.Cmd {
 	rows := settingsRows()
 	switch key {

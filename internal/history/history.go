@@ -172,10 +172,11 @@ func (s *Store) Record(v Invocation) (int64, error) {
 }
 func stamp(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000000+00:00") }
 
-// Filter selects records by skill, coding agent, directory, or a SQL LIKE search.
+// Filter selects records by skill, coding agent, directory, session, or a SQL LIKE search.
+// SessionID and AgentSessionID match complete IDs.
 type Filter struct {
-	Skill, Agent, Search, CWD, AgentSessionID string
-	ID                                        int64
+	Skill, Agent, Search, CWD, AgentSessionID, SessionID string
+	ID                                                   int64
 }
 
 func (f Filter) where() (string, []any) {
@@ -188,6 +189,10 @@ func (f Filter) where() (string, []any) {
 	if f.AgentSessionID != "" {
 		conditions = append(conditions, "agent_session_id = ?")
 		args = append(args, f.AgentSessionID)
+	}
+	if f.SessionID != "" {
+		conditions = append(conditions, "session_id = ?")
+		args = append(args, f.SessionID)
 	}
 	if f.Skill != "" {
 		conditions = append(conditions, "skill = ?")

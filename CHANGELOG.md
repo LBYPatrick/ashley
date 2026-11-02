@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Resume finished sessions with Enter through their linked history entry. Use `L` to open session logs.
+
 ## [1.6.0] - 2026-11-02
 
 ### Added

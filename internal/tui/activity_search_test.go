@@ -135,34 +135,30 @@ func TestSessionSearchRejectsStaleOutputAndEmptyActions(t *testing.T) {
 }
 
 func TestSessionLogReturnsToFilteredSelection(t *testing.T) {
-	for _, action := range []string{"l", "enter"} {
-		t.Run(action, func(t *testing.T) {
-			m := activitySearchModel(t)
-			m.open("sessions")
-			key(m, "/")
-			key(m, "workspace")
-			m.Update(tea.KeyMsg{Type: tea.KeyCtrlF})
-			key(m, "enter")
-			key(m, "down")
-			m.preview.SetYOffset(2)
-			m.logOffset = 1
-			selected, detailOffset := m.sessionRows[m.cursor], m.preview.YOffset
-			if err := os.WriteFile(selected.LogFile, []byte("saved session output"), 0600); err != nil {
-				t.Fatal(err)
-			}
-			m.sessionAlive = map[string]bool{selected.ID: false}
-			key(m, action)
-			if m.screen != "log" || !strings.Contains(m.logContent, "saved session output") {
-				t.Fatal("session action did not open the log")
-			}
-			key(m, "esc")
-			if m.screen != "sessions" || m.filter.Value() != "workspace" || !m.directoryOnly || m.cursor != 1 {
-				t.Fatal("return from log lost the search, scope, or selection")
-			}
-			if m.sessionRows[m.cursor].ID != selected.ID || m.preview.YOffset != detailOffset || m.logOffset != 1 {
-				t.Fatal("return from log lost the selected session or scroll position")
-			}
-		})
+	m := activitySearchModel(t)
+	m.open("sessions")
+	key(m, "/")
+	key(m, "workspace")
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlF})
+	key(m, "enter")
+	key(m, "down")
+	m.preview.SetYOffset(2)
+	m.logOffset = 1
+	selected, detailOffset := m.sessionRows[m.cursor], m.preview.YOffset
+	if err := os.WriteFile(selected.LogFile, []byte("saved session output"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	m.sessionAlive = map[string]bool{selected.ID: false}
+	key(m, "l")
+	if m.screen != "log" || !strings.Contains(m.logContent, "saved session output") {
+		t.Fatal("session action did not open the log")
+	}
+	key(m, "esc")
+	if m.screen != "sessions" || m.filter.Value() != "workspace" || !m.directoryOnly || m.cursor != 1 {
+		t.Fatal("return from log lost the search, scope, or selection")
+	}
+	if m.sessionRows[m.cursor].ID != selected.ID || m.preview.YOffset != detailOffset || m.logOffset != 1 {
+		t.Fatal("return from log lost the selected session or scroll position")
 	}
 }
 

@@ -73,13 +73,13 @@ func (m *Model) detailText() string {
 		}
 		s := m.sessionRows[m.cursor]
 		if !m.showMetadata {
-			state := "Finished · Enter to open the log"
+			state := "Finished · Enter to resume"
 			if alive, known := m.sessionAlive[s.ID]; !known {
 				state = "Checking session status…"
 			} else if alive {
 				state = "Running · Enter to attach"
 			}
-			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + state + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\nI shows session details"
+			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + state + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\nL opens the log · I shows session details"
 		}
 		state := "EXITED"
 		if alive, known := m.sessionAlive[s.ID]; !known {
@@ -104,6 +104,7 @@ func (m *Model) detailText() string {
 			text += "\ntmux:       " + s.TmuxSession
 		}
 		text += "\nLog:        " + s.LogFile
+		text += "\n\nEnter attaches or resumes · L opens the log"
 		return text
 	case "history":
 		if len(m.historyRows) == 0 {

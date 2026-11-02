@@ -254,6 +254,58 @@ func TestAgentSessionRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSessionIDFilter(t *testing.T) {
+	s := openTest(t)
+	var ids []int64
+	for _, row := range []Invocation{
+		{SessionID: "session_100%", Skill: "feat", AgentType: "codex", CWD: "/work/api", Question: "First change", Timestamp: "2026-11-01T01:00:00Z"},
+		{SessionID: "session_100%", Skill: "fix", AgentType: "claude", CWD: "/work/web", Question: "Second change", Timestamp: "2026-11-01T02:00:00Z"},
+		{SessionID: "sessionX100other", Skill: "feat", AgentType: "codex", CWD: "/work/api", Timestamp: "2026-11-01T03:00:00Z"},
+		{SessionID: "session_100%-child", Skill: "feat", AgentType: "codex", CWD: "/work/api", Timestamp: "2026-11-01T04:00:00Z"},
+	} {
+		id, err := s.Record(row)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, id)
+	}
+	for _, tc := range []struct {
+		name   string
+		filter Filter
+		limit  int
+		want   []int64
+	}{
+		{"exact ID", Filter{SessionID: "session_100%"}, -1, []int64{ids[1], ids[0]}},
+		{"newest match", Filter{SessionID: "session_100%"}, 1, []int64{ids[1]}},
+		{"combined", Filter{SessionID: "session_100%", Skill: "feat", Agent: "codex", CWD: "/api", Search: "First"}, -1, []int64{ids[0]}},
+		{"combined no match", Filter{SessionID: "session_100%", Agent: "codex", Skill: "fix"}, -1, []int64{}},
+		{"missing", Filter{SessionID: "missing"}, -1, []int64{}},
+		{"case sensitive", Filter{SessionID: "SESSION_100%"}, -1, []int64{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rows, err := s.Query(tc.filter, tc.limit, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := []int64{}
+			for _, row := range rows {
+				got = append(got, row.ID)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("Query = %v; want %v", got, tc.want)
+			}
+		})
+	}
+	count, err := s.Count(Filter{SessionID: "session_100%"})
+	if err != nil || count != 2 {
+		t.Fatalf("Count = %d, %v; want 2", count, err)
+	}
+	stats, err := s.Stats(Filter{SessionID: "session_100%"})
+	if err != nil || stats.Total != 2 {
+		t.Fatalf("Stats = %v, %v; want total 2", stats, err)
+	}
+}
+
 func TestNameSurvivesReopenAndRenameIsScoped(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.db")
 	s, err := Open(path)
