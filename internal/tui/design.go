@@ -46,6 +46,6 @@ func (f *frame) richText(r rect, text string, a appearance, offset int) {
 	}
 }
 func screenName(screen string) string {
-	names := map[string]string{"skills.sh": "Library", "compose": "New run", "hub": "Home", "vibe": "Choose a skill", "sessions": "Activity", "history": "Activity · History", "stats": "Usage", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts"}
+	names := map[string]string{"skills.sh": "Library", "compose": "New run", "hub": "Home", "vibe": "Choose a skill", "sessions": "Activity", "history": "Activity · History", "stats": "Usage", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts", "about": "About Ashley"}
 	return names[screen]
 }

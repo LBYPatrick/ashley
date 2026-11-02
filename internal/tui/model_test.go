@@ -179,7 +179,7 @@ func TestHistorySearchPaginationDeleteAndStats(t *testing.T) {
 		}
 	}
 	m.open("history")
-	if m.total != 55 || len(m.historyRows) != 50 || !strings.Contains(m.View(), "55 total") {
+	if m.total != 55 || len(m.historyRows) != 50 || !strings.Contains(m.View(), "55 entries") {
 		t.Fatal(m.View())
 	}
 	key(m, "n")

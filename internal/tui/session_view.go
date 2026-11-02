@@ -6,22 +6,11 @@ import (
 )
 
 func (m *Model) sessionActionControls() []settingControl {
-	if m.screen != "sessions" || m.compactDetail || m.height < 12 {
+	if m.screen != "sessions" || m.compactDetail || m.height < 12 || m.layout().left.w < 30 {
 		return nil
 	}
 	l := m.layout()
-	labels := []string{"X Kill all", "D Clean dead"}
-	if l.list.w < 27 {
-		labels = []string{"X All", "D Dead"}
-	}
-	var controls []settingControl
-	x := l.list.x
-	for i, key := range []string{"X", "cleanup"} {
-		width := ansi.StringWidth(labels[i]) + 2
-		controls = append(controls, settingControl{rect: rect{x, l.list.y - 1, width, 1}, key: key, label: labels[i]})
-		x += width + 1
-	}
-	return controls
+	return []settingControl{{rect: rect{l.left.x + l.left.w - 9, l.left.y, 9, 1}, key: "actions", label: "Actions"}}
 }
 
 // Share the exact visible rectangles between rendering, wrapping, and scrolling.

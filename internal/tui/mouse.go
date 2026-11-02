@@ -29,6 +29,11 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.rename != nil {
 		return nil
 	}
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == 0 && msg.X >= max(2, m.width-15) {
+		m.paletteOpen, m.paletteSessionActions = true, false
+		m.paletteQuery, m.paletteCursor = "", 0
+		return nil
+	}
 	if m.paletteOpen {
 		r := m.paletteBounds()
 		visible := max(1, r.h-7)
@@ -49,18 +54,20 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		return nil
 	}
 	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
-		if msg.Y == 0 && msg.X >= max(2, m.width-15) {
-			m.paletteOpen = true
-			m.paletteQuery = ""
-			m.paletteCursor = 0
-			return nil
-		}
 		for _, c := range m.navControls() {
 			if c.contains(msg.X, msg.Y) {
 				m.open(c.key)
 				return nil
 			}
 		}
+	}
+	if m.screen == "about" {
+		if msg.Button == tea.MouseButtonWheelDown {
+			m.scrollAbout(3)
+		} else if msg.Button == tea.MouseButtonWheelUp {
+			m.scrollAbout(-3)
+		}
+		return nil
 	}
 	if m.screen == "compose" {
 		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
@@ -159,7 +166,11 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		}
 		for _, control := range m.sessionActionControls() {
 			if control.contains(msg.X, msg.Y) {
-				m.requestConfirmation(control.key)
+				if control.key == "actions" {
+					m.openSessionActions()
+				} else {
+					m.requestConfirmation(control.key)
+				}
 				return nil
 			}
 		}

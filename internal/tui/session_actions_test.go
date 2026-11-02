@@ -12,6 +12,30 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+func clickSessionBulkAction(t *testing.T, m *Model, action string) {
+	t.Helper()
+	for _, control := range m.sessionActionControls() {
+		if control.key == "actions" {
+			m.Update(tea.MouseMsg{X: control.x + 1, Y: control.y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+		}
+	}
+	if !m.paletteOpen {
+		t.Fatal("Actions did not open the command palette")
+	}
+	label := "Kill all sessions"
+	if action == "cleanup" {
+		label = "Clean finished sessions"
+	}
+	for i, item := range m.paletteItems() {
+		if item[0] == label {
+			r := m.paletteBounds()
+			m.Update(tea.MouseMsg{X: r.x + 4, Y: r.y + 5 + i, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+			return
+		}
+	}
+	t.Fatalf("Actions omits %s", label)
+}
+
 func TestSessionBulkActionsFromKeyboardMouseAndPalette(t *testing.T) {
 	for _, route := range []string{"keyboard", "mouse", "palette"} {
 		for _, action := range []string{"X", "cleanup"} {
@@ -52,11 +76,7 @@ func TestSessionBulkActionsFromKeyboardMouseAndPalette(t *testing.T) {
 						}
 						key(m, shortcut)
 					case "mouse":
-						for _, control := range m.sessionActionControls() {
-							if control.key == action {
-								m.Update(tea.MouseMsg{X: control.x + 1, Y: control.y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
-							}
-						}
+						clickSessionBulkAction(t, m, action)
 					case "palette":
 						m.paletteOpen = true
 						m.paletteQuery = "Kill all sessions"

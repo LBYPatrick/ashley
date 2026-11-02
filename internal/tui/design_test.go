@@ -83,7 +83,7 @@ func TestPopulatedBrowsersPreserveAllDetails(t *testing.T) {
 	m.total = 183
 	m.updatePreview()
 	view := m.View()
-	for _, field := range []string{"183 total", "Page 1/4", "Invocation #183", "Question:", "Directory:", "Permission:", "Detached:", "Database:"} {
+	for _, field := range []string{"183 entries", "Page 1/4", "Invocation #183", "Question:", "Directory:", "Permission:", "Detached:", "Database:"} {
 		if !strings.Contains(ansi.Strip(view), field) {
 			t.Fatal(field)
 		}

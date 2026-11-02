@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-var homeTitles = []string{"New run", "Running sessions", "History", "Sync skills", "Create a skill", "Usage", "Settings", "Skill library"}
-var homeDescriptions = []string{"Describe a task. Add a skill if useful.", "Return to work already in progress.", "Find and resume a past conversation.", "Install your skills for detected agents.", "Turn a workflow into a reusable skill.", "Review your skills and agent usage.", "Choose your default agent and appearance.", "Discover and manage community skills."}
+var homeTitles = []string{"New run", "Running sessions", "History", "Sync skills", "Create a skill", "Usage", "Settings", "Skill library", "About Ashley"}
+var homeDescriptions = []string{"Describe a task. Add a skill if useful.", "Return to work already in progress.", "Find and resume a past conversation.", "Install your skills for detected agents.", "Turn a workflow into a reusable skill.", "Review your skills and agent usage.", "Choose your default agent and appearance.", "Discover and manage community skills.", "Read the version, project, and license information."}
 
 func (m *Model) recentTop() int {
 	return 6
@@ -48,10 +48,12 @@ func (m *Model) homeControls() []settingControl {
 		}
 		out = append(out, settingControl{rect: r, row: len(hub) + i, label: taskTitle(v.Skill, v.Question, v.Name)})
 	}
-	if right.w == 0 && m.cursor < len(out) {
+	if m.cursor < len(out) && (right.w == 0 || m.cursor < len(hub)) {
 		offset := max(0, out[m.cursor].y-(m.height-4))
 		for i := range out {
-			out[i].y -= offset
+			if right.w == 0 || out[i].row < len(hub) {
+				out[i].y -= offset
+			}
 		}
 	}
 	return out

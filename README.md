@@ -382,6 +382,10 @@ appearance setup never blocks starting work.
 | **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
 | **Settings** | Default coding agent, theme & colour | Ctrl+5 |
+| **About Ashley** | Installed version, project address, and license | Home or `Ctrl+P` → About Ashley |
+
+Open **About Ashley** from Home or the command palette. Its version matches
+`ash --version`. Use arrow keys or the mouse wheel to scroll in small terminals.
 
 The persistent navigation is **Ctrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library ·
 Ctrl+5 Settings** (`^1`–`^5` in the tab bar). The TUI enables enhanced keyboard
@@ -411,8 +415,9 @@ actions require confirmation, with Cancel selected by default.
 
 Press `/` to search either tab. Press `Ctrl+F` to switch between **All fields**
 and **Directory**. Press `Ctrl+U` to clear the search. You can also click the scope
-and clear controls. Each tab keeps its search, scope, and selection. Result rows
-show working directories. The details panel shows the full path.
+and clear controls. Each tab keeps its search, scope, and selection. Both tabs use
+the same sidebar width and a single search row. Task rows show a title and
+directory when space permits. Details include the full path and additional metadata.
 
 Confirmation dialogs use high-contrast text and explicit focus markers. Tab
 changes the selected button. Enter activates that button. Esc cancels the action.
@@ -426,9 +431,10 @@ time visible. `?` means that the first status check is still in progress.
 Status checks and output previews run in the background so that cursor moves do
 not wait for a backend command. Each refresh uses at most one status query for each backend.
 
-Use **X Kill all** and **D Clean dead** above the session list, or press `X` and `D`.
-Cleanup removes finished session records and keeps their logs. Both actions are
-also in the `Ctrl+P` command palette.
+Open **Actions** in Sessions for **Kill all sessions** and **Clean finished sessions**.
+The `X` and `D` shortcuts remain available, including in small terminals.
+Cleanup removes finished session records and keeps their logs. Both actions also
+remain in the `Ctrl+P` command palette.
 
 Open **Library** from Home or the `Ctrl+P` command palette. Select an action
 with arrows and Enter; Find and Add accept a search term or repository/URL.

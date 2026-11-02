@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add About Ashley with the installed version, project address, and license. Open it from Home or the command palette.
 - Add shared instructions for multiple agents to every bundled skill and installed skill launch. Divide independent work by business domain and verify the combined results.
 - Add directory search to Sessions and History, with retained search state, visible paths, and CLI `--cwd` filters.
 
 ### Changed
 
+- Redesign the Activity sidebar with consistent widths, a single search row, and spaced task rows. Move bulk controls into an Actions menu.
 - Prefer WeasyPrint for PDF deliverables. Install it when needed and inspect the rendered pages before delivery.
 - Rename `a-claudemd` to `a-agentsmd`. Generate project instructions in `AGENTS.md`.
 

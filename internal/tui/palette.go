@@ -13,16 +13,27 @@ import (
 
 var paletteCommands = [][2]string{
 	{"New run", "Write a task and choose an agent"},
+	{"About Ashley", "Read the version, project, and MIT license information"},
 	{"Home", "Start or continue work"}, {"Activity", "Open running sessions and their logs"}, {"History", "Find and resume past conversations"}, {"Library", "Browse, create, sync, and manage skills.sh community skills"}, {"Choose a skill", "Browse skills and start a run"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Usage", "Explore skill and agent analytics"}, {"Settings", "Change your default agent, theme, and appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+}
+
+var sessionPaletteCommands = [][2]string{
+	{"Kill all sessions", "Stop all Ashley sessions and keep their logs"},
+	{"Clean finished sessions", "Remove finished session records and keep their logs"},
+}
+
+func (m *Model) openSessionActions() {
+	m.paletteOpen, m.paletteSessionActions = true, true
+	m.paletteQuery, m.paletteCursor = "", 0
 }
 
 func (m *Model) paletteItems() [][2]string {
 	var items [][2]string
 	commands := append([][2]string{}, paletteCommands...)
-	if m.screen == "sessions" {
-		commands = append(commands,
-			[2]string{"Kill all sessions", "Stop all Ashley sessions and keep their logs"},
-			[2]string{"Clean finished sessions", "Remove finished session records and keep their logs"})
+	if m.paletteSessionActions {
+		commands = sessionPaletteCommands
+	} else if m.screen == "sessions" {
+		commands = append(commands, sessionPaletteCommands...)
 	}
 	for _, item := range commands {
 		if strings.Contains(strings.ToLower(item[0]+" "+item[1]), strings.ToLower(m.paletteQuery)) {
@@ -33,14 +44,26 @@ func (m *Model) paletteItems() [][2]string {
 }
 func (m *Model) paletteBounds() rect {
 	width := min(76, max(12, m.width-6))
-	return rect{(max(20, m.width) - width) / 2, 2, width, min(max(6, m.height-4), 18)}
+	height := min(max(6, m.height-4), 18)
+	if m.paletteSessionActions {
+		width = min(width, 54)
+		height = min(height, 9)
+	}
+	return rect{(max(20, m.width) - width) / 2, 2, width, height}
 }
 func (m *Model) paletteView(f *frame, a appearance) {
+	placeholder := "Search for commands…"
+	if m.paletteSessionActions {
+		body, selected := confirmationStyles(a)
+		a.base, a.panel, a.border, a.muted = body, body, body, body
+		a.title, a.selected = body.Bold(true), selected
+		placeholder = "Session actions…"
+	}
 	r := m.paletteBounds()
 	items := m.paletteItems()
 	f.fill(r, a.panel)
 	f.box(r, a.border)
-	f.input(rect{r.x + 2, r.y + 1, r.w - 4, 3}, m.paletteQuery, "Search for commands…", true, a)
+	f.input(rect{r.x + 2, r.y + 1, r.w - 4, 3}, m.paletteQuery, placeholder, true, a)
 	visible := max(1, r.h-7)
 	start := max(0, m.paletteCursor-visible+1)
 	for i := start; i < min(len(items), start+visible); i++ {
@@ -66,6 +89,7 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 		m.paletteCursor = 0
 	case "esc", "ctrl+p":
 		m.paletteOpen = false
+		m.paletteSessionActions = false
 	case "ctrl+c":
 		return m.quit()
 	case "up":
@@ -81,11 +105,17 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 	case "enter":
 		items := m.paletteItems()
 		if len(items) == 0 {
+			if m.paletteSessionActions {
+				m.paletteOpen, m.paletteSessionActions = false, false
+			}
 			return nil
 		}
 		choice := items[m.paletteCursor][0]
 		m.paletteOpen = false
+		m.paletteSessionActions = false
 		switch choice {
+		case "About Ashley":
+			m.openAbout()
 		case "Kill all sessions":
 			m.requestConfirmation("X")
 		case "Clean finished sessions":

@@ -58,13 +58,12 @@ func (m *Model) layout() screenLayout {
 	}
 	available := w - 2*margin
 	sidebar := 28
-	if m.screen == "sessions" {
-		sidebar = min(56, max(34, available/4))
+	if m.isActivity() {
+		sidebar = min(52, max(34, available*42/100))
+		sidebar = min(sidebar, available/2)
+	} else {
+		sidebar = min(sidebar, max(12, available*2/5))
 	}
-	if m.screen == "history" {
-		sidebar = min(64, max(38, available/4))
-	}
-	sidebar = min(sidebar, max(12, available*2/5))
 	bottom := h - 3
 	if m.screen == "skills.sh" {
 		bottom = h - 6
@@ -79,6 +78,9 @@ func (m *Model) layout() screenLayout {
 		l.input = rect{margin, 4, sidebar, 3}
 		l.list.y = 8
 		l.list.h = max(1, bottom-8)
+	}
+	if m.isActivity() {
+		l.input = rect{margin, 5, sidebar, 1}
 	}
 	if m.maximized {
 		l.list.w = available
@@ -139,12 +141,12 @@ func (m *Model) footer(f *frame, a appearance) {
 	case "compose":
 		text = "^R Start  ^N Name  ^S Skill  tab Options  esc Home"
 	case "sessions":
-		text = "/ Search  ^F Scope  ^U Clear  enter Open  t History  s Sort  r Refresh  X Kill all  D Clean dead  K Stop  l Log  N Rename  i Inspector"
+		text = "/ Search  ^F Scope  enter Open  t History  ^P Commands"
 		if m.options.Screen == "sessions" {
 			text += "  q Quit"
 		}
 	case "history":
-		text = "/ Search  ^F Scope  ^U Clear  enter Resume  t Sessions  n/p Pages  N Rename  i Inspector  d Delete"
+		text = "/ Search  ^F Scope  enter Resume  t Sessions  n/p Pages"
 		if m.options.Screen == "history" {
 			text += "  q Quit"
 		}
@@ -152,6 +154,8 @@ func (m *Model) footer(f *frame, a appearance) {
 		text = "esc Done  ↑↓←→ Move  enter Select  tab Next"
 	case "stats":
 		text = "esc Back  r Refresh"
+	case "about":
+		text = "esc Back  ↑↓ Scroll  pgup/pgdown Page  home/end Ends"
 	case "create":
 		text = "esc Back  ^n Next  ^s Save  ^e JSON"
 		if m.wizard == nil {
@@ -175,13 +179,13 @@ func (m *Model) footer(f *frame, a appearance) {
 			text = "enter Open  v Details  esc Back"
 		}
 		if m.isActivity() {
-			text = "/ Search  ^F Scope  ^U Clear  v Details  enter Open  t Tabs  esc Back"
+			text = "/ Search  ^F Scope  v Details  t Tabs"
 			if m.filter.Value() != "" {
-				text = "^U Clear  / Search  ^F Scope  v Details  enter Open  t Tabs  esc Back"
+				text = "^U Clear  / Search  ^F Scope  v Details"
 			}
 		}
 	}
-	if m.focus == "filter" {
+	if m.focus == "filter" && m.screen != "about" {
 		text = "Type to search  enter Results  esc Done"
 		if m.isActivity() {
 			text = "^U Clear  ^F Scope  enter Results  esc Done"
@@ -274,6 +278,8 @@ func (m *Model) View() string {
 		m.settingsView(f, a)
 	case "stats":
 		m.statsView(f, a)
+	case "about":
+		m.aboutView(f, a)
 	case "create":
 		m.creatorView(f, a)
 	case "create-preview", "log", "help":

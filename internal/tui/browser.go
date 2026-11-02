@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LBYPatrick/ashley/internal/agents"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -37,7 +36,7 @@ func (m *Model) visibleRows() int { return max(1, m.layout().list.h/m.rowHeight(
 
 func (m *Model) browserView(f *frame, a appearance) {
 	l := m.layout()
-	var titles, subtitles, directories []string
+	var titles, directories, times []string
 	heading, hint := "Choose a skill", "/ Search by name or purpose"
 	switch m.screen {
 	case "vibe":
@@ -52,23 +51,21 @@ func (m *Model) browserView(f *frame, a appearance) {
 	case "sessions":
 		heading, hint = "Activity · Sessions", "t History   r Refresh   s Sort"
 		for _, s := range m.sessionRows {
-			state := "Finished"
-			if alive, known := m.sessionAlive[s.ID]; !known {
-				state = "Checking"
-			} else if alive {
-				state = "Running"
-			}
 			titles = append(titles, taskTitle(s.Skill, s.Question, s.Name))
-			subtitles = append(subtitles, state+" · "+s.Skill)
 			directories = append(directories, s.CWD)
+			times = append(times, s.Elapsed(time.Now()))
 		}
 	case "history":
 		heading = fmt.Sprintf("History (%d)", m.total)
 		hint = fmt.Sprintf("Page %d/%d · n Next · p Previous", m.offset/50+1, max(1, (m.total+49)/50))
 		for _, v := range m.historyRows {
 			titles = append(titles, taskTitle(v.Skill, v.Question, v.Name))
-			subtitles = append(subtitles, v.Skill+" · "+agents.Get(v.AgentType).Label+" · "+v.TimeDisplay())
 			directories = append(directories, v.CWD)
+			date := ""
+			if timestamp, err := time.Parse(time.RFC3339Nano, v.Timestamp); err == nil {
+				date = timestamp.Format("Jan 2")
+			}
+			times = append(times, date)
 		}
 	}
 	if !m.compactDetail {
@@ -93,6 +90,19 @@ func (m *Model) browserView(f *frame, a appearance) {
 		for _, control := range m.sessionActionControls() {
 			f.put(control.x, control.y, a.panel.Render(" "+control.label+" "))
 		}
+		if m.isActivity() && m.height >= 12 {
+			count, noun := len(m.sessionRows), "sessions"
+			if m.screen == "history" {
+				count, noun = m.total, "entries"
+			}
+			if count == 1 {
+				noun = strings.TrimSuffix(noun, "s")
+				if m.screen == "history" {
+					noun = "entry"
+				}
+			}
+			f.put(l.list.x, l.list.y-1, a.muted.Render(ansi.Truncate(fmt.Sprintf("%d %s", count, noun), l.list.w, "…")))
+		}
 		visible := m.visibleRows()
 		start := max(0, m.cursor-visible+1)
 		for i := start; i < min(len(titles), start+visible); i++ {
@@ -102,6 +112,10 @@ func (m *Model) browserView(f *frame, a appearance) {
 			}
 			y := l.list.y + (i-start)*m.rowHeight()
 			title, titleWidth, suffix := titles[i], l.list.w, ""
+			if m.isActivity() && l.list.w >= 12 && times[i] != "" {
+				suffix = " " + times[i]
+				titleWidth = max(4, titleWidth-ansi.StringWidth(suffix))
+			}
 			if m.screen == "sessions" {
 				indicator := "○ "
 				if alive, known := m.sessionAlive[m.sessionRows[i].ID]; !known {
@@ -110,27 +124,20 @@ func (m *Model) browserView(f *frame, a appearance) {
 					indicator = "● "
 				}
 				title = indicator + title
-				if l.list.w >= 12 {
-					suffix = " " + m.sessionRows[i].Elapsed(time.Now())
-					titleWidth = max(4, titleWidth-ansi.StringWidth(suffix))
-				}
-			}
-			if m.isActivity() && m.rowHeight() == 1 {
-				directoryWidth := max(1, (l.list.w-ansi.StringWidth(suffix)-6)/2)
-				suffix = " " + directoryLabel(directories[i], directoryWidth) + suffix
-				titleWidth = max(1, l.list.w-ansi.StringWidth(suffix))
 			}
 			label := ansi.Truncate(marker+title, titleWidth, "…")
-			f.put(l.list.x, y, style.Render(label+strings.Repeat(" ", max(0, titleWidth-ansi.StringWidth(label)))+suffix))
-			if m.rowHeight() > 1 && i < len(subtitles) {
-				text := subtitles[i]
-				if m.rowHeight() == 2 {
-					text = directoryLabel(directories[i], l.list.w-2)
+			suffixStyle := a.muted
+			if i == m.cursor {
+				suffixStyle = a.selected.Bold(false)
+			}
+			f.put(l.list.x, y, style.Render(label+strings.Repeat(" ", max(0, titleWidth-ansi.StringWidth(label))))+suffixStyle.Render(suffix))
+			if m.rowHeight() > 1 && i < len(directories) {
+				secondary := a.muted
+				if i == m.cursor {
+					secondary = a.selected.Bold(false)
 				}
-				f.put(l.list.x+2, y+1, a.muted.Render(ansi.Truncate(text, l.list.w-2, "…")))
-				if m.rowHeight() == 3 {
-					f.put(l.list.x+2, y+2, a.muted.Render(directoryLabel(directories[i], l.list.w-2)))
-				}
+				path := directoryLabel(directories[i], l.list.w-4)
+				f.put(l.list.x, y+1, secondary.Render("    "+path+strings.Repeat(" ", max(0, l.list.w-4-ansi.StringWidth(path)))))
 			}
 		}
 		if len(titles) == 0 {
@@ -144,7 +151,10 @@ func (m *Model) browserView(f *frame, a appearance) {
 			f.put(l.list.x, m.height-3, a.muted.Render(fmt.Sprintf("%d of %d", m.cursor+1, len(titles))))
 		}
 		if m.screen == "history" && m.height >= 12 {
-			f.put(l.list.x, m.height-3, a.muted.Render(ansi.Truncate(fmt.Sprintf("%d total · ", m.total)+hint, l.list.w, "…")))
+			if m.total <= 50 {
+				hint = "Page 1/1"
+			}
+			f.put(l.list.x, m.height-3, a.muted.Render(ansi.Truncate(hint, l.list.w, "…")))
 		}
 	}
 	if l.detail.w > 0 && !m.maximized {

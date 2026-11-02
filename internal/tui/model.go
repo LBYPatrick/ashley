@@ -37,11 +37,12 @@ type Options struct {
 type completed struct{ err error }
 type tick time.Time
 
-var hub = []string{"compose", "sessions", "history", "sync", "create", "stats", "settings", "skills.sh"}
+var hub = []string{"compose", "sessions", "history", "sync", "create", "stats", "settings", "skills.sh", "about"}
 var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
+	aboutOrigin                         *aboutOrigin
 	pendingCommands                     []tea.Cmd
 	sessionBusy                         bool
 	sessionRequest                      uint64
@@ -71,6 +72,7 @@ type Model struct {
 	logContent                          string
 	logOffset                           int
 	paletteOpen                         bool
+	paletteSessionActions               bool
 	paletteQuery                        string
 	paletteCursor                       int
 	maximized                           bool
@@ -356,6 +358,7 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			return m, nil
 		}
 		m.paletteOpen = false
+		m.paletteSessionActions = false
 		m.open(screen)
 		if screen == "compose" {
 			return m, m.composer.Focus()
@@ -386,6 +389,9 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		if m.screen == "create" {
 			m.sizeCreatorEditor()
 			m.keepCreatorVisible()
+		}
+		if m.screen == "about" {
+			m.scrollAbout(0)
 		}
 	case operationFinished:
 		if m.job == msg.job {
@@ -442,8 +448,16 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		}
 		if key == "ctrl+p" {
 			m.paletteOpen = true
+			m.paletteSessionActions = false
 			m.paletteQuery = ""
 			m.paletteCursor = 0
+			return m, nil
+		}
+		if m.screen == "about" {
+			if key == "ctrl+c" {
+				return m, m.quit()
+			}
+			m.aboutKey(key)
 			return m, nil
 		}
 		if m.screen == "compose" {
@@ -662,6 +676,8 @@ func (m *Model) activate() tea.Cmd {
 		}
 		key := hub[m.cursor]
 		switch key {
+		case "about":
+			m.openAbout()
 		case "sync":
 			m.open(key)
 			return m.startOperation("sync")

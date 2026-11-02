@@ -190,11 +190,7 @@ func TestKillAllWithEmptySearchResultsRequiresConfirmation(t *testing.T) {
 				case "keyboard":
 					key(m, "X")
 				case "mouse":
-					for _, control := range m.sessionActionControls() {
-						if control.key == "X" {
-							m.Update(tea.MouseMsg{X: control.x, Y: control.y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
-						}
-					}
+					clickSessionBulkAction(t, m, "X")
 				case "palette":
 					m.paletteOpen, m.paletteQuery, m.paletteCursor = true, "Kill all sessions", 0
 					key(m, "enter")
@@ -239,7 +235,7 @@ func TestActivitySearchControlsAndSmallLayouts(t *testing.T) {
 				if l.list.y <= l.input.y || l.list.y+l.list.h > m.height-2 {
 					t.Fatal("search or results overlap terminal chrome", l)
 				}
-				if m.height >= 12 {
+				if m.rowHeight() >= 2 {
 					listRows := strings.Split(ansi.Strip(view), "\n")[l.list.y : l.list.y+m.rowHeight()]
 					if !strings.Contains(strings.Join(listRows, "\n"), "billing") {
 						t.Fatal("working directory is hidden in the result list")
@@ -258,7 +254,7 @@ func TestActivitySearchControlsAndSmallLayouts(t *testing.T) {
 				}
 				m.mouse(tea.MouseMsg{X: controls[0].x, Y: controls[0].y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
 				view = m.View()
-				if !m.directoryOnly || !strings.Contains(ansi.Strip(view), "^F Directory") || len(controls) != 2 {
+				if !m.directoryOnly || !strings.Contains(ansi.Strip(view), m.activitySearchControls()[0].label) || len(controls) != 2 {
 					t.Fatal("empty results hide the active scope or clear control")
 				}
 				if m.height >= 13 && !strings.Contains(ansi.Strip(view), "No matching results.") {

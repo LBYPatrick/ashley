@@ -45,38 +45,44 @@ func (m *Model) activitySearchControls() []settingControl {
 	if m.directoryOnly {
 		label = "Directory"
 	}
-	y := l.input.y
-	if l.input.h == 1 {
-		y++
-	}
-	label = "^F " + label
-	controls := []settingControl{{rect: rect{l.input.x, y, len(label), 1}, key: "scope", label: label}}
-	if m.filter.Value() != "" {
-		clear := "^U Clear"
-		if l.input.w < len(label)+12 {
-			clear = "^U"
+	if l.input.w < 30 {
+		label = "All"
+		if m.directoryOnly {
+			label = "Dir"
 		}
-		controls = append(controls, settingControl{
-			rect: rect{l.input.x + l.input.w - len(clear), y, len(clear), 1},
-			key:  "clear", label: clear,
-		})
+	}
+	label = "[" + label + "]"
+	x := l.input.x + l.input.w
+	var clear *settingControl
+	if m.filter.Value() != "" {
+		x -= 3
+		clear = &settingControl{rect: rect{x, l.input.y, 3, 1}, key: "clear", label: "[x]"}
+		x--
+	}
+	x -= len(label)
+	controls := []settingControl{{rect: rect{x, l.input.y, len(label), 1}, key: "scope", label: label}}
+	if clear != nil {
+		controls = append(controls, *clear)
 	}
 	return controls
 }
 
 func (m *Model) activitySearchView(f *frame, a appearance) {
 	l := m.layout()
+	controls := m.activitySearchControls()
+	field := l.input
+	field.w = max(1, controls[0].x-field.x-1)
 	placeholder := "Search " + m.screen + "…"
 	if m.directoryOnly {
 		placeholder = "Search directory…"
 	}
-	f.input(l.input, m.filter.Value(), placeholder, m.focus == "filter", a, m.filter.Position())
-	for _, control := range m.activitySearchControls() {
-		style := a.muted
-		if control.key == "scope" {
-			style = a.title
-		}
-		f.put(control.x, control.y, style.Render(ansi.Truncate(control.label, control.w, "…")))
+	if field.w < 21 {
+		placeholder = "Search…"
+	}
+	f.fill(l.input, a.panel)
+	f.input(field, m.filter.Value(), placeholder, m.focus == "filter", a, m.filter.Position())
+	for _, control := range controls {
+		f.put(control.x, control.y, a.panel.Render(control.label))
 	}
 }
 

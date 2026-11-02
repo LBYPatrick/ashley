@@ -2,6 +2,7 @@ package tui
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -59,7 +60,7 @@ func TestSkillsInputValidationAndNavigation(t *testing.T) {
 	if m.screen != "hub" {
 		t.Fatal("page escape")
 	}
-	m.cursor = len(hub) - 1
+	m.cursor = slices.Index(hub, "skills.sh")
 	m.activate()
 	if m.screen != "skills.sh" || !strings.Contains(m.View(), "Find skills") {
 		t.Fatal("hub navigation")
