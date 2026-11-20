@@ -17,6 +17,10 @@ func aboutText() string {
 	return fmt.Sprintf("Ashley\nVersion: %s\n\nAshley runs coding agents with shared skills.\nStart tasks, manage sessions, and resume conversations.\n\nProject\nhttps://github.com/LBYPatrick/ashley\n\nLicense: MIT\nCopyright (c) 2025 Ashley Contributors", ashley.Version())
 }
 
+func (m *Model) translatedAbout() string {
+	return m.translatedLines(aboutText())
+}
+
 func (m *Model) openAbout() {
 	if m.screen == "about" {
 		return
@@ -33,7 +37,7 @@ func (m *Model) closeAbout() {
 	origin := m.aboutOrigin
 	m.aboutOrigin = nil
 	m.screen, m.screenScroll, m.preview = origin.screen, origin.scroll, origin.preview
-	if m.screen == "log" || m.screen == "help" || m.screen == "create-preview" {
+	if m.screen == "log" || m.screen == "create-preview" {
 		m.sizeLogPreview()
 	} else if m.isActivity() || m.screen == "vibe" || m.screen == "hub" || m.screen == "skills.sh" {
 		offset := m.preview.YOffset
@@ -44,7 +48,7 @@ func (m *Model) closeAbout() {
 
 func (m *Model) aboutMaxScroll() int {
 	r := m.readingRect()
-	return max(0, wrappedLines(aboutText(), r.w)-r.h)
+	return max(0, wrappedLines(m.translatedAbout(), r.w)-r.h)
 }
 
 func (m *Model) scrollAbout(delta int) {
@@ -71,5 +75,5 @@ func (m *Model) aboutKey(key string) {
 }
 
 func (m *Model) aboutView(f *frame, a appearance) {
-	f.richText(m.readingRect(), aboutText(), a, m.screenScroll)
+	f.richText(m.readingRect(), m.translatedAbout(), a, m.screenScroll)
 }

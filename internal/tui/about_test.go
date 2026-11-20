@@ -71,7 +71,7 @@ func TestAboutRetainsBrowserAndReadingState(t *testing.T) {
 			m.logContent = strings.Repeat("Saved log or help content\n", 50)
 			m.preview.SetContent(m.logContent)
 			m.preview.SetYOffset(7)
-			m.helpReturn = "log"
+			m.help.origin, m.help.offset = "log", 7
 			m.Update(tea.KeyMsg{Type: tea.KeyCtrlP})
 			key(m, "version")
 			key(m, "enter")
@@ -83,7 +83,7 @@ func TestAboutRetainsBrowserAndReadingState(t *testing.T) {
 			if m.screen != screen || m.cursor != 1 || m.offset != 50 || m.filter.Value() != "billing" || !m.directoryOnly || m.focus != "filter" {
 				t.Fatal("About changed browser state")
 			}
-			if !m.compactDetail || !m.maximized || m.screenScroll != 4 || m.logOffset != 3 || m.helpReturn != "log" || m.logContent != strings.Repeat("Saved log or help content\n", 50) {
+			if !m.compactDetail || !m.maximized || m.screenScroll != 4 || m.logOffset != 3 || m.help.origin != "log" || m.help.offset != 7 || m.logContent != strings.Repeat("Saved log or help content\n", 50) {
 				t.Fatal("About changed reading state")
 			}
 			if (screen == "log" || screen == "help") && m.preview.YOffset != 7 {

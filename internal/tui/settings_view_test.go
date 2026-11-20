@@ -30,7 +30,7 @@ func TestSettingsResponsiveLayoutAndFocus(t *testing.T) {
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		m.open("settings")
 		controls := m.settingsControls()
-		if len(controls) != 19 {
+		if len(controls) != 22+len(languages) {
 			t.Fatal("lost choices", len(controls))
 		}
 		if b := m.settingsBounds(); b.w > 86 || b.x < 2 {
@@ -46,11 +46,11 @@ func TestSettingsResponsiveLayoutAndFocus(t *testing.T) {
 				}
 			}
 		}
-		seen := map[string]bool{}
+		seen := map[[2]int]bool{}
 		for range len(controls) {
 			for _, c := range controls {
 				if c.row == m.settingsRow && c.column == m.settingsColumn {
-					seen[c.key] = true
+					seen[[2]int{c.row, c.column}] = true
 					if c.y-m.screenScroll < 1 || c.y-m.screenScroll >= m.height-1 {
 						t.Fatal("keyboard focus hidden", size, c)
 					}
@@ -66,7 +66,7 @@ func TestSettingsResponsiveLayoutAndFocus(t *testing.T) {
 			t.Fatal("keyboard cannot reach all settings", seen)
 		}
 		key(m, "shift+tab")
-		if m.settingsRow != 4 {
+		if m.settingsRow != settingDone {
 			t.Fatal("reverse tab did not reach Done")
 		}
 		if size[0] == 100 {
@@ -74,7 +74,7 @@ func TestSettingsResponsiveLayoutAndFocus(t *testing.T) {
 			m.screenScroll = 0
 			exportRegressionView(t, "settings-redesigned", m.View())
 			text := ansi.Strip(m.View())
-			for _, label := range []string{"Settings", "Coding agent", "Appearance", "Accent color", "Purple", "Grape", "OpenAI Codex", "Done"} {
+			for _, label := range []string{"Settings", "Coding agent", "Appearance", "Accent color", "Purple", "Grape", "OpenAI Codex", "Shortcut bar", "Language", "English", "简体中文", "한국어", "日本語", "Tiếng Việt", "Standard", "Full", "Off"} {
 				if !strings.Contains(text, label) {
 					t.Fatal("label lost", label)
 				}
@@ -117,8 +117,8 @@ func TestSettingsAllThemesAndFirstRun(t *testing.T) {
 		for _, preset := range config.Presets() {
 			m.theme = config.Theme{Mode: mode, Preset: preset.Key}
 			text := ansi.Strip(m.View())
-			if strings.Count(text, "✓") != 3 {
-				t.Fatal("agent, mode and palette must show independent selections", mode, preset.Key)
+			if strings.Count(text, "✓") != 5 {
+				t.Fatal("each settings group must show its selection", mode, preset.Key)
 			}
 			if mode == "light" && preset.Key == "blue" {
 				exportRegressionView(t, "settings-light", m.View())

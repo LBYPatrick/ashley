@@ -219,8 +219,11 @@ func installCommand(command string, args []string, catalog skills.Catalog, stdou
 	}
 	p.success(fmt.Sprintf("Ready · %d skills for %d %s", perAgent, len(keys), agentNoun))
 	p.field("Next", "ash")
-	if refreshOnly {
+	if refreshOnly || envEnabled("ASHLEY_BACKGROUND_SYNC") {
 		return nil
 	}
-	return installCommunitySkills(keys, automated, io.MultiWriter(stdout, log), io.MultiWriter(stderr, log))
+	if err := installCommunitySkills(keys, automated, io.MultiWriter(stdout, log), io.MultiWriter(stderr, log)); err != nil {
+		return err
+	}
+	return setupShell("", keys, io.MultiWriter(stdout, log))
 }

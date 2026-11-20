@@ -162,3 +162,34 @@ func TestLegacyClearLoadsAsAuto(t *testing.T) {
 		t.Fatal("removed mode accepted")
 	}
 }
+
+func TestShortcutBarPreferenceMigration(t *testing.T) {
+	store := Store{Dir: t.TempDir()}
+	for _, tc := range []struct {
+		contents string
+		want     ShortcutBarMode
+	}{
+		{`{}`, ShortcutBarStandard},
+		{`{"hide_shortcuts":false}`, ShortcutBarStandard},
+		{`{"hide_shortcuts":true}`, ShortcutBarOff},
+		{`{"hide_shortcuts":true,"shortcut_bar":"standard"}`, ShortcutBarStandard},
+		{`{"shortcut_bar":"full"}`, ShortcutBarFull},
+		{`{"shortcut_bar":"off"}`, ShortcutBarOff},
+		{`{"shortcut_bar":"invalid"}`, ShortcutBarStandard},
+	} {
+		write(t, store, "prefs.json", tc.contents)
+		if got := store.LoadInterface().ShortcutMode(); got != tc.want {
+			t.Errorf("%s: got %q, want %q", tc.contents, got, tc.want)
+		}
+	}
+	write(t, store, "prefs.json", `{"hide_shortcuts":true,"other":"kept"}`)
+	if err := store.SaveInterface(InterfacePreferences{Language: "vi", ShortcutBar: ShortcutBarFull}); err != nil {
+		t.Fatal(err)
+	}
+	if got := store.LoadInterface(); got.Language != "vi" || got.ShortcutMode() != ShortcutBarFull {
+		t.Fatal("interface settings did not round-trip", got)
+	}
+	if store.readJSON("prefs.json")["other"] != "kept" {
+		t.Fatal("saved interface settings removed an unrelated preference")
+	}
+}

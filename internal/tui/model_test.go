@@ -49,6 +49,8 @@ func key(m *Model, key string) {
 		msg = tea.KeyMsg{Type: tea.KeyRight}
 	case "tab":
 		msg = tea.KeyMsg{Type: tea.KeyTab}
+	case "shift+tab":
+		msg = tea.KeyMsg{Type: tea.KeyShiftTab}
 	default:
 		msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
 	}
@@ -91,7 +93,7 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 	if m.screen != "hub" {
 		t.Fatal(m.screen)
 	}
-	m.cursor = 3
+	m.cursor = 2
 	stubSyncAgents(t, m)
 	m.options.Background = func(_ context.Context, argv []string) (string, error) {
 		args = argv
@@ -106,7 +108,7 @@ func TestHubSkillBrowserAndRunModes(t *testing.T) {
 		t.Fatal(args)
 	}
 	key(m, "esc")
-	m.cursor = 3
+	m.cursor = 2
 	cmd = m.activate()
 	if cmd == nil {
 		t.Fatal("Sync did not restart")
@@ -138,8 +140,9 @@ func TestSettingsPersistAllChoices(t *testing.T) {
 	if m.theme.Mode != "light" {
 		t.Fatal(m.theme)
 	}
-	key(m, "down")
-	key(m, "right")
+	for range 4 {
+		key(m, "tab")
+	}
 	key(m, "enter")
 	if m.theme.Preset != "orange" {
 		t.Fatal(m.theme)
@@ -296,7 +299,7 @@ func TestMouseNavigationAndSettings(t *testing.T) {
 	}
 	c := m.homeControls()[1]
 	click(c.x, c.y)
-	if m.screen != "sessions" {
+	if m.screen != "activity" {
 		t.Fatal(m.screen)
 	}
 	m.open("settings")

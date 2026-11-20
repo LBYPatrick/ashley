@@ -51,8 +51,8 @@ func (m *Model) createKey(msg tea.KeyMsg) tea.Cmd {
 			m.status = err.Error()
 		} else {
 			m.logContent = preview
-			m.sizeLogPreview()
 			m.screen = "create-preview"
+			m.sizeLogPreview()
 		}
 		return nil
 	}

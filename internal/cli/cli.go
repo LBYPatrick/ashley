@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	ashley "github.com/LBYPatrick/ashley"
+	"github.com/LBYPatrick/ashley/internal/agents"
 	"github.com/LBYPatrick/ashley/internal/execution"
 	"github.com/LBYPatrick/ashley/internal/project"
 	"github.com/LBYPatrick/ashley/internal/skills"
@@ -101,18 +102,31 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		if len(args) != 1 {
 			return fmt.Errorf("%s does not accept arguments", args[0])
 		}
+		if args[0] == "sessions" {
+			return openUI("activity")
+		}
 		return openUI(args[0])
 	}
 	if args[0] == "history" && ((len(args) == 2 && args[1] == "browse") || (len(args) == 3 && args[1] == "show" && args[2] == "--tui")) {
-		return openUI("history")
+		return openUI("activity")
 	}
 
 	switch args[0] {
+	case "__community-bundles":
+		return applyCommunityBundles(args[1:], stdout, stderr)
 	case "__tui-command":
 		return tuiCommand(args[1:], *root, stdout, stderr)
 	case "__validate-automation":
 		_, err := loadAutomatedInstall()
 		return err
+	case "__setup-shell":
+		if len(args) == 2 && args[1] == "--check" {
+			return nil
+		}
+		if len(args) != 2 || args[1] == "" {
+			return fmt.Errorf("shell setup requires the installation directory")
+		}
+		return setupShell(args[1], agents.Keys(), stdout)
 	case "skills":
 		return skillsCommand(args[1:], os.Stdin, stdout, stderr)
 	case "update":

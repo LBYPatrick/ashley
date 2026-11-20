@@ -15,6 +15,8 @@ import (
 
 func (m *Model) detailText() string {
 	switch m.screen {
+	case "activity":
+		return m.activityDetail()
 	case "skills.sh":
 		return m.skillsDetail()
 	case "hub":
@@ -24,7 +26,7 @@ func (m *Model) detailText() string {
 		return homeTitles[m.cursor] + "\n\n" + homeDescriptions[m.cursor] + "\n\nPress Enter to open"
 	case "vibe":
 		if len(m.names) == 0 {
-			return "No skills found."
+			return m.tr("No skills found.")
 		}
 		name := m.names[m.cursor]
 		// The original browser summarizes the authored definition, not expanded inheritance.
@@ -67,7 +69,7 @@ func (m *Model) detailText() string {
 	case "sessions":
 		if len(m.sessionRows) == 0 {
 			if strings.TrimSpace(m.filter.Value()) != "" {
-				return fmt.Sprintf("No results for %q\n\nCtrl+U clears the search.", m.filter.Value())
+				return fmt.Sprintf(m.tr("No results for %q"), m.filter.Value()) + "\n\n" + m.tr("Ctrl+U clears the search.")
 			}
 			return "No sessions found.\n\nStart one with: ash run --detached <skill> <question>"
 		}
@@ -79,7 +81,7 @@ func (m *Model) detailText() string {
 			} else if alive {
 				state = "Running · Enter to attach"
 			}
-			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + state + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\nL opens the log · I shows session details"
+			return taskTitle(s.Skill, s.Question, s.Name) + "\n\n" + m.tr(state) + "\n" + agents.Get(s.Agent).Label + " · " + s.Skill + "\n\n" + s.CWD + "\n\n" + m.tr("L opens the log · I shows session details")
 		}
 		state := "EXITED"
 		if alive, known := m.sessionAlive[s.ID]; !known {
@@ -109,7 +111,7 @@ func (m *Model) detailText() string {
 	case "history":
 		if len(m.historyRows) == 0 {
 			if strings.TrimSpace(m.filter.Value()) != "" {
-				return fmt.Sprintf("No results for %q\n\nCtrl+U clears the search.", m.filter.Value())
+				return fmt.Sprintf(m.tr("No results for %q"), m.filter.Value()) + "\n\n" + m.tr("Ctrl+U clears the search.")
 			}
 			if m.options.Screen == "history" {
 				return "No invocation history yet.\n\nRun a skill with: ash run <skill> <question>"
@@ -126,7 +128,7 @@ func (m *Model) detailText() string {
 			if v.AgentSessionID == "" {
 				resume = "No conversation ID saved. Enter can still attach a running session."
 			}
-			return taskTitle(v.Skill, v.Question, v.Name) + "\n\n" + agents.Get(v.AgentType).Label + " · " + v.Skill + "\n" + v.TimeDisplay() + "\n\n" + v.CWD + "\n\n" + resume + "\n\nI shows invocation details"
+			return taskTitle(v.Skill, v.Question, v.Name) + "\n\n" + agents.Get(v.AgentType).Label + " · " + v.Skill + "\n" + v.TimeDisplay() + "\n\n" + v.CWD + "\n\n" + m.tr(resume) + "\n\n" + m.tr("I shows invocation details")
 		}
 		detached := "No"
 		if v.Detached {
@@ -150,11 +152,9 @@ func (m *Model) detailText() string {
 }
 func (m *Model) refreshSessionDetails() {
 	m.sessionRequest++
-	if len(m.sessionRows) == 0 {
+	if m.selectedSession().ID == "" {
 		m.sessionLog, m.sessionLogID = "", ""
-		return
-	}
-	if id := m.sessionRows[m.cursor].ID; id != m.sessionLogID {
+	} else if id := m.selectedSession().ID; id != m.sessionLogID {
 		m.sessionLog, m.sessionLogID = "Loading output…", id
 	}
 	m.queueSessionDetails()

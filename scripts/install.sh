@@ -262,4 +262,7 @@ if [[ "${ASHLEY_BOOTSTRAP:-}" != 1 ]]; then
     case "${ASHLEY_INSTALL_SKILLS:-}" in
         1|true|yes) "$install_dir/ash" skills --version ;;
     esac
+    if "$install_dir/ash" __setup-shell --check >/dev/null 2>&1; then
+        "$install_dir/ash" __setup-shell "$install_dir"
+    fi
 fi

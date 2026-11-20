@@ -67,7 +67,7 @@ func TestDirectoryFiltersInStandaloneBinary(t *testing.T) {
 	requireContains(t, s.must(binary, "sessions", "--list", "--cwd", "CLIENT_100%"), "/work/Client_100%/Billing API")
 	t.Run("terminal directory scope", func(t *testing.T) {
 		p := startTerminal(t, s, binary, "history", "browse")
-		p.waitFor("Search history")
+		p.waitFor("Search sessions")
 		p.send("/")
 		p.until(func() bool { return strings.Contains(ansi.Strip(p.text()), "enter Results") })
 		offset := len(p.text())

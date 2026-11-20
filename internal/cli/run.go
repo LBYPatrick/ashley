@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -88,10 +89,10 @@ func runCommand(command string, args []string, catalog skills.Catalog, stdout, s
 	if err != nil {
 		return err
 	}
-	return launch(command, o, detached, catalog, stdout, stderr)
+	return launch(command, o, detached, nil, catalog, stdout, stderr)
 }
 
-func launch(command string, o invocation.Options, detached bool, catalog skills.Catalog, stdout, stderr io.Writer) error {
+func launch(command string, o invocation.Options, detached bool, resume *history.Invocation, catalog skills.Catalog, stdout, stderr io.Writer) error {
 	prefs, err := config.User()
 	if err != nil {
 		return err
@@ -144,7 +145,7 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 				step.Question = ""
 			}
 			p.section(fmt.Sprintf("%d / %d · %s", i+1, len(steps), skill))
-			job, err := prepareJob(ctx, builder, step, cfg, cwd, dbPath, "", false, stdout, stderr)
+			job, err := prepareJob(ctx, builder, step, cfg, cwd, dbPath, "", false, 0, stdout, stderr)
 			if err != nil {
 				return err
 			}
@@ -169,7 +170,11 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 	if err != nil {
 		return err
 	}
-	job, err := prepareJob(ctx, builder, o, cfg, cwd, dbPath, session.ID, detached, stdout, stderr)
+	var historyID int64
+	if resume != nil {
+		historyID = resume.ID
+	}
+	job, err := prepareJob(ctx, builder, o, cfg, cwd, dbPath, session.ID, detached, historyID, stdout, stderr)
 	if err != nil {
 		return err
 	}
@@ -187,9 +192,17 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 		os.Remove(path)
 		return err
 	}
-	session, err = manager.Start(session, []string{executable, "__execute", path})
+	args := []string{executable, "__execute", path}
+	if resume == nil {
+		session, err = manager.Start(session, args)
+	} else {
+		session, err = startResumedSession(manager, session, args, dbPath, *resume, stderr)
+	}
 	if err != nil {
 		os.Remove(path)
+		if resume != nil {
+			return err
+		}
 		store, e := history.Open(dbPath)
 		if e == nil {
 			store.RecordOutcome(job.InvocationID, 1, 0)
@@ -211,7 +224,36 @@ func launch(command string, o invocation.Options, detached bool, catalog skills.
 	}
 	return attachSession(manager, session, stdout, stderr)
 }
-func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Options, cfg config.Config, cwd, dbPath, sessionID string, detached bool, stdout, stderr io.Writer) (execution.Job, error) {
+func startResumedSession(manager sessions.Manager, session sessions.Session, args []string, dbPath string, previous history.Invocation, stderr io.Writer) (sessions.Session, error) {
+	store, err := history.Open(dbPath)
+	if err != nil {
+		return sessions.Session{}, err
+	}
+	defer store.Close()
+	var started sessions.Session
+	err = store.ResumeSession(previous.ID, previous.SessionID, session.ID, func() error {
+		var startErr error
+		started, startErr = manager.Start(session, args)
+		return startErr
+	})
+	if err != nil {
+		if started.ID != "" {
+			err = errors.Join(err, manager.Kill(started))
+		}
+		return sessions.Session{}, err
+	}
+	if previous.SessionID != "" {
+		if old, err := manager.Load(previous.SessionID); err == nil && !manager.Alive(old) {
+			old.Superseded = true
+			if err := manager.Save(old); err != nil {
+				fmt.Fprintf(stderr, "Could not retire previous session %s: %v\n", old.ID, err)
+			}
+		}
+	}
+	return started, nil
+}
+
+func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Options, cfg config.Config, cwd, dbPath, sessionID string, detached bool, historyID int64, stdout, stderr io.Writer) (execution.Job, error) {
 	agentSessionID := o.ResumeID
 	if agentSessionID == "" && (o.Agent == "claude" || o.Agent == "grok") {
 		var err error
@@ -231,15 +273,17 @@ func prepareJob(ctx context.Context, builder invocation.Builder, o invocation.Op
 	if err := runner.Before(ctx, h, hookContext); err != nil {
 		return execution.Job{}, fmt.Errorf("before_run hook failed: %w", err)
 	}
-	store, err := history.Open(dbPath)
-	if err != nil {
-		return execution.Job{}, err
+	if historyID == 0 {
+		store, err := history.Open(dbPath)
+		if err != nil {
+			return execution.Job{}, err
+		}
+		defer store.Close()
+		historyID, err = store.Record(history.Invocation{Name: o.Name, Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent, AgentSessionID: agentSessionID})
+		if err != nil {
+			return execution.Job{}, err
+		}
 	}
-	defer store.Close()
-	id, err := store.Record(history.Invocation{Name: o.Name, Skill: o.Skill, Question: o.Question, CWD: cwd, Permission: v.Permission, Detached: detached, SessionID: sessionID, AgentType: o.Agent, AgentSessionID: agentSessionID})
-	if err != nil {
-		return execution.Job{}, err
-	}
-	return execution.Job{Args: v.Args, Context: hookContext, Hooks: h, HistoryPath: dbPath, InvocationID: id, Agent: o.Agent, AgentSessionID: agentSessionID}, nil
+	return execution.Job{Args: v.Args, Context: hookContext, Hooks: h, HistoryPath: dbPath, InvocationID: historyID, Agent: o.Agent, AgentSessionID: agentSessionID}, nil
 }
 func ensureZellij(stdout, stderr io.Writer) error { return sessions.EnsureZellij(stdout) }

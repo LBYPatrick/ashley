@@ -40,7 +40,7 @@ func (m *Model) creatorView(f *frame, a appearance) {
 	r := m.readingRect()
 	w := m.wizard
 	if w == nil {
-		f.put(r.x, r.y, a.base.Bold(true).Render("Edit skill JSON"))
+		f.put(r.x, r.y, a.base.Bold(true).Render(m.tr("Edit skill JSON")))
 		f.text(rect{r.x, r.y + 2, r.w, r.h - 2}, m.editor.View(), a.base, 0)
 		return
 	}
@@ -49,14 +49,14 @@ func (m *Model) creatorView(f *frame, a appearance) {
 		content = newFrame(f.width, 33, a.base)
 	}
 	stages := []string{"Basics", "Files", "Workflow", "Preview"}
-	content.put(r.x, 3, a.base.Bold(true).Render(fmt.Sprintf("Create skill · Step %d/4 — %s", w.stage+1, stages[w.stage])))
+	content.put(r.x, 3, a.base.Bold(true).Render(fmt.Sprintf(m.tr("Create skill · Step %d/4 — %s"), w.stage+1, m.tr(stages[w.stage]))))
 	x := r.x
 	for i, label := range stages {
 		style := a.muted
 		if i == w.stage {
 			style = a.title
 		}
-		text := fmt.Sprintf("%d %s", i+1, label)
+		text := fmt.Sprintf("%d %s", i+1, m.tr(label))
 		content.put(x, 5, style.Render(ansi.Truncate(text, max(0, r.x+r.w-x), "")))
 		x += ansi.StringWidth(text) + 3
 	}
@@ -69,7 +69,7 @@ func (m *Model) creatorView(f *frame, a appearance) {
 			if i == w.field {
 				value = w.input.Value()
 			}
-			content.put(r.x, y-1, a.base.Bold(true).Render(labels[i]))
+			content.put(r.x, y-1, a.base.Bold(true).Render(m.tr(labels[i])))
 			height := 3
 			if i == 3 {
 				height = 5
@@ -86,7 +86,7 @@ func (m *Model) creatorView(f *frame, a appearance) {
 			} else {
 				style := a.panel
 				if value == "" {
-					value = placeholders[i]
+					value = m.tr(placeholders[i])
 					style = a.muted.Background(a.panel.GetBackground())
 				}
 				content.text(rect{box.x + 2, box.y + 1, box.w - 4, height - 2}, value, style, 0)
@@ -94,7 +94,7 @@ func (m *Model) creatorView(f *frame, a appearance) {
 		}
 		content.put(r.x, 30, a.selected.Render(" Next → "))
 		content.put(r.x+13, 30, a.muted.Render("Ctrl+N Next · Ctrl+S Save"))
-		for y := 1; y < f.height-1; y++ {
+		for y := 1; y < m.contentHeight()-1; y++ {
 			source := y + m.screenScroll
 			if source < content.height {
 				f.put(0, y, content.row(source))
@@ -102,7 +102,7 @@ func (m *Model) creatorView(f *frame, a appearance) {
 		}
 	case 1:
 		f.put(r.x, 7, a.muted.Render(ansi.Truncate("Space selects · leave empty to use defaults or inherited files", r.w, "…")))
-		visible := max(1, m.height-11)
+		visible := max(1, m.contentHeight()-11)
 		start := max(0, w.cursor-visible+1)
 		for i := start; i < min(len(w.files), start+visible); i++ {
 			mark := "○"
@@ -155,7 +155,7 @@ func (m *Model) creatorMouse(msg tea.MouseMsg) tea.Cmd {
 			return nil
 		}
 		r := m.readingRect()
-		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.X >= r.x && msg.X < r.x+r.w && msg.Y > 0 && msg.Y < m.height-1 {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.X >= r.x && msg.X < r.x+r.w && msg.Y > 0 && msg.Y < m.contentHeight()-1 {
 			y := msg.Y + m.screenScroll
 			for i, top := range []int{8, 13, 18, 23} {
 				height := 3
@@ -184,7 +184,7 @@ func (m *Model) creatorMouse(msg tea.MouseMsg) tea.Cmd {
 			return m.wizardKey(tea.KeyMsg{Type: tea.KeyDown})
 		}
 		r := m.readingRect()
-		visible := max(1, m.height-11)
+		visible := max(1, m.contentHeight()-11)
 		start := max(0, w.cursor-visible+1)
 		index := start + msg.Y - 9
 		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.X >= r.x && msg.X < r.x+r.w && msg.Y >= 9 && index < min(len(w.files), start+visible) {

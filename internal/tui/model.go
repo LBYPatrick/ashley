@@ -37,11 +37,15 @@ type Options struct {
 type completed struct{ err error }
 type tick time.Time
 
-var hub = []string{"compose", "sessions", "history", "sync", "create", "stats", "settings", "skills.sh", "about"}
+var hub = []string{"compose", "activity", "sync", "create", "stats", "settings", "skills.sh", "about"}
 var modes = []string{"default", "dsp", "auto", "afk"}
 
 // Model holds terminal UI state; IO operations are isolated in refresh/actions.
 type Model struct {
+	interfacePrefs                      config.InterfacePreferences
+	footerPage                          int
+	footerContext                       string
+	language                            string
 	aboutOrigin                         *aboutOrigin
 	pendingCommands                     []tea.Cmd
 	sessionBusy                         bool
@@ -63,9 +67,8 @@ type Model struct {
 	compactDetail                       bool
 	job                                 *operation
 	installAgents                       []string
-	helpReturn                          string
-	helpPreview                         viewport.Model
-	helpLogContent                      string
+	help                                shortcutHelp
+	community                           communityManager
 	wizard                              *creatorWizard
 	sessionAlive                        map[string]bool
 	sessionLog                          string
@@ -88,6 +91,8 @@ type Model struct {
 	preview                             viewport.Model
 	theme                               config.Theme
 	agent, status, sortMode             string
+	activityRows                        []activityRow
+	activitySessions                    []sessions.Session
 	sessionRows                         []sessions.Session
 	historyRows                         []history.Invocation
 	stats                               history.Stats
@@ -113,17 +118,19 @@ func New(options Options) (*Model, error) {
 	m := &Model{options: options, screen: screen, width: 100, height: 30, theme: prefs.LoadTheme(), agent: prefs.LoadAgent(), sortMode: "time"}
 	m.editor = textarea.New()
 	m.composer = textarea.New()
-	m.composer.Placeholder = "Describe what you want to build, fix, or understand…"
+
 	m.composer.ShowLineNumbers = false
 	m.composer.CharLimit = 0
 	m.runSkill = "raw"
 	m.filter = textinput.New()
-	m.filter.Placeholder = "Search…"
+
 	m.filter.CharLimit = 0
 	m.question = textinput.New()
-	m.question.Placeholder = "Enter a question, then Enter to run"
+
 	m.question.CharLimit = 0
 	m.preview = viewport.New(80, 20)
+	m.interfacePrefs = prefs.LoadInterface()
+	m.applyLanguage()
 	// Useful defaults let the first run start with work, not appearance setup.
 	m.firstRun = !prefs.ThemeConfigured()
 	for i, mode := range modes {
@@ -185,6 +192,8 @@ func (m *Model) refresh() {
 			}
 		}
 		sort.SliceStable(m.names, func(i, j int) bool { return skillRank(m.names[i], query) < skillRank(m.names[j], query) })
+	case "activity":
+		m.refreshActivity()
 	case "sessions":
 		m.sessionStatusesDirty = true
 		rows, err := m.manager().All()
@@ -231,6 +240,8 @@ func (m *Model) count() int {
 		return len(hub) + len(m.recent)
 	case "vibe":
 		return len(m.names)
+	case "activity":
+		return len(m.activityRows)
 	case "sessions":
 		return len(m.sessionRows)
 	case "history":
@@ -239,11 +250,11 @@ func (m *Model) count() int {
 	return 0
 }
 func (m *Model) updatePreview() {
-	if m.screen != "skills.sh" && m.screen != "hub" && m.screen != "vibe" && m.screen != "sessions" && m.screen != "history" {
+	if m.screen != "skills.sh" && m.screen != "hub" && m.screen != "vibe" && !m.isActivity() {
 		return
 	}
 	m.logOffset = 0
-	if m.screen == "sessions" {
+	if m.screen == "sessions" || m.screen == "activity" {
 		m.refreshSessionDetails()
 	}
 	m.setPreviewContent()
@@ -254,7 +265,7 @@ func (m *Model) setPreviewContent() {
 	l := m.layout()
 	m.preview.Width = l.detail.w
 	m.preview.Height = l.detail.h
-	if m.screen == "sessions" {
+	if m.selectedSession().ID != "" {
 		detail, _, _ := m.sessionPanels()
 		m.preview.Height = detail.h
 	}
@@ -285,6 +296,7 @@ func (m *Model) execute(args ...string) tea.Cmd {
 	return tea.ExecProcess(exec.Command(executable, args...), func(err error) tea.Msg { return completed{err} })
 }
 func (m *Model) open(screen string) {
+	m.footerContext, m.footerPage = "", 0
 	m.rememberPlace()
 	if screen != m.screen && (screen == "vibe" || screen == "create" || screen == "sync" || screen == "stats" || screen == "settings") {
 		parent := "hub"
@@ -343,6 +355,9 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 	defer func() { command = tea.Batch(command, m.takeCommands()) }()
 	message = extendedKey(message)
 	switch msg := message.(type) {
+	case communityResult:
+		m.communityFinished(msg)
+		return m, nil
 	case sessionDetailsLoaded:
 		m.acceptSessionDetails(msg)
 		return m, nil
@@ -367,6 +382,7 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 	case tea.MouseMsg:
 		return m, m.mouse(msg)
 	case tea.WindowSizeMsg:
+		m.footerContext, m.footerPage = "", 0
 		m.width = msg.Width
 		m.height = msg.Height
 		if m.width >= 76 {
@@ -383,8 +399,14 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		if m.screen == "settings" {
 			m.keepSettingVisible()
 		}
-		if m.screen == "log" || m.screen == "help" || m.screen == "create-preview" {
+		if m.screen == "compose" {
+			m.sizeComposer()
+		}
+		if m.screen == "log" || m.screen == "create-preview" {
 			m.sizeLogPreview()
+		}
+		if m.screen == "help" {
+			m.help.offset = min(m.help.offset, m.helpMaxOffset())
 		}
 		if m.screen == "create" {
 			m.sizeCreatorEditor()
@@ -414,6 +436,12 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			m.status = "✓ Completed successfully."
 		}
 	case tick:
+		if m.screen == "activity" && m.confirm == nil && m.rename == nil && !m.sessionBusy {
+			detailOffset, logOffset := m.preview.YOffset, m.logOffset
+			m.refresh()
+			m.preview.SetYOffset(detailOffset)
+			m.logOffset = logOffset
+		}
 		if m.screen == "sessions" && m.confirm == nil {
 			selected := ""
 			if len(m.sessionRows) > 0 {
@@ -434,13 +462,17 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		return m, m.Init()
 	case tea.KeyMsg:
 		key := msg.String()
+		if key == "f6" {
+			m.nextFooterPage()
+			return m, nil
+		}
 		if m.confirm != nil {
 			return m, m.confirmKey(key)
 		}
 		if m.rename != nil {
 			return m, m.nameKey(msg)
 		}
-		if key == "N" && (m.screen == "sessions" || m.screen == "history") && m.focus != "filter" {
+		if key == "N" && m.isActivity() && m.focus != "filter" {
 			return m, m.beginName()
 		}
 		if m.paletteOpen {
@@ -452,6 +484,16 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			m.paletteQuery = ""
 			m.paletteCursor = 0
 			return m, nil
+		}
+		if m.screen == "help" {
+			return m, m.helpKey(msg)
+		}
+		if key == "?" && m.focus == "" && m.screen != "create" && !(m.screen == "compose" && m.composeFocus == 0) {
+			m.openShortcutHelp()
+			return m, nil
+		}
+		if m.screen == "community" {
+			return m, m.communityKey(msg)
 		}
 		if m.screen == "about" {
 			if key == "ctrl+c" {
@@ -532,20 +574,12 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			return m, m.settingsKey(key)
 		}
 		if key == "esc" {
-			if m.screen == "help" {
-				m.screen = m.helpReturn
-				m.preview = m.helpPreview
-				m.logContent = m.helpLogContent
-				if m.screen == "log" || m.screen == "create-preview" {
-					m.sizeLogPreview()
-				}
-				if m.screen == "create" {
-					m.sizeCreatorEditor()
-				}
-				return m, nil
-			}
 			if m.screen == "log" {
-				m.open("sessions")
+				destination := "sessions"
+				if m.parents["log"] == "activity" {
+					destination = "activity"
+				}
+				m.open(destination)
 				return m, nil
 			}
 			if m.isActivity() && m.options.Screen == m.screen && m.filter.Value() != "" {
@@ -559,7 +593,7 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			m.open(m.backDestination())
 			return m, nil
 		}
-		if key == "q" && (m.screen == "hub" || (m.options.Screen == m.screen && (m.screen == "history" || m.screen == "sessions"))) {
+		if key == "q" && (m.screen == "hub" || (m.options.Screen == m.screen && m.isActivity())) {
 			return m, m.quit()
 		}
 		if m.screen == "sync" {
@@ -567,19 +601,15 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 		}
 		switch key {
 		case "v", "right":
-			if m.width < 76 && (m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" || m.screen == "skills.sh") {
+			if m.width < 76 && (m.screen == "vibe" || m.isActivity() || m.screen == "skills.sh") {
 				m.compactDetail = !m.compactDetail
 				m.updatePreview()
 			}
 		case "i":
-			if m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" {
+			if m.screen == "vibe" || m.isActivity() {
 				m.showMetadata = !m.showMetadata
 				m.updatePreview()
 			}
-		case "?":
-			m.paletteQuery = "Keys"
-			m.paletteCursor = 0
-			return m, m.paletteKey(tea.KeyMsg{Type: tea.KeyEnter})
 		case "t":
 			if m.screen == "sessions" {
 				m.open("history")
@@ -610,17 +640,25 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			if m.screen == "vibe" {
 				return m, m.copyPrompt()
 			}
+			if m.screen == "activity" {
+				m.cursor = max(0, m.cursor-m.visibleRows())
+				m.updatePreview()
+			}
 			if m.screen == "history" {
 				m.offset = max(0, m.offset-50)
 				m.refresh()
 			}
 		case "n":
+			if m.screen == "activity" {
+				m.cursor = min(max(0, m.count()-1), m.cursor+m.visibleRows())
+				m.updatePreview()
+			}
 			if m.screen == "history" && m.offset+50 < m.total {
 				m.offset += 50
 				m.refresh()
 			}
 		case "s":
-			if m.screen == "sessions" {
+			if m.screen == "sessions" || m.screen == "activity" {
 				if m.sortMode == "time" {
 					m.sortMode = "skill"
 				} else {
@@ -629,7 +667,7 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 				m.refresh()
 			}
 		case "D":
-			if m.screen == "sessions" {
+			if m.screen == "sessions" || m.screen == "activity" {
 				m.requestConfirmation("cleanup")
 			}
 		case "c", "l", "K", "X", "d":
@@ -642,7 +680,7 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			return m, m.recordAction(key)
 		case "pgup", "pgdown":
 			if m.screen == "stats" {
-				delta := max(1, m.height-8)
+				delta := max(1, m.readingRect().h-2)
 				if key == "pgup" {
 					delta = -delta
 				}
@@ -654,6 +692,11 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 			return m, cmd
 		}
 	default:
+		if m.screen == "help" && m.help.search.Focused() {
+			var cmd tea.Cmd
+			m.help.search, cmd = m.help.search.Update(message)
+			return m, cmd
+		}
 		if m.screen == "compose" {
 			var cmd tea.Cmd
 			m.composer, cmd = m.composer.Update(message)
@@ -664,6 +707,8 @@ func (m *Model) Update(message tea.Msg) (model tea.Model, command tea.Cmd) {
 }
 func (m *Model) activate() tea.Cmd {
 	switch m.screen {
+	case "activity":
+		return m.activateActivity()
 	case "history":
 		if len(m.historyRows) > 0 {
 			return m.execute("history", "resume", fmt.Sprint(m.historyRows[m.cursor].ID))
@@ -731,20 +776,38 @@ func (m *Model) resumeSession(sessionID string) tea.Cmd {
 }
 
 func (m *Model) settingsKey(key string) tea.Cmd {
-	rows := settingsRows()
 	switch key {
 	case "up", "down", "left", "right", "tab", "shift+tab":
 		m.moveSettingFocus(key)
 	case "enter", " ":
-		value := rows[m.settingsRow][min(m.settingsColumn, len(rows[m.settingsRow])-1)]
+		var value string
+		for _, control := range m.settingsControls() {
+			if control.row == m.settingsRow && control.column == m.settingsColumn {
+				value = control.key
+				break
+			}
+		}
+		if value == "" {
+			return nil
+		}
 		switch m.settingsRow {
-		case 0:
+		case settingAgent:
 			m.agent = value
-		case 1:
+		case settingAppearance:
 			m.theme.Mode = value
-		case 2, 3:
+		case settingAccent:
 			m.theme.Preset = value
-		case 4:
+		case settingShortcutBar, settingLanguage:
+			next := m.interfacePrefs
+			if m.settingsRow == settingShortcutBar {
+				next.ShortcutBar = config.ShortcutBarMode(value)
+			} else {
+				next.Language = value
+			}
+			m.saveInterface(next)
+			m.keepSettingVisible()
+			return nil
+		case settingDone:
 			return m.finishSettings()
 		}
 		if err := m.prefs().SaveAgent(m.agent); err != nil {
@@ -756,7 +819,6 @@ func (m *Model) settingsKey(key string) tea.Cmd {
 	case "esc":
 		return m.finishSettings()
 	}
-	m.settingsColumn = min(m.settingsColumn, len(rows[m.settingsRow])-1)
 	m.keepSettingVisible()
 	return nil
 }
@@ -778,7 +840,7 @@ func (m *Model) finishSettings() tea.Cmd {
 	return nil
 }
 func (m *Model) recordAction(key string) tea.Cmd {
-	if m.screen == "sessions" {
+	if m.screen == "sessions" || m.screen == "activity" && (key == "cleanup" || key == "X" || m.selectedSession().ID != "") {
 		if key == "cleanup" {
 			n, err := m.manager().CleanDead()
 			m.refresh()
@@ -796,10 +858,10 @@ func (m *Model) recordAction(key string) tea.Cmd {
 			}
 			return nil
 		}
-		if len(m.sessionRows) == 0 {
+		s := m.selectedSession()
+		if s.ID == "" {
 			return nil
 		}
-		s := m.sessionRows[m.cursor]
 		switch key {
 		case "c":
 			return m.copyText(s.ID)
@@ -809,6 +871,7 @@ func (m *Model) recordAction(key string) tea.Cmd {
 				m.status = err.Error()
 			} else {
 				m.rememberPlace()
+				m.parents["log"] = m.screen
 				m.screen = "log"
 				m.logContent = sessions.DisplayLog(text)
 				m.sizeLogPreview()
@@ -831,10 +894,10 @@ func (m *Model) recordAction(key string) tea.Cmd {
 				}
 			}
 		}
-	} else if m.screen == "history" && key == "d" && len(m.historyRows) > 0 {
+	} else if entry := m.selectHistoryEntry(); key == "d" && entry.ID != 0 {
 		store, err := m.db()
 		if err == nil {
-			_, err = store.Delete(m.historyRows[m.cursor].ID)
+			_, err = store.Delete(entry.ID)
 			store.Close()
 		}
 		m.refresh()

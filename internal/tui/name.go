@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type nameEditor struct {
@@ -20,6 +21,16 @@ func (m *Model) beginName() tea.Cmd {
 	e := &nameEditor{input: textinput.New(), draft: m.screen == "compose"}
 	name := m.runName
 	switch m.screen {
+	case "activity":
+		row := m.selectedActivity()
+		if row.session.ID == "" && row.entry.ID == 0 {
+			return nil
+		}
+		e.id, e.sessionID, name = row.entry.ID, row.session.ID, row.session.Name
+		if e.sessionID == "" {
+			e.sessionID, name = row.entry.SessionID, row.entry.Name
+		}
+
 	case "sessions":
 		if m.cursor >= len(m.sessionRows) {
 			return nil
@@ -90,7 +101,7 @@ func (m *Model) nameView(f *frame, a appearance) {
 	r := rect{(f.width - w) / 2, max(2, (f.height-8)/2), w, 7}
 	f.fill(r, a.panel)
 	f.box(r, a.border)
-	f.section(rect{r.x + 2, r.y + 1, r.w - 4, 1}, "Session name", a)
+	f.section(rect{r.x + 2, r.y + 1, r.w - 4, 1}, m.tr("Session name"), a)
 	f.input(rect{r.x + 2, r.y + 2, r.w - 4, 3}, m.rename.input.Value(), "Optional · leave blank for task title", true, a, m.rename.input.Position())
-	f.put(r.x+2, r.y+5, a.muted.Render("enter Save   esc Cancel"))
+	f.put(r.x+2, r.y+5, a.muted.Render(ansi.Truncate(m.localizedBinding("enter Save")+"   "+m.localizedBinding("esc Cancel"), r.w-4, "…")))
 }

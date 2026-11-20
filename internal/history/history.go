@@ -170,6 +170,31 @@ func (s *Store) Record(v Invocation) (int64, error) {
 	}
 	return result.LastInsertId()
 }
+
+// ResumeSession replaces the session link only if the new session starts successfully.
+func (s *Store) ResumeSession(id int64, previousID, newID string, start func() error) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	result, err := tx.Exec("UPDATE invocations SET session_id=? WHERE id=? AND session_id=?", newID, id, previousID)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return fmt.Errorf("history entry %d changed before resume", id)
+	}
+	if err := start(); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func stamp(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000000+00:00") }
 
 // Filter selects records by skill, coding agent, directory, session, or a SQL LIKE search.

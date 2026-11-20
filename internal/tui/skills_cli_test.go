@@ -21,9 +21,8 @@ func TestSkillsActions(t *testing.T) {
 		{3, "", []string{"__tui-command", "skills", "remove", "--global"}},
 		{4, "", []string{"__tui-command", "skills", "check"}},
 		{5, "", []string{"__tui-command", "skills", "update"}},
-		{6, "", []string{"__tui-command", "install", "--skills-only"}},
 	} {
-		t.Run(skillsActions[tc.index].label, func(t *testing.T) {
+		t.Run(skillsActions[tc.index+3].label, func(t *testing.T) {
 			m := newModel(t)
 			m.open("skills.sh")
 			m.cursor = tc.index + 3

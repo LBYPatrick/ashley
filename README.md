@@ -57,8 +57,8 @@ Downloads and verifies the matching release binary into `~/.local/bin/ash`,
 then installs Zellij, skills, and the selected agent. No checkout, Python, uv, or Go
 toolchain is installed. Native release assets are available starting with v0.4.0.
 
-The optional [skills.sh CLI](https://skills.sh/docs/cli) is **not installed by
-default**. To install it and any missing runtime dependencies automatically:
+To install the optional [skills.sh CLI](https://skills.sh/docs/cli) and missing
+runtime dependencies automatically, set `ASHLEY_INSTALL_SKILLS=1`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remote-install.sh | ASHLEY_INSTALL_SKILLS=1 bash
@@ -66,13 +66,39 @@ curl -fsSL https://raw.githubusercontent.com/LBYPatrick/ashley/main/scripts/remo
 
 This opt-in also applies to `scripts/install.sh`, including binary-only installs.
 
-When Skills is already available or you opted into installing it, agent setup
-also asks whether to install all of [Emil Kowalski's skills](https://github.com/emilkowalski/skills)
-plus `find-skills` from `vercel-labs/skills`. Accepting installs the bundle globally
-for the same selected Ashley agents, without further skill or agent pickers.
-Declining leaves the community bundle uninstalled. This question is also offered
-by `ash install`; binary-only installation does not select agents or offer bundles.
-Without a terminal, the optional bundle is skipped unless configured below.
+Agent setup offers a **recommended** community skill bundle by default, including
+when the Skills CLI is not installed. The bundle contains all skills from
+[Emil Kowalski's repository](https://github.com/emilkowalski/skills) and
+[GoogleChrome/modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance),
+plus `find-skills` from `vercel-labs/skills`.
+
+One `[Y/n]` question controls the complete bundle. Press Enter to install all of
+it, or enter `n` to skip it. Acceptance also permits installation of the Skills
+CLI and missing runtime dependencies. Skills install globally for the selected
+Ashley agents, without further skill or agent selection questions.
+
+`ash install` also offers this question. Binary-only installation does not select
+agents or offer the bundle. Without a terminal, the bundle is skipped unless
+configured below.
+
+After installation, Ashley checks available commands and the active shell's startup file (RC file).
+If settings are missing, it shows the proposed text and asks `[y/N]`.
+Enter `y` to append the missing settings at the end of the file.
+Enter `n` to leave the file unchanged. Existing contents and permissions remain
+unchanged. Repeated installation does not append settings that are already present.
+
+Supported files include `.zshrc`, `.bashrc`, Bash login profiles, Fish
+`config.fish`, and `.profile` for login `sh`. Ashley respects `ZDOTDIR` and
+`XDG_CONFIG_HOME`. It detects the active shell before using `SHELL` as a fallback.
+The settings include the installation directory and directories for installed
+commands that are missing from `PATH`. Existing commands, including Homebrew
+installations, need no additional tool entries. Empty or unusable tool directories
+do not cause a setup question. Ashley proposes `PNPM_HOME` only when an installed
+standalone pnpm needs its directory on `PATH`. Open a new shell after acceptance.
+
+Download installers, local builds, and `ash install` offer this setup step.
+Unattended installation, updates, and background sync skip it.
+Without an available terminal, Ashley does not change shell startup files.
 
 The installer asks which coding agent to set up. Skip the question with a flag:
 
@@ -201,7 +227,7 @@ The same variables work with `ash install` and `scripts/install.sh`.
 | `agents` | required | Nonempty list of `claude`, `codex`, `grok`, `opencode`, or `kilo` |
 | `skills_only` | `false` | Skip installing coding-agent CLIs; still install Ashley skills |
 | `install_skills` | `false` | Authorize automatic Skills CLI and runtime dependency installation |
-| `community_skills` | `false` | Install every Emil skill plus `find-skills` for the selected agents |
+| `community_skills` | `false` | Install all Emil and GoogleChrome/modern-web-guidance skills, plus `find-skills`, for the selected agents |
 
 The profile overrides command-line agent/skills-only selections and
 `ASHLEY_INSTALL_SKILLS`. `community_skills: true` can reuse an existing Skills
@@ -377,7 +403,7 @@ appearance setup never blocks starting work.
 |---------|-------------|------------|
 | **New run** | Multiline task composer with optional skill, agent, and permission controls | Ctrl+2 |
 | **Library** | Browse, create, sync, and manage community skills | Ctrl+4; `ash vibe` opens the skill chooser |
-| **Activity** | Sessions and History, with task titles, logs, and conversation resume | Ctrl+3; `ash sessions` or `ash history browse` |
+| **Activity** | One list of running sessions and past conversations | Ctrl+3; `ash sessions` or `ash history browse` |
 | **Sync** | Generate skills, then install for all detected agents | — |
 | **Create** | Guided skill builder with preview and JSON editing | `ash create` |
 | **Stats** | Usage analytics (top skills, by agent) | `ash history stats` |
@@ -392,6 +418,20 @@ Ctrl+5 Settings** (`^1`–`^5` in the tab bar). The TUI enables enhanced keyboar
 reporting for terminals that support it. On older terminals that cannot distinguish
 Ctrl+number combinations, tap a tab or use `Ctrl+P`. `?` opens shortcut help outside text fields.
 
+Open **Settings** with `Ctrl+5` to change the **Shortcut bar**.
+
+- **Standard** shows the main actions for the current page in one row. This is the default.
+  In Activity, `N` names or renames a session, `K` stops the selected session, and `X` stops all sessions.
+- **Full** shows all shortcuts for the current page or dialog. If `F6 ›` appears, press `F6` to see more.
+- **Off** hides the bar. Keyboard shortcuts remain available.
+
+Use `?` or `Ctrl+P` → **Keys** to open the shortcut reference. It shows the
+current page first. Press `/` to search by action or key. Press Esc to go back.
+
+In **Language**, select **Terminal**, **English**, **简体中文**, **한국어**, **日本語**,
+or **Tiếng Việt**. Changes take effect immediately. **Terminal** uses the terminal
+language when Ashley supports it. Ashley uses English as the fallback.
+
 In **New run**, write a multiline task. `Ctrl+S` opens the searchable skill
 chooser; Enter selects a skill and returns to your draft. `Ctrl+D` removes the
 skill for a direct conversation. Tab moves between the task, agent, permissions,
@@ -402,52 +442,55 @@ workspace navigation for the lifetime of the TUI.
 `Ctrl+N` names a draft; `Shift+N` renames a selected session or history entry.
 The CLI accepts `-n NAME` or `--name NAME`. Names are saved in the local SQLite
 history database and session metadata, appear in lists, and are searchable in
-History. An empty name restores the task title; IDs and resume links stay stable.
+Activity. An empty name restores the task title; IDs and resume links stay stable.
 
 The interface uses aligned columns, shared section rules, and distinct text,
 metadata, and accent tiers.
 
-In **Activity**, `T` or the visible tabs switch between Sessions and History.
-Enter attaches a running session or resumes a finished conversation in either tab.
-Press `L` in Sessions to open its log. `I` opens the technical inspector. Narrow terminals use
-a single list; `V` opens details and Esc returns to the list. Stop and delete
-actions require confirmation, with Cancel selected by default.
+**Activity** shows running sessions and finished conversations in one list.
+A session and its linked history record share one row. Enter attaches a running
+session or resumes a finished conversation. Press `l` to open a saved session log.
+Press `i` to show more details. In a narrow terminal, press `v` to open details.
+Esc returns to the list. Stop and delete actions ask for confirmation.
 
-Press `/` to search either tab. Press `Ctrl+F` to switch between **All fields**
+Press `/` to search all Activity records. Press `Ctrl+F` to switch between **All fields**
 and **Directory**. Press `Ctrl+U` to clear the search. You can also click the scope
-and clear controls. Each tab keeps its search, scope, and selection. Both tabs use
-the same sidebar width and a single search row. Task rows show a title and
-directory when space permits. Details include the full path and additional metadata.
+and clear controls. Task rows show a title and directory when space permits.
+Press `n` or `p` to move a page at a time.
 
 Confirmation dialogs use high-contrast text and explicit focus markers. Tab
 changes the selected button. Enter activates that button. Esc cancels the action.
 Use arrow keys, Page Up/Page Down, or the mouse wheel to read warnings in small dialogs.
 
-Each session row shows `●` for an active session or `○` for a finished or inactive session.
-The elapsed time appears at the right and measures time since session creation,
-including for finished sessions. Short terminals keep both the symbol and elapsed
-time visible. `?` means that the first status check is still in progress.
+Each row shows `●` for a running session or `○` for a finished session.
+At the right, a saved session shows its elapsed time. A history entry shows its
+date. `?` indicates that the first session status check is in progress.
 
 Status checks and output previews run in the background so that cursor moves do
 not wait for a backend command. Each refresh uses at most one status query for each backend.
 
-Open **Actions** in Sessions for **Kill all sessions** and **Clean finished sessions**.
+Open **Actions** in Activity for **Kill all sessions** and **Clean finished sessions**.
 The `X` and `D` shortcuts remain available, including in small terminals.
-Cleanup removes finished session records and keeps their logs. Both actions also
+Cleanup removes finished session records and keeps their logs and history. Both actions also
 remain in the `Ctrl+P` command palette.
 
 Open **Library** from Home or the `Ctrl+P` command palette. Select an action
 with arrows and Enter; Find and Add accept a search term or repository/URL.
 Add, List, and Remove operate on globally installed skills. Native Skills prompts
 handle skill/agent selection and missing-dependency consent. Command output remains
-visible until you press Enter to return to Ashley. Community bundle setup reuses
-Ashley’s agent selection and asks before adding Emil’s skills and `find-skills`.
-Opening the page does not install anything.
+visible until you press Enter to return to Ashley.
+
+Open **Community bundle** in **Library** to manage the Emil Kowalski, Modern Web
+Guidance, and Find Skills bundles. The checklist shows which bundles Ashley
+manages. Select bundles to install and clear bundles to remove. Choose **Confirm**
+to apply the changes. Use `l` to read the installation log. Ashley records managed
+bundles in `~/.ashley/community` and removes only the skill links it owns.
 
 Sync detects supported agent executables on PATH and in native install locations,
 then generates skills into `~/.ashley/generated` before installing links for every
 detected agent. Every activation runs the complete sync again. The full per-file and per-agent
 log stays visible; use PgUp/PgDn or Home/End to scroll, and `R` to rerun.
+Background sync does not ask the community bundle question.
 Press `I` to set up the agent selected in Settings. Standalone `ash generate` and
 `ash install` commands remain available for scripts and explicit CLI use.
 
@@ -671,13 +714,13 @@ ash kill all               # Kill all sessions
 Detaching from a foreground run (`Ctrl-b d`) leaves it running in the
 background, just like `--detached`.
 
-**Session manager keys:**
+**Activity keys:**
 
 | Key | Action |
 |-----|--------|
 | Enter | Attach to a running session or resume a finished conversation |
-| t | Switch to History |
-| / | Search sessions |
+| / | Search running and finished sessions |
+| n / p | Move to the next or previous group of rows |
 | Ctrl+F | Switch between All fields and Directory search |
 | Ctrl+U | Clear the search |
 | i | Toggle the technical inspector |
@@ -722,9 +765,10 @@ filters. Session cleanup with `--clean` cannot use active search or directory fi
 
 Press **Enter** on a history entry to reattach its running session, or resume
 its recorded agent conversation in a new Zellij session. Resuming preserves
-the original working directory, agent, and permission mode, without replaying
-the original prompt. Each new launch gets its own history entry linked to
-the same conversation. The details panel and `ash history show --json` expose
+the original working directory, agent, and permission mode. It replaces the
+session ID on the existing history entry. Activity shows the new session, and
+`ash logs` can still open a saved log from a superseded session by its old ID.
+The details panel and `ash history show --json` expose
 the conversation ID separately from the multiplexer session ID.
 
 | Agent | Conversation tracking | Native resume command |

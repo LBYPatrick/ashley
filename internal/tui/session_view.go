@@ -6,11 +6,11 @@ import (
 )
 
 func (m *Model) sessionActionControls() []settingControl {
-	if m.screen != "sessions" || m.compactDetail || m.height < 12 || m.layout().left.w < 30 {
+	if (m.screen != "activity" && m.screen != "sessions") || m.compactDetail || m.height < 12 || m.layout().left.w < 30 {
 		return nil
 	}
 	l := m.layout()
-	return []settingControl{{rect: rect{l.left.x + l.left.w - 9, l.left.y, 9, 1}, key: "actions", label: "Actions"}}
+	return []settingControl{{rect: rect{l.left.x + l.left.w - 9, l.left.y, 9, 1}, key: "actions", label: ansi.Truncate(m.tr("Actions"), 7, "…")}}
 }
 
 // Share the exact visible rectangles between rendering, wrapping, and scrolling.
@@ -20,8 +20,8 @@ func (m *Model) sessionPanels() (detail, log, body rect) {
 	reserve := max(7, min(12, l.detail.h/2))
 	detail = l.detail
 	detail.h = min(len(lines), max(1, l.detail.h-reserve))
-	log = rect{l.detail.x, l.detail.y + detail.h + 1, l.detail.w, max(3, l.detail.h-detail.h-1)}
-	body = rect{log.x, log.y + 3, log.w, max(1, log.h-3)}
+	log = rect{l.detail.x, l.detail.y + detail.h + 1, l.detail.w, max(0, l.detail.h-detail.h-1)}
+	body = rect{log.x, log.y + 3, log.w, max(0, log.h-3)}
 	return
 }
 func (m *Model) maxLogOffset() int {

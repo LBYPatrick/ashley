@@ -16,7 +16,7 @@ func (f *frame) section(r rect, label string, a appearance) {
 
 func (m *Model) readingRect() rect {
 	width := max(12, m.width-4)
-	return rect{(max(20, m.width) - width) / 2, 3, width, max(1, m.height-6)}
+	return rect{(max(20, m.width) - width) / 2, 3, width, max(1, m.contentHeight()-6)}
 }
 func wrappedLines(text string, width int) int {
 	return len(strings.Split(ansi.Wrap(text, max(1, width), ""), "\n"))
@@ -46,6 +46,6 @@ func (f *frame) richText(r rect, text string, a appearance, offset int) {
 	}
 }
 func screenName(screen string) string {
-	names := map[string]string{"skills.sh": "Library", "compose": "New run", "hub": "Home", "vibe": "Choose a skill", "sessions": "Activity", "history": "Activity · History", "stats": "Usage", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts", "about": "About Ashley"}
+	names := map[string]string{"skills.sh": "Library", "community": "Community bundle", "compose": "New run", "hub": "Home", "vibe": "Choose a skill", "activity": "Activity", "sessions": "Activity", "history": "Activity · History", "stats": "Usage", "create": "Create skill", "create-preview": "Skill preview", "settings": "Settings", "sync": "Sync", "log": "Session log", "help": "Keyboard shortcuts", "about": "About Ashley"}
 	return names[screen]
 }

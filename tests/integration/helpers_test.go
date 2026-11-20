@@ -52,6 +52,8 @@ func newSandbox(t *testing.T) *sandbox {
 	s.env["PATH"] = "/usr/bin:/bin"
 	s.env["XDG_DATA_HOME"] = filepath.Join(s.home, "data")
 	s.env["XDG_CONFIG_HOME"] = filepath.Join(s.home, ".config")
+	// Existing scenarios exercise other installer choices. Shell setup has its own terminal tests.
+	s.env["ASHLEY_DEFER_SHELL_SETUP"] = "1"
 	for _, key := range []string{"ZELLIJ", "ZELLIJ_SESSION_NAME", "ZELLIJ_PANE_ID", "ZELLIJ_SOCKET_DIR", "ZELLIJ_CONFIG_DIR", "ZELLIJ_CONFIG_FILE"} {
 		delete(s.env, key)
 	}
@@ -207,7 +209,7 @@ while [[ $# -gt 0 ]]; do
  case "$1" in
  -o) output="$2"; shift 2;;
  --retry) shift 2;;
- -fsSL) shift;;
+ -fsSL|-fSL|--progress-bar) shift;;
  https://github.com/*/releases/download/*|https://raw.githubusercontent.com/*/main/scripts/install.sh) url="$1"; shift;;
  *) exit 90;;
  esac

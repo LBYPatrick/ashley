@@ -82,5 +82,5 @@ func resumeHistory(args []string, catalog skills.Catalog, stdout, stderr io.Writ
 	default:
 		return fmt.Errorf("unknown recorded permission mode: %s", entry.Permission)
 	}
-	return launch("run", o, false, catalog, stdout, stderr)
+	return launch("run", o, false, &entry, catalog, stdout, stderr)
 }

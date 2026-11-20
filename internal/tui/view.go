@@ -2,10 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"github.com/LBYPatrick/ashley/internal/agents"
 	"math"
 	"strings"
 
+	"github.com/LBYPatrick/ashley/internal/agents"
+	"github.com/LBYPatrick/ashley/internal/config"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -64,16 +65,16 @@ func (m *Model) layout() screenLayout {
 	} else {
 		sidebar = min(sidebar, max(12, available*2/5))
 	}
-	bottom := h - 3
+	bottom := m.footerTop() - 2
 	if m.screen == "skills.sh" {
-		bottom = h - 6
+		bottom -= 3
 	}
 	l := screenLayout{}
 	l.left = rect{margin, 3, sidebar, max(3, bottom-3)}
 	l.right = rect{margin + sidebar + 3, 3, max(1, available-sidebar-3), max(3, bottom-3)}
 	l.list = rect{margin, 6, sidebar, max(1, bottom-6)}
 	l.detail = rect{l.right.x, 5, l.right.w, max(1, bottom-5)}
-	l.input = rect{margin, h - 5, available, 3}
+	l.input = rect{margin, m.footerTop() - 4, available, 3}
 	if m.screen == "vibe" || m.isActivity() {
 		l.input = rect{margin, 4, sidebar, 3}
 		l.list.y = 8
@@ -117,36 +118,55 @@ func (m *Model) layout() screenLayout {
 }
 func (m *Model) header(f *frame, a appearance) {
 	f.fill(rect{0, 0, f.width, 2}, a.base)
-	f.put(2, 0, a.base.Bold(true).Render(ansi.Truncate("Ashley  /  "+screenName(m.screen), max(1, f.width-18), "…")))
-	f.put(max(2, f.width-15), 0, a.muted.Render("^P Commands"))
+	title := "Ashley  /  " + m.tr(screenName(m.screen))
+	titleWidth := f.width - 18
+	if m.screen == "help" && f.width < 64 {
+		title = m.tr("Keyboard shortcuts")
+		if f.width < 36 {
+			title = m.tr("Keys")
+		}
+		titleWidth = f.width - 4
+	} else {
+		f.put(max(2, f.width-15), 0, a.muted.Render(ansi.Truncate(m.localizedBinding("^P Commands"), 13, "…")))
+	}
+	f.put(2, 0, a.base.Bold(true).Render(ansi.Truncate(title, max(1, titleWidth), "…")))
 	for _, c := range m.navControls() {
 		style := a.muted
-		active := m.screen == c.key || (c.key == "sessions" && (m.screen == "history" || m.screen == "log")) || (c.key == "skills.sh" && (m.screen == "vibe" || m.screen == "create" || m.screen == "sync"))
+		active := m.screen == c.key || (c.key == "activity" && (m.isActivity() || m.screen == "log")) || (c.key == "skills.sh" && (m.screen == "vibe" || m.screen == "create" || m.screen == "sync" || m.screen == "community"))
 		if active {
 			style = a.selected
 		}
 		f.put(c.x, c.y, style.Render(ansi.Truncate(" "+c.label+" ", c.w, "")))
 	}
 }
-func (m *Model) footer(f *frame, a appearance) {
+func (m *Model) footerBindings() []string {
 	text := "enter Open  ↑↓ Move  c Continue latest  q Quit"
 	if m.screen == "hub" && len(m.recent) == 0 {
 		text = "enter Open  ↑↓ Move  q Quit"
 	}
 	switch m.screen {
+	case "community":
+		if !m.paletteOpen && m.rename == nil && m.confirm == nil {
+			return m.communityBindings()
+		}
 	case "skills.sh":
 		text = "esc Back  ↑↓ Move  enter Open / Submit"
 	case "vibe":
 		text = "enter Use skill  / Search  pgdn Preview  esc Back"
 	case "compose":
 		text = "^R Start  ^N Name  ^S Skill  tab Options  esc Home"
+	case "activity":
+		text = "enter Attach/Resume  ↑↓ Move  / Search  ^F Scope  ^U Clear  n/p Pages  N Rename  l Log  c Copy ID  s Sort  r Refresh  i Metadata  K Stop  X Stop all  D Clean finished  d Delete  pgup/pgdown Preview  esc Back"
+		if m.options.Screen == "activity" {
+			text += "  q Quit"
+		}
 	case "sessions":
-		text = "/ Search  ^F Scope  enter Resume  t History  ^P Commands"
+		text = "enter Attach/Resume  ↑↓ Move  / Search  ^F Scope  ^U Clear  t History  N Rename  l Log  c Copy ID  s Sort  r Refresh  i Metadata  K Stop  X Stop all  D Clean finished  d Delete  pgup/pgdown Preview  esc Back"
 		if m.options.Screen == "sessions" {
 			text += "  q Quit"
 		}
 	case "history":
-		text = "/ Search  ^F Scope  enter Resume  t Sessions  n/p Pages"
+		text = "enter Resume  ↑↓ Move  / Search  ^F Scope  ^U Clear  t Sessions  n/p Pages  N Rename  d Delete  r Refresh  i Metadata  pgup/pgdown Preview  esc Back"
 		if m.options.Screen == "history" {
 			text += "  q Quit"
 		}
@@ -167,28 +187,18 @@ func (m *Model) footer(f *frame, a appearance) {
 		text = "esc Back to editor  ↑↓ Scroll"
 	case "sync":
 		text = "esc Back  enter Sync  r Sync again  i Set up CLI"
-	case "help", "log":
+	case "help":
+		text = "esc Back  / Search  ↑↓ Scroll  pgup/pgdown Page"
+	case "log":
 		text = "esc Back  pgup/pgdown Scroll"
 	}
-	if m.width < 76 && (m.screen == "vibe" || m.screen == "sessions" || m.screen == "history" || m.screen == "skills.sh") {
-		text = "enter Open  v Details  / Search  esc Back"
-		if m.screen == "vibe" {
-			text = "enter Use skill  v Details  / Search"
-		}
-		if m.screen == "skills.sh" {
-			text = "enter Open  v Details  esc Back"
-		}
-		if m.isActivity() {
-			text = "/ Search  ^F Scope  v Details  t Tabs"
-			if m.filter.Value() != "" {
-				text = "^U Clear  / Search  ^F Scope  v Details"
-			}
-		}
+	if m.width < 76 && (m.screen == "vibe" || m.isActivity() || m.screen == "skills.sh") {
+		text += "  v Details"
 	}
-	if m.focus == "filter" && m.screen != "about" {
+	if m.focus == "filter" && m.screen != "about" && m.screen != "help" {
 		text = "Type to search  enter Results  esc Done"
 		if m.isActivity() {
-			text = "^U Clear  ^F Scope  enter Results  esc Done"
+			text = "^U Clear  ^F Scope  enter Results  esc Done  tab Done"
 		}
 	}
 	if m.confirm != nil {
@@ -197,22 +207,176 @@ func (m *Model) footer(f *frame, a appearance) {
 			text = "↑↓ Read  tab Choose  enter Accept  esc Cancel"
 		}
 	}
+	if m.rename != nil {
+		return []string{"enter Save", "esc Cancel"}
+	}
+	if m.paletteOpen {
+		return []string{"↑↓ Move", "enter Select", "esc Close"}
+	}
+	bindings := strings.Split(text, "  ")
+	if m.confirm == nil {
+		bindings = append(bindings, "^P Commands")
+		if m.footerHelpBinding() == "? All keys" {
+			bindings = append(bindings, "? All keys")
+		}
+	}
+	return bindings
+}
+
+func (m *Model) footerHelpBinding() string {
+	if m.focus != "" {
+		return "^P Commands"
+	}
+	switch m.screen {
+	case "compose", "create", "about", "settings", "sync":
+		return "^P Commands"
+	default:
+		return "? All keys"
+	}
+}
+
+func (m *Model) localizedBinding(binding string) string {
+	key, label, found := strings.Cut(binding, " ")
+	if !found {
+		return key
+	}
+	return key + " " + m.tr(label)
+}
+
+func (m *Model) footerRows() []string {
+	switch m.interfacePrefs.ShortcutMode() {
+	case config.ShortcutBarOff:
+		return nil
+	case config.ShortcutBarFull:
+		return m.fullFooterRows()
+	}
+	width := max(16, m.width-4)
+	bindings := m.footerBindings()
+	var primary []string
+	help := m.footerHelpBinding()
+	switch {
+	case m.confirm != nil, m.rename != nil, m.paletteOpen:
+		primary = bindings
+		help = ""
+	case m.screen == "help":
+		primary = []string{"/ Search", "↑↓ Scroll"}
+		help = "esc Back"
+	case m.focus == "filter":
+		primary = []string{"enter Results", "esc Done"}
+		help = ""
+	case m.screen == "activity":
+		return []string{m.activityFooterRow(width, bindings[0], help)}
+	case m.isActivity():
+		primary = []string{bindings[0], "/ Search", "t Tabs"}
+	case m.screen == "settings":
+		primary = []string{"↑↓ Move", "enter Select", "esc Done"}
+	default:
+		primary = bindings[:min(3, len(bindings))]
+	}
+	if help != "" {
+		primary = append(primary, help)
+	}
+
+	// Reserve space for help before adding whole action hints.
+	row := ""
+	if help != "" {
+		row = m.localizedBinding(help)
+		if ansi.StringWidth(row) > width {
+			row, _, _ = strings.Cut(help, " ")
+		}
+		primary = primary[:len(primary)-1]
+	}
+	for i := len(primary) - 1; i >= 0; i-- {
+		hint := m.localizedBinding(primary[i])
+		if row == "" {
+			row = hint
+		} else if ansi.StringWidth(hint)+2+ansi.StringWidth(row) <= width {
+			row = hint + "  " + row
+		} else if help == "" {
+			if m.confirm != nil && m.maxConfirmationScroll() > 0 {
+				return []string{ansi.Truncate(m.localizedBinding("↑↓ Read"), width-9, "") + " tab↵ esc"}
+			}
+			if m.confirm != nil {
+				return []string{"tab  ↵  esc"}
+			}
+			if m.paletteOpen {
+				return []string{"↑↓  ↵  esc"}
+			}
+			return []string{"↵  esc"}
+		}
+	}
+	return []string{ansi.Truncate(row, width, "")}
+}
+
+// Keep the session shortcuts and access to help on one row at every width.
+func (m *Model) activityFooterRow(width int, open, help string) string {
+	hints := []string{"N Rename", "K Stop", "X Stop all", help}
+	parts := make([]string, len(hints))
+	remaining := width - 2*(len(parts)-1)
+	for i, hint := range hints {
+		parts[i], _, _ = strings.Cut(hint, " ")
+		remaining -= ansi.StringWidth(parts[i])
+	}
+	for i, hint := range hints {
+		label := m.localizedBinding(hint)
+		extra := ansi.StringWidth(label) - ansi.StringWidth(parts[i])
+		if extra <= remaining {
+			parts[i] = label
+			remaining -= extra
+		}
+	}
+	row := strings.Join(parts, "  ")
+	for _, hint := range []string{"↑↓ Move", "/ Search", open} {
+		label := m.localizedBinding(hint)
+		if used := ansi.StringWidth(label) + 2; used <= remaining {
+			row = label + "  " + row
+			remaining -= used
+		}
+	}
+	return row
+}
+
+func (m *Model) footerTop() int {
+	height := max(8, m.height)
+	switch m.interfacePrefs.ShortcutMode() {
+	case config.ShortcutBarOff:
+		return height
+	case config.ShortcutBarFull:
+		_, visible := m.fullFooterLayout()
+		return height - visible
+	default:
+		return height - 1
+	}
+}
+
+// Preserve each page's normal margins when Full mode uses additional rows.
+func (m *Model) contentHeight() int {
+	return min(max(8, m.height), m.footerTop()+1)
+}
+
+func (m *Model) footer(f *frame, a appearance) {
 	footerStyle := a.panel
 	shortcutStyle := a.panel.Foreground(lipgloss.Color(a.accent))
 	if m.confirm != nil {
 		footerStyle, _ = confirmationStyles(a)
 		shortcutStyle = footerStyle.Bold(true)
 	}
-	y := f.height - 1
-	f.fill(rect{0, y, f.width, 1}, footerStyle)
-	f.put(2, y, footerStyle.Render(ansi.Truncate(text, max(1, f.width-2), "…")))
-	x := 2
-	for _, binding := range strings.Split(text, "  ") {
-		key := strings.Fields(binding)
-		if len(key) > 0 && x+len(key[0]) < f.width-2 {
-			f.put(x, y, shortcutStyle.Render(key[0]))
+	rows := m.footerRows()
+	if len(rows) == 0 {
+		return
+	}
+	y := f.height - len(rows)
+	f.fill(rect{0, y, f.width, len(rows)}, footerStyle)
+	for index, row := range rows {
+		f.put(2, y+index, footerStyle.Render(row))
+		x := 2
+		for _, binding := range strings.Split(row, "  ") {
+			key := strings.Fields(binding)
+			if len(key) > 0 {
+				f.put(x, y+index, shortcutStyle.Render(key[0]))
+			}
+			x += ansi.StringWidth(binding) + 2
 		}
-		x += ansi.StringWidth(binding) + 2
 	}
 }
 func (f *frame) input(r rect, value, placeholder string, focused bool, a appearance, cursor ...int) {
@@ -270,7 +434,7 @@ func (m *Model) View() string {
 		m.homeView(f, a)
 	case "compose":
 		m.composeView(f, a)
-	case "vibe", "sessions", "history", "skills.sh":
+	case "vibe", "activity", "sessions", "history", "skills.sh":
 		m.browserView(f, a)
 	case "sync":
 		m.operationView(f, a)
@@ -282,7 +446,11 @@ func (m *Model) View() string {
 		m.aboutView(f, a)
 	case "create":
 		m.creatorView(f, a)
-	case "create-preview", "log", "help":
+	case "help":
+		m.helpView(f, a)
+	case "community":
+		m.communityView(f, a)
+	case "create-preview", "log":
 		r := m.readingRect()
 		f.text(r, m.preview.View(), a.base, 0)
 
@@ -290,7 +458,7 @@ func (m *Model) View() string {
 	m.header(f, a)
 	if m.status != "" { // Notifications occupy chrome, never replace a detail panel.
 		text := ansi.Truncate(m.status, max(1, f.width-4), "…")
-		f.put(max(1, f.width-ansi.StringWidth(text)-2), f.height-2, a.panel.Render(text))
+		f.put(max(1, f.width-ansi.StringWidth(text)-2), m.footerTop()-1, a.panel.Render(text))
 	}
 	m.footer(f, a)
 	if m.paletteOpen {
@@ -316,13 +484,13 @@ func (m *Model) statsMaxScroll() int {
 	return max(0, wrappedLines(m.statsText(m.appearance()), r.w)-r.h)
 }
 func (m *Model) statsText(a appearance) string {
-	text := a.title.Render("◆ Analytics") + "\n\n  " + a.muted.Render("Total invocations") + "   " + a.base.Bold(true).Render(fmt.Sprint(m.stats.Total))
+	text := a.title.Render(m.tr("◆ Analytics")) + "\n\n  " + a.muted.Render(m.tr("Total invocations")) + "   " + a.base.Bold(true).Render(fmt.Sprint(m.stats.Total))
 	heading := a.title.Foreground(lipgloss.Color(terminalColor(m.themePalette()["accent-lighten-1"])))
 	accent := m.themePalette()["accent"]
 	if len(m.stats.TopSkills) == 0 {
-		text += "\n\n" + a.muted.Render("No invocations recorded yet.")
+		text += "\n\n" + a.muted.Render(m.tr("No invocations recorded yet."))
 	} else {
-		text += "\n\n" + heading.Render("Top skills")
+		text += "\n\n" + heading.Render(m.tr("Top skills"))
 		peak := 0
 		for _, v := range m.stats.TopSkills {
 			peak = max(peak, v.Count)
@@ -334,7 +502,7 @@ func (m *Model) statsText(a appearance) string {
 		}
 	}
 	if len(m.stats.ByAgent) > 0 {
-		text += "\n\n" + heading.Render("By agent")
+		text += "\n\n" + heading.Render(m.tr("By agent"))
 		peak := 0
 		for _, v := range m.stats.ByAgent {
 			peak = max(peak, v.Count)

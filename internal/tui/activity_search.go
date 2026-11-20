@@ -3,7 +3,7 @@ package tui
 import "github.com/charmbracelet/x/ansi"
 
 func (m *Model) isActivity() bool {
-	return m.screen == "sessions" || m.screen == "history"
+	return m.screen == "activity" || m.screen == "sessions" || m.screen == "history"
 }
 
 func (m *Model) applySearch() {
@@ -17,7 +17,7 @@ func (m *Model) toggleSearchScope() {
 }
 
 func (m *Model) activityTabControls() []settingControl {
-	if !m.isActivity() || m.compactDetail {
+	if m.screen == "activity" || !m.isActivity() || m.compactDetail {
 		return nil
 	}
 	l := m.layout()
@@ -28,8 +28,8 @@ func (m *Model) activityTabControls() []settingControl {
 	var controls []settingControl
 	for i, screen := range []string{"sessions", "history"} {
 		controls = append(controls, settingControl{
-			rect: rect{l.left.x + i*step, l.left.y, len(labels[i]) + 2, 1},
-			key:  screen, label: labels[i],
+			rect: rect{l.left.x + i*step, l.left.y, min(step-2, ansi.StringWidth(m.tr(labels[i]))) + 2, 1},
+			key:  screen, label: ansi.Truncate(m.tr(labels[i]), step-2, ""),
 		})
 	}
 	return controls
@@ -51,7 +51,7 @@ func (m *Model) activitySearchControls() []settingControl {
 			label = "Dir"
 		}
 	}
-	label = "[" + label + "]"
+	label = "[" + ansi.Truncate(m.tr(label), min(16, l.input.w/2), "…") + "]"
 	x := l.input.x + l.input.w
 	var clear *settingControl
 	if m.filter.Value() != "" {
@@ -59,8 +59,8 @@ func (m *Model) activitySearchControls() []settingControl {
 		clear = &settingControl{rect: rect{x, l.input.y, 3, 1}, key: "clear", label: "[x]"}
 		x--
 	}
-	x -= len(label)
-	controls := []settingControl{{rect: rect{x, l.input.y, len(label), 1}, key: "scope", label: label}}
+	x -= ansi.StringWidth(label)
+	controls := []settingControl{{rect: rect{x, l.input.y, ansi.StringWidth(label), 1}, key: "scope", label: label}}
 	if clear != nil {
 		controls = append(controls, *clear)
 	}
@@ -73,6 +73,9 @@ func (m *Model) activitySearchView(f *frame, a appearance) {
 	field := l.input
 	field.w = max(1, controls[0].x-field.x-1)
 	placeholder := "Search " + m.screen + "…"
+	if m.screen == "activity" {
+		placeholder = "Search sessions…"
+	}
 	if m.directoryOnly {
 		placeholder = "Search directory…"
 	}
@@ -80,7 +83,7 @@ func (m *Model) activitySearchView(f *frame, a appearance) {
 		placeholder = "Search…"
 	}
 	f.fill(l.input, a.panel)
-	f.input(field, m.filter.Value(), placeholder, m.focus == "filter", a, m.filter.Position())
+	f.input(field, m.filter.Value(), m.tr(placeholder), m.focus == "filter", a, m.filter.Position())
 	for _, control := range controls {
 		f.put(control.x, control.y, a.panel.Render(control.label))
 	}

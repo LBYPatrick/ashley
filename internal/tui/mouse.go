@@ -4,9 +4,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func settingsRows() [][]string {
-	return [][]string{{"claude", "codex", "grok", "opencode", "kilo"}, {"auto", "dark", "light"}, {"blue", "green", "purple", "orange", "rose"}, {"cyan", "ocean", "sunset", "grape", "forest"}, {"Done"}}
-}
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.confirm != nil {
 		if m.confirmBounds().contains(msg.X, msg.Y) {
@@ -29,7 +26,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.rename != nil {
 		return nil
 	}
-	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == 0 && msg.X >= max(2, m.width-15) {
+	if (m.screen != "help" || m.width >= 64) && msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y == 0 && msg.X >= max(2, m.width-15) {
 		m.paletteOpen, m.paletteSessionActions = true, false
 		m.paletteQuery, m.paletteCursor = "", 0
 		return nil
@@ -60,6 +57,12 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 				return nil
 			}
 		}
+	}
+	if m.screen == "help" {
+		return m.helpMouse(msg)
+	}
+	if m.screen == "community" {
+		return m.communityMouse(msg)
 	}
 	if m.screen == "about" {
 		if msg.Button == tea.MouseButtonWheelDown {
@@ -125,10 +128,10 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	}
 	if m.screen == "settings" {
 		if wheel {
-			m.screenScroll = max(0, min(max(0, m.settingsContentHeight()-m.height), m.screenScroll+delta*3))
+			m.screenScroll = max(0, min(m.settingsMaxScroll(), m.screenScroll+delta*3))
 			return nil
 		}
-		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y > 0 && msg.Y < m.height-1 {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y >= 2 && msg.Y < m.footerTop()-1 {
 			for _, control := range m.settingsControls() {
 				if control.contains(msg.X, msg.Y+m.screenScroll) {
 					m.settingsRow, m.settingsColumn = control.row, control.column
@@ -185,11 +188,11 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	}
 	if wheel {
 		_, log, _ := m.sessionPanels()
-		if m.screen == "sessions" && log.contains(msg.X, msg.Y) {
+		if (m.selectedSession().ID != "" || m.screen == "sessions") && log.contains(msg.X, msg.Y) {
 			m.logOffset = max(0, min(m.maxLogOffset(), m.logOffset+delta*3))
 			return nil
 		}
-		if l.right.contains(msg.X, msg.Y) || m.screen == "log" || m.screen == "help" || m.screen == "create-preview" {
+		if l.right.contains(msg.X, msg.Y) || m.screen == "log" || m.screen == "create-preview" {
 			var cmd tea.Cmd
 			m.preview, cmd = m.preview.Update(msg)
 			return cmd

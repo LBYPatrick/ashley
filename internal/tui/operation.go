@@ -66,7 +66,8 @@ func (m *Model) startOperation(kind string) tea.Cmd {
 			executable, err = os.Executable()
 			if err == nil {
 				cmd := exec.CommandContext(ctx, executable, args...)
-				cmd.Env = append(os.Environ(), "HOME="+home)
+				// The child shares the terminal; sync must not wait for installation choices.
+				cmd.Env = append(os.Environ(), "HOME="+home, "ASHLEY_BACKGROUND_SYNC=1")
 				var log bytes.Buffer
 				cmd.Stdout = &log
 				cmd.Stderr = &log
@@ -116,12 +117,12 @@ func (m *Model) operationKey(key string) tea.Cmd {
 	return nil
 }
 func (m *Model) operationText() string {
-	title := "Sync skills"
+	title := m.tr("Sync skills")
 	label := m.installLabels()
 	if label == "" {
-		label = "None — set up an agent CLI to get started."
+		label = m.tr("None — set up an agent CLI to get started.")
 	}
-	description := "Generate skills, then install them for every detected coding agent.\nExisting custom skills are preserved.\n\nDetected:  " + label + "\n\nI sets up " + agents.Get(m.agent).Label + " (chosen in Settings)."
+	description := m.tr("Generate and install skills for detected coding agents.") + "\n" + m.tr("Existing custom skills are preserved.") + "\n\n" + m.tr("Detected") + ":  " + label + "\n\n" + fmt.Sprintf(m.tr("I sets up %s (chosen in Settings)."), agents.Get(m.agent).Label)
 	action := "Enter Sync   ·   I Set up agent CLI   ·   Esc Back"
 	text := title + "\n\n" + description
 	job := m.job
@@ -131,9 +132,9 @@ func (m *Model) operationText() string {
 	if job.busy {
 		return text + "\n\nGenerating and installing… You can return to the hub while this finishes.\n\nDestination\n" + job.destination
 	}
-	result := "✓ Skills synced for " + job.target
+	result := "✓ " + fmt.Sprintf(m.tr("Skills synced for %s"), job.target)
 	if job.err != nil {
-		result = "Could not finish: " + job.err.Error()
+		result = m.tr("Could not finish") + ": " + job.err.Error()
 	}
 	text += "\n\n" + result + fmt.Sprintf(" · %s", job.elapsed.Round(time.Millisecond)) + "\n\nDestination\n" + job.destination
 	if strings.TrimSpace(job.output) != "" {
@@ -151,6 +152,9 @@ func (m *Model) operationView(f *frame, a appearance) {
 }
 
 func (m *Model) quit() tea.Cmd {
+	if m.community.cancel != nil {
+		m.community.cancel()
+	}
 	if m.job != nil && m.job.busy {
 		m.job.cancel()
 	}

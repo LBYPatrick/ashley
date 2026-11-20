@@ -5,12 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
+	"github.com/LBYPatrick/ashley/internal/community"
+	"github.com/LBYPatrick/ashley/internal/install"
 	"github.com/mattn/go-isatty"
 )
 
 func communitySkillCommands(keys []string) [][]string {
+	var commands [][]string
+	for _, bundle := range community.Bundles() {
+		commands = append(commands, communitySkillCommand(bundle, keys))
+	}
+	return commands
+}
+
+func communitySkillCommand(bundle community.Bundle, keys []string) []string {
 	targets := make([]string, len(keys))
 	for i, key := range keys {
 		switch key {
@@ -20,20 +31,59 @@ func communitySkillCommands(keys []string) [][]string {
 			targets[i] = key
 		}
 	}
-	var commands [][]string
-	for _, bundle := range []struct{ repo, skill string }{{"emilkowalski/skills", "*"}, {"vercel-labs/skills", "find-skills"}} {
-		args := []string{"add", bundle.repo, "--global", "--yes", "--skill", bundle.skill, "--agent"}
-		commands = append(commands, append(args, targets...))
+	return append([]string{"add", bundle.Source, "--global", "--yes", "--skill", bundle.Skill, "--agent"}, targets...)
+}
+
+func applyCommunityBundles(desired []string, stdout, stderr io.Writer) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
 	}
-	return commands
+	installer := install.Installer{Home: home}
+	keys, err := installer.Resolve(nil)
+	if err != nil {
+		return err
+	}
+	env := []string{"ASHLEY_INSTALL_SKILLS=1", "ASHLEY_AUTOMATED=1", "CI=1", "GIT_TERMINAL_PROMPT=0"}
+	return manageCommunityBundles(home, keys, desired, stdout, stderr, env)
+}
+
+func manageCommunityBundles(home string, keys, desired []string, stdout, stderr io.Writer, env []string) error {
+	return community.Apply(home, keys, desired, func(bundle community.Bundle, stage string) error {
+		return runSkills(communitySkillCommand(bundle, keys), strings.NewReader(""), stdout, stderr,
+			append(slices.Clone(env), "ASHLEY_SKILLS_STAGE="+stage))
+	}, stdout)
 }
 
 func installCommunitySkills(keys []string, cfg *automatedInstall, stdout, stderr io.Writer) error {
+	var input io.Reader
+	if cfg == nil {
+		if isatty.IsTerminal(os.Stdin.Fd()) {
+			input = os.Stdin
+		} else if tty, err := os.Open("/dev/tty"); err == nil {
+			defer tty.Close()
+			input = tty
+		}
+	}
+	return installCommunitySkillsWithInput(keys, cfg, input, stdout, stderr)
+}
+
+func installCommunitySkillsWithInput(keys []string, cfg *automatedInstall, input io.Reader, stdout, stderr io.Writer) error {
 	installCLI := envEnabled("ASHLEY_INSTALL_SKILLS")
 	selected := false
 	if cfg != nil {
 		installCLI = cfg.InstallSkills
 		selected = cfg.CommunitySkills
+	} else if input != nil {
+		fmt.Fprintf(stdout, "Install all emilkowalski/skills, GoogleChrome/modern-web-guidance, and find-skills for %s? (recommended) [Y/n] ", strings.Join(keys, ", "))
+		answer, err := bufio.NewReader(input).ReadString('\n')
+		if err == nil {
+			switch strings.ToLower(strings.TrimSpace(answer)) {
+			case "", "y", "yes":
+				selected = true
+				installCLI = true
+			}
+		}
 	}
 	env := []string{}
 	if installCLI {
@@ -49,37 +99,17 @@ func installCommunitySkills(keys []string, cfg *automatedInstall, stdout, stderr
 			return err
 		}
 	}
-	if cfg == nil {
-		// A read-only probe includes package-manager global bins and managed paths.
-		if !installCLI && runSkills(nil, strings.NewReader(""), io.Discard, io.Discard, []string{"ASHLEY_SKILLS_CHECK=1"}) != nil {
-			return nil
-		}
-		input := os.Stdin
-		if !isatty.IsTerminal(input.Fd()) {
-			tty, err := os.Open("/dev/tty")
-			if err != nil {
-				return nil
-			}
-			defer tty.Close()
-			input = tty
-		}
-		fmt.Fprintf(stdout, "Install all emilkowalski/skills plus find-skills for %s? [y/N] ", strings.Join(keys, ", "))
-		answer, _ := bufio.NewReader(input).ReadString('\n')
-		switch strings.ToLower(strings.TrimSpace(answer)) {
-		case "y", "yes":
-			selected = true
-		}
-	}
-	if selected && cfg == nil {
-		env = append(env, "ASHLEY_INSTALL_SKILLS=1")
-	}
 	if !selected {
 		return nil
 	}
-	for _, args := range communitySkillCommands(keys) {
-		if err := runSkills(args, strings.NewReader(""), stdout, stderr, env); err != nil {
-			return fmt.Errorf("install community skills: %w", err)
-		}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
 	}
-	return nil
+	bundles := community.Bundles()
+	desired := make([]string, 0, len(bundles))
+	for _, bundle := range bundles {
+		desired = append(desired, bundle.ID)
+	}
+	return manageCommunityBundles(home, keys, desired, stdout, stderr, env)
 }

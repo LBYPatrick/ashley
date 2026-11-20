@@ -22,7 +22,7 @@ func TestSyncRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 		got = args
 		return "generated/a-feat/SKILL.md\ngenerated/a-debug/SKILL.md\n", nil
 	}
-	m.cursor = 3
+	m.cursor = 2
 	cmd := m.activate()
 	if m.screen != "sync" || m.job == nil || !m.job.busy {
 		t.Fatal("missing busy result page")
@@ -41,7 +41,7 @@ func TestSyncRetainsResultAndDoesNotLeaveTerminal(t *testing.T) {
 		}
 	}
 	m.open("hub")
-	m.cursor = 3
+	m.cursor = 2
 	cmd = m.activate()
 	if cmd == nil || !m.job.busy {
 		t.Fatal("reopening Sync did not start fresh work")

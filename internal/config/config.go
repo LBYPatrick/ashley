@@ -254,3 +254,47 @@ func (c Config) ResolvePipeline(name string) []string {
 	}
 	return steps
 }
+
+type ShortcutBarMode string
+
+const (
+	ShortcutBarStandard ShortcutBarMode = "standard"
+	ShortcutBarFull     ShortcutBarMode = "full"
+	ShortcutBarOff      ShortcutBarMode = "off"
+)
+
+// InterfacePreferences stores the language and shortcut bar settings.
+type InterfacePreferences struct {
+	Language    string
+	ShortcutBar ShortcutBarMode
+}
+
+func (p InterfacePreferences) ShortcutMode() ShortcutBarMode {
+	switch p.ShortcutBar {
+	case ShortcutBarFull, ShortcutBarOff:
+		return p.ShortcutBar
+	default:
+		return ShortcutBarStandard
+	}
+}
+
+func (s Store) LoadInterface() InterfacePreferences {
+	data := s.readJSON("prefs.json")
+	language, _ := data["language"].(string)
+	mode, _ := data["shortcut_bar"].(string)
+	preferences := InterfacePreferences{Language: language, ShortcutBar: ShortcutBarMode(mode)}
+	if mode == "" && data["hide_shortcuts"] == true {
+		preferences.ShortcutBar = ShortcutBarOff
+	}
+	preferences.ShortcutBar = preferences.ShortcutMode()
+	return preferences
+}
+
+// SaveInterface preserves unrelated preferences.
+func (s Store) SaveInterface(value InterfacePreferences) error {
+	data := s.readJSON("prefs.json")
+	data["language"] = value.Language
+	data["shortcut_bar"] = value.ShortcutMode()
+	delete(data, "hide_shortcuts")
+	return s.writeJSON("prefs.json", data)
+}

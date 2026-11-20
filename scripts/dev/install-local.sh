@@ -11,3 +11,6 @@ chmod 755 "$candidate"
 "$candidate" --version
 mv -f "$candidate" "$install_dir/ash"
 echo "Installed: $install_dir/ash"
+if "$install_dir/ash" __setup-shell --check >/dev/null 2>&1; then
+    "$install_dir/ash" __setup-shell "$install_dir"
+fi

@@ -10,7 +10,7 @@ help: ## Show this help message
 INSTALL_DIR ?= $(HOME)/.local/bin
 
 install: build ## Build and install the native CLI and skills (AGENT=all|both|key, SKILLS_ONLY=1 skips agent installation)
-	@./build/ash-go install $(if $(AGENT),--agent $(AGENT),) $(if $(SKILLS_ONLY),--skills-only,)
+	@ASHLEY_DEFER_SHELL_SETUP=1 ./build/ash-go install $(if $(AGENT),--agent $(AGENT),) $(if $(SKILLS_ONLY),--skills-only,)
 	@bash scripts/dev/install-local.sh build/ash-go "$(INSTALL_DIR)"
 
 uninstall: build ## Remove Ashley skill links and the installed binary; retain user data

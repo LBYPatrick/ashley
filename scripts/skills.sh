@@ -98,4 +98,12 @@ if [[ -z "$manager" || "$need_node" == true || "$need_skills" == true ]]; then
 fi
 command -v skills >/dev/null 2>&1 || { echo 'skills installation did not produce an executable.' >&2; exit 1; }
 if [[ "${ASHLEY_SKILLS_ENSURE:-}" == 1 ]]; then exit 0; fi
+if [[ -n "${ASHLEY_SKILLS_STAGE:-}" ]]; then
+    export HOME="$ASHLEY_SKILLS_STAGE"
+    export XDG_CONFIG_HOME="$HOME/.config"
+    export XDG_DATA_HOME="$HOME/.local/share"
+    export XDG_STATE_HOME="$HOME/.local/state"
+    export XDG_CACHE_HOME="$HOME/.cache"
+    unset CLAUDE_CONFIG_DIR CODEX_HOME GROK_HOME OPENCODE_CONFIG_DIR
+fi
 exec skills "$@"

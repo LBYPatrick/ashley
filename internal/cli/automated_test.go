@@ -47,6 +47,7 @@ func TestCommunitySkillTargets(t *testing.T) {
 	got := communitySkillCommands([]string{"claude", "codex", "grok", "opencode", "kilo"})
 	want := [][]string{
 		{"add", "emilkowalski/skills", "--global", "--yes", "--skill", "*", "--agent", "claude-code", "codex", "grok", "opencode", "kilo"},
+		{"add", "GoogleChrome/modern-web-guidance", "--global", "--yes", "--skill", "*", "--agent", "claude-code", "codex", "grok", "opencode", "kilo"},
 		{"add", "vercel-labs/skills", "--global", "--yes", "--skill", "find-skills", "--agent", "claude-code", "codex", "grok", "opencode", "kilo"},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -68,7 +69,7 @@ func TestAutomatedInstallNoPrompt(t *testing.T) {
 	if err := Run([]string{"install"}, &out, &stderr); err != nil {
 		t.Fatalf("%v %s", err, stderr.String())
 	}
-	if strings.Contains(out.String(), "[y/N]") || strings.Contains(out.String(), "Choice") {
+	if strings.Contains(out.String(), "[y/N]") || strings.Contains(out.String(), "[Y/n]") || strings.Contains(out.String(), "Choice") {
 		t.Fatalf("prompt: %s", out.String())
 	}
 	if _, err := os.Stat(filepath.Join(home, ".codex", "skills", "a-feat", "SKILL.md")); err != nil {

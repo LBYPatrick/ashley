@@ -14,7 +14,7 @@ import (
 var paletteCommands = [][2]string{
 	{"New run", "Write a task and choose an agent"},
 	{"About Ashley", "Read the version, project, and MIT license information"},
-	{"Home", "Start or continue work"}, {"Activity", "Open running sessions and their logs"}, {"History", "Find and resume past conversations"}, {"Library", "Browse, create, sync, and manage skills.sh community skills"}, {"Choose a skill", "Browse skills and start a run"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Usage", "Explore skill and agent analytics"}, {"Settings", "Change your default agent, theme, and appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
+	{"Home", "Start or continue work"}, {"Activity", "Find running and finished sessions and their logs"}, {"Library", "Browse, create, sync, and manage skills.sh community skills"}, {"Choose a skill", "Browse skills and start a run"}, {"Sync", "Generate skills and install them for detected agents"}, {"Create", "Create a custom skill"}, {"Usage", "Explore skill and agent analytics"}, {"Settings", "Change your default agent, theme, and appearance"}, {"Keys", "Show all keyboard shortcuts"}, {"Maximize", "Expand the current list"}, {"Screenshot", "Save this screen as an SVG"}, {"Quit", "Exit Ashley"},
 }
 
 var sessionPaletteCommands = [][2]string{
@@ -32,11 +32,11 @@ func (m *Model) paletteItems() [][2]string {
 	commands := append([][2]string{}, paletteCommands...)
 	if m.paletteSessionActions {
 		commands = sessionPaletteCommands
-	} else if m.screen == "sessions" {
+	} else if m.screen == "sessions" || m.screen == "activity" {
 		commands = append(commands, sessionPaletteCommands...)
 	}
 	for _, item := range commands {
-		if strings.Contains(strings.ToLower(item[0]+" "+item[1]), strings.ToLower(m.paletteQuery)) {
+		if strings.Contains(strings.ToLower(item[0]+" "+item[1]+" "+m.tr(item[0])+" "+m.tr(item[1])), strings.ToLower(m.paletteQuery)) {
 			items = append(items, item)
 		}
 	}
@@ -63,7 +63,7 @@ func (m *Model) paletteView(f *frame, a appearance) {
 	items := m.paletteItems()
 	f.fill(r, a.panel)
 	f.box(r, a.border)
-	f.input(rect{r.x + 2, r.y + 1, r.w - 4, 3}, m.paletteQuery, placeholder, true, a)
+	f.input(rect{r.x + 2, r.y + 1, r.w - 4, 3}, m.paletteQuery, m.tr(placeholder), true, a)
 	visible := max(1, r.h-7)
 	start := max(0, m.paletteCursor-visible+1)
 	for i := start; i < min(len(items), start+visible); i++ {
@@ -73,13 +73,13 @@ func (m *Model) paletteView(f *frame, a appearance) {
 			style = a.selected
 			marker = "› "
 		}
-		label := ansi.Truncate(marker+items[i][0], r.w-6, "")
+		label := ansi.Truncate(marker+m.tr(items[i][0]), r.w-6, "")
 		f.put(r.x+3, r.y+5+i-start, style.Render(label+strings.Repeat(" ", max(0, r.w-6-ansi.StringWidth(label)))))
 	}
 	if len(items) == 0 {
-		f.put(r.x+3, r.y+5, a.muted.Render("No matching commands"))
+		f.put(r.x+3, r.y+5, a.muted.Render(m.tr("No matching commands")))
 	} else {
-		f.put(r.x+3, r.y+r.h-2, a.muted.Render(ansi.Truncate(items[m.paletteCursor][1], r.w-6, "…")))
+		f.put(r.x+3, r.y+r.h-2, a.muted.Render(ansi.Truncate(m.tr(items[m.paletteCursor][1]), r.w-6, "…")))
 	}
 }
 func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
@@ -122,8 +122,8 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 			m.requestConfirmation("cleanup")
 		case "Quit":
 			return m.quit()
-		case "New run", "Library", "Home", "Choose a skill", "Activity", "History", "Sync", "Create", "Usage", "Settings":
-			screens := map[string]string{"New run": "compose", "Library": "skills.sh", "Home": "hub", "Choose a skill": "vibe", "Activity": "sessions", "History": "history", "Sync": "sync", "Create": "create", "Usage": "stats", "Settings": "settings"}
+		case "New run", "Library", "Home", "Choose a skill", "Activity", "Sync", "Create", "Usage", "Settings":
+			screens := map[string]string{"New run": "compose", "Library": "skills.sh", "Home": "hub", "Choose a skill": "vibe", "Activity": "activity", "Sync": "sync", "Create": "create", "Usage": "stats", "Settings": "settings"}
 			m.open(screens[choice])
 			if choice == "New run" {
 				return m.composer.Focus()
@@ -132,20 +132,12 @@ func (m *Model) paletteKey(msg tea.KeyMsg) tea.Cmd {
 				return m.startOperation("sync")
 			}
 		case "Maximize":
-			if m.width >= 76 && (m.screen == "vibe" || m.screen == "sessions" || m.screen == "history") {
+			if m.width >= 76 && (m.screen == "vibe" || m.isActivity()) {
 				m.maximized = !m.maximized
 				m.updatePreview()
 			}
 		case "Keys":
-			if m.screen != "help" {
-				m.helpReturn = m.screen
-				m.helpPreview = m.preview
-				m.helpLogContent = m.logContent
-			}
-			m.logContent = "Keyboard shortcuts\n\nCtrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library · Ctrl+5 Settings\nCtrl+P commands · ? help · Esc back · Ctrl+C quit\n\nNew run\nWrite a multiline task. Ctrl+R starts the conversation.\nCtrl+S chooses a skill; Ctrl+D removes it.\nTab moves through task, agent, permissions, and Start.\nEnter changes an option; Enter in the task inserts a newline.\n\nSkill browser\n/ searches · Enter selects · PgUp/PgDn previews\nV shows details on narrow terminals · I shows metadata\n\nActivity\nT switches Sessions and History · Enter attaches or resumes\nI toggles the inspector · L opens a session log\nR refreshes · S sorts sessions · C copies the session ID\nK stops one session · X stops all\nD cleans finished records and keeps logs · d deletes a record\nN/P change history pages · / searches either tab\nCtrl+F switches All fields and Directory · Ctrl+U clears the search\n\nLibrary\nBrowse your skills, create a workflow, or sync installed skills.\nChoose Find or Add to discover community skills.\n\nCreator\nCtrl+N next · Ctrl+S save · Ctrl+E JSON\nWorkflow: Ctrl+A add step · Ctrl+D delete step\n\nSettings\nArrows or Tab/Shift+Tab move · Enter selects\nChanges save automatically. Esc returns Home."
-			m.sizeLogPreview()
-			m.preview.GotoTop()
-			m.screen = "help"
+			m.openShortcutHelp()
 		case "Screenshot":
 			name := "ashley-" + time.Now().Format("20060102-150405") + ".svg"
 			text := ansi.Strip(m.View())

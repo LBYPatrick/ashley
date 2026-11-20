@@ -16,13 +16,23 @@ type sessionDetailsLoaded struct {
 }
 
 func (m *Model) queueSessionDetails() {
-	if m.sessionBusy || m.screen != "sessions" || len(m.sessionRows) == 0 {
+	if m.sessionBusy || (m.screen != "sessions" && m.screen != "activity") {
 		return
 	}
 	manager, rows := m.manager(), slices.Clone(m.sessionRows)
-	selected, request := rows[m.cursor], m.sessionRequest
+	if m.screen == "activity" {
+		rows = slices.Clone(m.activitySessions)
+	}
+	if len(rows) == 0 {
+		return
+	}
+	selected, request := m.selectedSession(), m.sessionRequest
 	alive, checkStatus := maps.Clone(m.sessionAlive), m.sessionStatusesDirty
-	if _, known := alive[selected.ID]; !known {
+	if selected.ID == "" {
+		if !checkStatus {
+			return
+		}
+	} else if _, known := alive[selected.ID]; !known {
 		checkStatus = true
 	}
 	m.sessionBusy, m.sessionStatusesDirty = true, false
@@ -32,7 +42,11 @@ func (m *Model) queueSessionDetails() {
 		if checkStatus {
 			alive = manager.AliveAll(rows)
 		}
-		content, err := manager.Preview(selected, 50, alive[selected.ID])
+		content := ""
+		var err error
+		if selected.ID != "" {
+			content, err = manager.Preview(selected, 50, alive[selected.ID])
+		}
 		if err != nil {
 			content = err.Error()
 		}
@@ -45,13 +59,13 @@ func (m *Model) queueSessionDetails() {
 
 func (m *Model) acceptSessionDetails(result sessionDetailsLoaded) {
 	m.sessionBusy = false
-	if m.screen != "sessions" || len(m.sessionRows) == 0 {
+	if m.screen != "sessions" && m.screen != "activity" {
 		return
 	}
 	m.sessionAlive = result.alive
 	// A periodic refresh can arrive before a slow read finishes. Its output is
 	// still useful for the same session; reject only a different selection.
-	if result.id == m.sessionRows[m.cursor].ID {
+	if result.id != "" && result.id == m.selectedSession().ID {
 		m.sessionLog = result.log
 	}
 	offset := m.preview.YOffset

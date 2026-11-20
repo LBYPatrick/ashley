@@ -74,7 +74,11 @@ func (p *terminal) send(keys string) {
 }
 func (p *terminal) until(predicate func() bool) {
 	p.t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	p.untilTimeout(10*time.Second, predicate)
+}
+func (p *terminal) untilTimeout(timeout time.Duration, predicate func() bool) {
+	p.t.Helper()
+	deadline := time.Now().Add(timeout)
 	for !predicate() {
 		select {
 		case <-p.done:
@@ -138,7 +142,7 @@ func TestInteractiveScreens(t *testing.T) {
 				p.waitFor("Ashley")
 				if tc.name == "hub" {
 					before := len(p.text())
-					p.send(strings.Repeat("\x1b[B", 6) + "\r")
+					p.send(strings.Repeat("\x1b[B", 5) + "\r")
 					p.waitFor("Accent color")
 					if len(p.text())-before > 100000 {
 						t.Fatal("settings render loop")
@@ -196,6 +200,8 @@ func TestFirstInstallAgentSelection(t *testing.T) {
 			p := startTerminal(t, s, binary, "install", "--skills-only")
 			p.waitFor("Choice [")
 			p.send(tc.answer)
+			p.waitFor("(recommended) [Y/n]")
+			p.send("no\n")
 			p.exit()
 			checkSkills(t, s, tc.dirs)
 			if tc.answer == "2\n" {
@@ -218,7 +224,7 @@ func TestTUISyncUsesOnlyBinary(t *testing.T) {
 	}
 	p := startTerminal(t, s, standalone)
 	p.waitFor("Ashley")
-	p.send(strings.Repeat("\x1b[B", 3) + "\r")
+	p.send(strings.Repeat("\x1b[B", 2) + "\r")
 	p.waitFor("Skills synced for Claude Code")
 	checkSkills(t, s, agentDirs)
 	if exists(filepath.Join(s.home, "generated")) || exists(filepath.Join(s.home, ".venv")) {
@@ -231,16 +237,68 @@ func TestTUISyncUsesOnlyBinary(t *testing.T) {
 }
 
 func TestCommunitySkillsConfirmation(t *testing.T) {
-	for _, answer := range []string{"yes", "no"} {
-		t.Run(answer, func(t *testing.T) {
+	for _, tc := range []struct {
+		name, answer string
+		accept       bool
+	}{{"yes", "yes", true}, {"default", "", true}, {"no", "no", false}} {
+		t.Run(tc.name, func(t *testing.T) {
 			s := newSandbox(t)
 			communityFixtures(t, s)
 			p := startTerminal(t, s, binary, "install", "--skills-only", "--codex")
-			p.waitFor("Install all emilkowalski/skills plus find-skills for codex?")
+			p.waitFor("(recommended) [Y/n]")
+			requireContains(t, p.text(), "GoogleChrome/modern-web-guidance")
+			p.send(tc.answer + "\n")
+			p.exit()
+			if exists(filepath.Join(s.home, "community-calls")) != tc.accept {
+				t.Fatal("wrong consent result", p.text())
+			}
+			if tc.accept {
+				calls := read(t, filepath.Join(s.home, "community-calls"))
+				requireContains(t, calls, "add emilkowalski/skills --global --yes --skill * --agent codex")
+				requireContains(t, calls, "add GoogleChrome/modern-web-guidance --global --yes --skill * --agent codex")
+				requireContains(t, calls, "add vercel-labs/skills --global --yes --skill find-skills --agent codex")
+			}
+		})
+	}
+}
+
+func TestCommunitySkillsOfferedWithoutCLI(t *testing.T) {
+	for _, accept := range []bool{true, false} {
+		t.Run(map[bool]string{true: "accept", false: "decline"}[accept], func(t *testing.T) {
+			s := newSandbox(t)
+			fakeBin := filepath.Join(s.home, "fake-bin")
+			write(t, filepath.Join(fakeBin, "node"), "#!/bin/bash\nexit 0\n", 0755)
+			s.env["COMMUNITY_TEST_LOG"] = filepath.Join(s.home, "community-calls")
+			s.env["COMMUNITY_TEST_SKILLS"] = filepath.Join(fakeBin, "skills-template")
+			write(t, s.env["COMMUNITY_TEST_SKILLS"], communitySkillsFixture, 0755)
+			write(t, filepath.Join(fakeBin, "npm"), `#!/bin/bash
+set -eu
+if [[ "$1" == prefix ]]; then echo "$HOME/.ashley/tools"; exit; fi
+printf '%s\n' "$*" > "$HOME/skills-installed"
+mkdir -p "$HOME/.ashley/tools/bin"
+cp "$COMMUNITY_TEST_SKILLS" "$HOME/.ashley/tools/bin/skills"
+`, 0755)
+			s.env["PATH"] = fakeBin + ":" + s.env["PATH"]
+			p := startTerminal(t, s, binary, "install", "--skills-only", "--codex")
+			p.waitFor("(recommended) [Y/n]")
+			if exists(filepath.Join(s.home, "skills-installed")) {
+				t.Fatal("installed Skills before the answer")
+			}
+			answer := "no"
+			if accept {
+				answer = "yes"
+			}
 			p.send(answer + "\n")
 			p.exit()
-			if exists(filepath.Join(s.home, "community-calls")) != (answer == "yes") {
-				t.Fatal("wrong consent result", p.text())
+			if exists(filepath.Join(s.home, "skills-installed")) != accept || exists(filepath.Join(s.home, "community-calls")) != accept {
+				t.Fatal("wrong dependency or bundle selection", p.text())
+			}
+			if accept {
+				calls := read(t, filepath.Join(s.home, "community-calls"))
+				if len(strings.Split(strings.TrimSpace(calls), "\n")) != 3 {
+					t.Fatal("did not install the complete bundle", calls)
+				}
+				requireContains(t, calls, "GoogleChrome/modern-web-guidance")
 			}
 		})
 	}
@@ -253,7 +311,7 @@ func TestSkillsTUIHandoff(t *testing.T) {
 	write(t, filepath.Join(s.home, ".ashley/theme.json"), `{"mode":"dark","preset":"blue"}`, 0644)
 	p := startTerminal(t, s, binary)
 	p.waitFor("What would you like")
-	p.send(strings.Repeat("\x1b[B", 7) + "\r")
+	p.send("\x1b[52;5u") // Ctrl+4 opens the library.
 	p.waitFor("Find skills")
 	p.send(strings.Repeat("\x1b[B", 5) + "\r")
 	p.waitFor("Installed skills fixture")
@@ -291,7 +349,7 @@ func TestUpdateSkipsCommunitySetup(t *testing.T) {
 	case <-time.After(30 * time.Second):
 		t.Fatal("update waited for input", p.text())
 	}
-	if strings.Contains(p.text(), "Install all emilkowalski") || strings.Contains(p.text(), "[y/N]") {
+	if strings.Contains(p.text(), "Install all emilkowalski") || strings.Contains(p.text(), "[y/N]") || strings.Contains(p.text(), "[Y/n]") {
 		t.Fatal("update prompted for community setup", p.text())
 	}
 	if exists(filepath.Join(s.home, "community-calls")) {

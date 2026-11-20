@@ -1,0 +1,275 @@
+Home	主页	홈	ホーム	Trang chủ
+New run	新建任务	새 작업	新規タスク	Tác vụ mới
+Activity	活动	활동	アクティビティ	Hoạt động
+Activity · Sessions	活动 · 会话	활동 · 세션	アクティビティ · セッション	Hoạt động · Phiên
+Activity · History	活动 · 历史记录	활동 · 기록	アクティビティ · 履歴	Hoạt động · Lịch sử
+Library	技能库	스킬 라이브러리	スキル一覧	Thư viện
+Settings	设置	설정	設定	Cài đặt
+Choose a skill	选择技能	스킬 선택	スキルを選ぶ	Chọn kỹ năng
+Running sessions	运行中的会话	실행 중인 세션	実行中のセッション	Phiên đang chạy
+Sessions	会话	세션	セッション	Phiên
+History	历史记录	기록	履歴	Lịch sử
+Sync	同步	동기화	同期	Đồng bộ
+Sync skills	同步技能	스킬 동기화	スキルを同期	Đồng bộ kỹ năng
+Create	创建	만들기	作成	Tạo
+Create skill	创建技能	스킬 만들기	スキルを作成	Tạo kỹ năng
+Create a skill	创建技能	스킬 만들기	スキルを作成	Tạo kỹ năng
+Skill preview	技能预览	스킬 미리 보기	スキルのプレビュー	Xem trước kỹ năng
+Skill library	技能库	스킬 라이브러리	スキル一覧	Thư viện kỹ năng
+Usage	使用情况	사용량	利用状況	Mức sử dụng
+About Ashley	关于 Ashley	Ashley 정보	Ashley について	Giới thiệu Ashley
+Session log	会话日志	세션 로그	セッションログ	Nhật ký phiên
+Keyboard shortcuts	键盘快捷键	키보드 단축키	キーボードショートカット	Phím tắt
+Current screen	当前页面	현재 화면	現在の画面	Màn hình hiện tại
+Keys	快捷键	단축키	ショートカット	Phím tắt
+All keys	快捷键	단축키	ショートカット	Phím tắt
+Commands	命令	명령	コマンド	Lệnh
+Maximize	展开列表	목록 확장	一覧を拡大	Mở rộng danh sách
+Screenshot	截图	스크린샷	スクリーンショット	Chụp màn hình
+Quit	退出	종료	終了	Thoát
+Open	打开	열기	開く	Mở
+Move	移动	이동	移動	Di chuyển
+Continue latest	继续最近的任务	최근 작업 계속	直近のタスクを再開	Tiếp tục tác vụ gần nhất
+Back	返回	뒤로	戻る	Quay lại
+Open / Submit	打开或提交	열기 또는 제출	開く・送信	Mở hoặc gửi
+Use skill	使用技能	스킬 사용	スキルを使う	Dùng kỹ năng
+Search	搜索	검색	検索	Tìm kiếm
+Preview	预览	미리 보기	プレビュー	Xem trước
+Start	开始	시작	開始	Bắt đầu
+Name	名称	이름	名前	Tên
+Skill	技能	스킬	スキル	Kỹ năng
+Options	选项	옵션	オプション	Tùy chọn
+Attach/Resume	连接或继续	연결 또는 재개	接続・再開	Kết nối hoặc tiếp tục
+Resume	继续	재개	再開	Tiếp tục
+Scope	范围	범위	範囲	Phạm vi
+Clear	清除	지우기	クリア	Xóa bộ lọc
+Rename	重命名	이름 변경	名前を変更	Đổi tên
+Log	日志	로그	ログ	Nhật ký
+Copy ID	复制 ID	ID 복사	ID をコピー	Sao chép ID
+Sort	排序	정렬	並べ替え	Sắp xếp
+Refresh	刷新	새로 고침	更新	Làm mới
+Metadata	元数据	메타데이터	メタデータ	Siêu dữ liệu
+Stop	停止	중지	停止	Dừng
+Stop all	全部停止	모두 중지	すべて停止	Dừng tất cả
+Clean finished	清理已结束的会话	종료된 세션 정리	終了済みセッションを整理	Dọn phiên đã kết thúc
+Delete	删除	삭제	削除	Xóa
+Pages	翻页	페이지	ページ	Trang
+Page	翻页	페이지 이동	ページ移動	Chuyển trang
+Tabs	切换标签页	탭 전환	タブ切替	Đổi thẻ
+Done	完成	완료	完了	Xong
+Select	选择	선택	選択	Chọn
+Next	下一步	다음	次へ	Tiếp
+Scroll	滚动	스크롤	スクロール	Cuộn
+Ends	首尾	맨 처음 또는 끝	先頭・末尾	Đầu hoặc cuối
+Save	保存	저장	保存	Lưu
+Back to editor	返回编辑器	편집기로 돌아가기	エディターに戻る	Về trình chỉnh sửa
+Sync again	重新同步	다시 동기화	再同期	Đồng bộ lại
+Set up CLI	配置 CLI	CLI 설정	CLI を設定	Thiết lập CLI
+Details	详情	상세 정보	詳細	Chi tiết
+DETAILS	详情	상세 정보	詳細	Chi tiết
+Results	结果	결과	結果	Kết quả
+Choose	选择	선택	選択	Chọn
+Accept	确认	확인	確定	Xác nhận
+Confirm	确认	확인	確定	Xác nhận
+Cancel	取消	취소	キャンセル	Hủy
+Read	阅读	읽기	読む	Đọc
+Close	关闭	닫기	閉じる	Đóng
+Terminal	跟随终端	터미널 언어	端末の言語	Theo hệ thống
+Language	语言	언어	言語	Ngôn ngữ
+Shortcut bar	快捷键栏	단축키 표시줄	ショートカットバー	Thanh phím tắt
+On	开启	켜짐	オン	Bật
+Off	关闭	꺼짐	オフ	Tắt
+Coding agent	编程代理	코딩 에이전트	コーディングエージェント	Tác nhân lập trình
+Appearance	外观	모양	外観	Giao diện
+Accent color	强调色	강조 색상	アクセントカラー	Màu nhấn
+Auto	自动	자동	自動	Tự động
+Dark	深色	어둡게	ダーク	Tối
+Light	浅色	밝게	ライト	Sáng
+Blue	蓝色	파랑	青	Xanh dương
+Green	绿色	초록	緑	Xanh lá
+Purple	紫色	보라	紫	Tím
+Orange	橙色	주황	オレンジ	Cam
+Rose	玫瑰色	장밋빛	ローズ	Hồng
+Cyan	青色	청록	シアン	Xanh lơ
+Ocean	海洋	바다	オーシャン	Đại dương
+Sunset	日落	노을	夕焼け	Hoàng hôn
+Grape	葡萄	포도	グレープ	Nho
+Forest	森林	숲	フォレスト	Rừng
+Welcome to Ashley	欢迎使用 Ashley	Ashley에 오신 것을 환영합니다	Ashley へようこそ	Chào mừng bạn đến với Ashley
+Make Ashley feel like yours. Changes save automatically.	自定义 Ashley。更改将自动保存。	Ashley를 원하는 대로 설정하세요. 변경 사항은 자동으로 저장됩니다.	Ashley を自分好みに設定できます。変更は自動で保存されます。	Tùy chỉnh Ashley. Các thay đổi được lưu tự động.
+Choose your coding agent and appearance to get started.	选择编程代理和外观即可开始。	코딩 에이전트와 모양을 선택하세요.	使用するエージェントと外観を選んでください。	Chọn tác nhân lập trình và giao diện để bắt đầu.
+What would you like to work on?	你想做什么？	무엇을 작업할까요?	何を作業しますか？	Bạn muốn làm gì?
+Start something new, or pick up where you left off.	开始新任务，或继续之前的工作。	새 작업을 시작하거나 이전 작업을 계속하세요.	新しい作業を始めるか、前の作業を続けましょう。	Bắt đầu tác vụ mới hoặc tiếp tục công việc trước đó.
+Welcome to Ashley. Choose New run to get started.	欢迎使用 Ashley。请选择新建任务。	Ashley에 오신 것을 환영합니다. 새 작업을 선택하세요.	Ashley へようこそ。新規タスクを選んでください。	Chào mừng bạn đến với Ashley. Chọn Tác vụ mới để bắt đầu.
+Describe a task. Add a skill if useful.	描述任务。可按需添加技能。	작업을 설명하세요. 필요하면 스킬을 추가하세요.	タスクを入力します。必要に応じてスキルを追加できます。	Mô tả tác vụ. Thêm kỹ năng nếu cần.
+Return to work already in progress.	返回正在进行的工作。	진행 중인 작업으로 돌아갑니다.	進行中の作業に戻ります。	Quay lại công việc đang thực hiện.
+Find and resume a past conversation.	查找并继续之前的对话。	이전 대화를 찾아 계속합니다.	過去の会話を探して再開します。	Tìm và tiếp tục một cuộc trò chuyện trước đó.
+01  WORKSPACE	01  工作区	01  작업 공간	01  ワークスペース	01  KHÔNG GIAN LÀM VIỆC
+02  RECENT CONVERSATIONS	02  最近对话	02  최근 대화	02  最近の会話	02  CUỘC TRÒ CHUYỆN GẦN ĐÂY
+03  YOUR TOOLS	03  工具	03  도구	03  ツール	03  CÔNG CỤ
+Search…	搜索…	검색…	検索…	Tìm kiếm…
+Search skills…	搜索技能…	스킬 검색…	スキルを検索…	Tìm kỹ năng…
+Search sessions…	搜索会话…	세션 검색…	セッションを検索…	Tìm phiên…
+Search history…	搜索历史记录…	기록 검색…	履歴を検索…	Tìm trong lịch sử…
+Search directory…	搜索目录…	디렉터리 검색…	ディレクトリを検索…	Tìm thư mục…
+Search for commands…	搜索命令…	명령 검색…	コマンドを検索…	Tìm lệnh…
+Session actions…	会话操作…	세션 작업…	セッション操作…	Thao tác phiên…
+No matching commands	没有匹配的命令	일치하는 명령이 없습니다	一致するコマンドがありません	Không có lệnh phù hợp
+Actions	操作	작업	操作	Thao tác
+All fields	所有字段	모든 필드	すべての項目	Mọi trường
+Directory	目录	디렉터리	ディレクトリ	Thư mục
+All	全部	전체	すべて	Tất cả
+Dir	目录	폴더	フォルダ	Thư mục
+Sess	会话	세션	セッション	Phiên
+Hist	历史	기록	履歴	Sử
+sessions	个会话	세션	セッション	phiên
+session	个会话	세션	セッション	phiên
+entries	条记录	항목	件	mục
+entry	条记录	항목	件	mục
+No matching results.	没有匹配的结果。	일치하는 결과가 없습니다.	一致する結果がありません。	Không có kết quả phù hợp.
+Nothing here yet.	这里还没有内容。	아직 항목이 없습니다.	まだ項目がありません。	Chưa có mục nào.
+Ctrl+2 starts a new conversation.	按 Ctrl+2 开始新对话。	Ctrl+2로 새 대화를 시작합니다.	Ctrl+2 で新しい会話を始めます。	Nhấn Ctrl+2 để bắt đầu cuộc trò chuyện mới.
+Ctrl+U clears the search.	按 Ctrl+U 清除搜索。	Ctrl+U로 검색어를 지웁니다.	Ctrl+U で検索をクリアします。	Nhấn Ctrl+U để xóa tìm kiếm.
+Recent output · l opens full log	最近输出 · 按 l 查看完整日志	최근 출력 · l로 전체 로그 열기	最近の出力 · l で全ログを開く	Kết quả gần đây · Nhấn l để mở toàn bộ nhật ký
+Describe what you want to build, fix, or understand…	描述你想构建、修复或了解的内容…	만들거나 수정하거나 알아보고 싶은 내용을 적으세요…	作成、修正、確認したい内容を入力…	Mô tả điều bạn muốn tạo, sửa hoặc tìm hiểu…
+Enter a question, then Enter to run	输入问题，然后按 Enter 运行	질문을 입력하고 Enter를 눌러 실행하세요	質問を入力し、Enter で実行	Thêm câu hỏi rồi nhấn Enter để chạy
+Start a new conversation	开始新对话	새 대화 시작	新しい会話を開始	Bắt đầu cuộc trò chuyện mới
+Untitled	未命名	제목 없음	無題	Chưa đặt tên
+No skill · a direct conversation	无技能 · 直接对话	스킬 없이 바로 대화	スキルなしで会話	Trò chuyện trực tiếp
+Agent	代理	에이전트	エージェント	Tác nhân
+Permissions	权限	권한	権限	Quyền
+Default	默认	기본	既定	Mặc định
+Full access	完全访问	전체 접근	フルアクセス	Toàn quyền
+Start conversation	开始对话	대화 시작	会話を開始	Bắt đầu trò chuyện
+Session name	会话名称	세션 이름	セッション名	Tên phiên
+Delete this history entry?	删除这条历史记录？	이 기록을 삭제할까요?	この履歴を削除しますか？	Xóa mục lịch sử này?
+Remove all finished sessions?	移除所有已结束的会话？	종료된 세션을 모두 지울까요?	終了済みセッションをすべて削除しますか？	Xóa mọi phiên đã kết thúc?
+Stop all running sessions?	停止所有运行中的会话？	실행 중인 세션을 모두 중지할까요?	実行中のセッションをすべて停止しますか？	Dừng mọi phiên đang chạy?
+Stop this session?	停止此会话？	이 세션을 중지할까요?	このセッションを停止しますか？	Dừng phiên này?
+Delete this session and log?	删除此会话及其日志？	이 세션과 로그를 삭제할까요?	このセッションとログを削除しますか？	Xóa phiên và nhật ký này?
+Kill all sessions	停止所有会话	모든 세션 중지	すべてのセッションを停止	Dừng mọi phiên
+Clean finished sessions	清理已结束的会话	종료된 세션 정리	終了済みセッションを整理	Dọn phiên đã kết thúc
+Show all keyboard shortcuts	显示所有快捷键	모든 단축키 표시	すべてのショートカットを表示	Hiện mọi phím tắt
+Remove #%d from Ashley history. The agent's conversation remains available in its own storage.	从 Ashley 历史记录中移除第 %d 条记录。代理仍保留其对话。	Ashley 기록에서 #%d 항목을 삭제합니다. 에이전트에 저장된 대화는 유지됩니다.	Ashley の履歴から #%d を削除します。エージェントに保存された会話は残ります。	Xóa mục #%d khỏi lịch sử Ashley. Cuộc trò chuyện vẫn còn trong bộ nhớ của tác nhân.
+Remove finished session records in every directory, including hidden results. Keep their logs and all running sessions.	移除所有目录中已结束的会话记录，包括隐藏结果。保留日志和运行中的会话。	숨겨진 결과를 포함해 모든 디렉터리에서 종료된 세션 기록을 삭제합니다. 로그와 실행 중인 세션은 유지합니다.	非表示の結果を含め、すべてのディレクトリから終了済みセッションの記録を削除します。ログと実行中のセッションは残ります。	Xóa bản ghi phiên đã kết thúc trong mọi thư mục, kể cả kết quả ẩn. Giữ nhật ký và các phiên đang chạy.
+Stop all running Ashley sessions in every directory, including hidden results. Remove all session records. Keep their logs. This can interrupt work.	停止所有目录中运行的 Ashley 会话，包括隐藏结果。移除所有会话记录并保留日志。此操作可能中断工作。	숨겨진 결과를 포함해 모든 디렉터리의 Ashley 세션을 중지합니다. 모든 세션 기록을 삭제하고 로그는 유지합니다. 작업이 중단될 수 있습니다.	非表示の結果を含め、すべてのディレクトリで実行中の Ashley セッションを停止し、セッションの記録を削除します。ログは残ります。作業が中断することがあります。	Dừng mọi phiên Ashley đang chạy trong mọi thư mục, kể cả kết quả ẩn. Xóa mọi bản ghi phiên và giữ nhật ký. Công việc có thể bị gián đoạn.
+Stop %s (%s). In-progress work may be interrupted. The log will remain.	停止 %s（%s）。正在进行的工作可能中断。日志将保留。	%s (%s) 세션을 중지합니다. 진행 중인 작업이 중단될 수 있습니다. 로그는 유지됩니다.	%s（%s）を停止します。作業が中断することがあります。ログは残ります。	Dừng %s (%s). Công việc đang thực hiện có thể bị gián đoạn. Nhật ký được giữ lại.
+Permanently remove the saved log for %s (%s). This cannot be undone.	永久删除 %s（%s）的日志。此操作无法撤消。	%s (%s)의 로그를 영구 삭제합니다. 되돌릴 수 없습니다.	%s（%s）のログを完全に削除します。この操作は取り消せません。	Xóa vĩnh viễn nhật ký của %s (%s). Thao tác này không thể hoàn tác.
+No skills found.	未找到技能。	스킬을 찾을 수 없습니다.	スキルが見つかりません。	Không tìm thấy kỹ năng.
+Finished · Enter to resume	已结束 · 按 Enter 继续	종료됨 · Enter로 재개	終了済み · Enter で再開	Đã kết thúc · Enter để tiếp tục
+Checking session status…	正在检查会话状态…	세션 상태 확인 중…	セッションの状態を確認中…	Đang kiểm tra trạng thái phiên…
+Running · Enter to attach	运行中 · 按 Enter 连接	실행 중 · Enter로 연결	実行中 · Enter で接続	Đang chạy · Enter để kết nối
+L opens the log · I shows session details	按 l 查看日志 · 按 i 查看会话详情	l로 로그 열기 · i로 세션 상세 정보 보기	l でログを開く · i でセッションの詳細を表示	Nhấn l để mở nhật ký · i để xem chi tiết phiên
+I shows invocation details	按 i 查看运行详情	i로 실행 상세 정보 보기	i で実行の詳細を表示	Nhấn i để xem chi tiết lần chạy
+No results for %q	未找到与 %q 匹配的结果	%q 검색 결과 없음	%q に一致する結果がありません	Không có kết quả cho %q
+Enter to resume this conversation	按 Enter 继续此对话	Enter로 이 대화 재개	Enter でこの会話を再開	Enter để tiếp tục cuộc trò chuyện
+No conversation ID saved. Enter can still attach a running session.	未保存对话 ID。仍可按 Enter 连接运行中的会话。	저장된 대화 ID가 없습니다. Enter로 실행 중인 세션에 연결할 수 있습니다.	会話 ID が保存されていません。Enter で実行中のセッションに接続できます。	Chưa lưu ID cuộc trò chuyện. Nhấn Enter để kết nối với phiên còn chạy.
+Your skills	你的技能	내 스킬	自分のスキル	Kỹ năng của bạn
+Find skills	查找技能	스킬 찾기	スキルを検索	Tìm kỹ năng
+Add skills	添加技能	스킬 추가	スキルを追加	Thêm kỹ năng
+Installed skills	已安装技能	설치된 스킬	インストール済みのスキル	Kỹ năng đã cài
+Remove skills	移除技能	스킬 삭제	スキルを削除	Gỡ kỹ năng
+Check updates	检查更新	업데이트 확인	更新を確認	Kiểm tra bản cập nhật
+Update skills	更新技能	스킬 업데이트	スキルを更新	Cập nhật kỹ năng
+Community bundle	社区技能包	커뮤니티 스킬 모음	コミュニティスキルセット	Gói kỹ năng cộng đồng
+Repository or URL, e.g. emilkowalski/skills	仓库或网址，例如 emilkowalski/skills	저장소 또는 URL, 예: emilkowalski/skills	リポジトリまたは URL（例: emilkowalski/skills）	Kho lưu trữ hoặc URL, ví dụ emilkowalski/skills
+Optional search term, e.g. animations	可选搜索词，例如 animations	검색어(선택 사항), 예: animations	検索語（任意、例: animations）	Từ khóa tùy chọn, ví dụ animations
+Edit skill JSON	编辑技能 JSON	스킬 JSON 편집	スキルの JSON を編集	Sửa JSON của kỹ năng
+Create skill · Step %d/4 — %s	创建技能 · 第 %d/4 步 — %s	스킬 만들기 · %d/4단계 — %s	スキルを作成 · ステップ %d/4 — %s	Tạo kỹ năng · Bước %d/4 — %s
+Basics	基本信息	기본 정보	基本情報	Thông tin cơ bản
+Files	文件	파일	ファイル	Tệp
+Workflow	工作流	워크플로	ワークフロー	Quy trình
+Description	描述	설명	説明	Mô tả
+Extends (optional)	继承技能（可选）	상위 스킬(선택 사항)	継承元（任意）	Kế thừa (tùy chọn)
+Preamble	前言	서문	前書き	Lời mở đầu
+What this skill does	此技能的用途	이 스킬의 기능	このスキルの用途	Kỹ năng này làm gì
+Parent skill name, or leave blank	父技能名称，可留空	상위 스킬 이름 또는 빈칸	継承元のスキル名（省略可）	Tên kỹ năng gốc, có thể để trống
+Instructions for the coding agent	交给编程代理的指令	코딩 에이전트에게 줄 지침	コーディングエージェントへの指示	Chỉ dẫn cho tác nhân lập trình
+◆ Analytics	◆ 统计分析	◆ 통계	◆ 分析	◆ Phân tích
+Total invocations	运行总数	총 실행 횟수	合計実行回数	Tổng số lần chạy
+No invocations recorded yet.	尚无运行记录。	실행 기록이 없습니다.	実行履歴がありません。	Chưa có lần chạy nào được ghi lại.
+Top skills	常用技能	자주 쓰는 스킬	よく使うスキル	Kỹ năng dùng nhiều nhất
+By agent	按代理	에이전트별	エージェント別	Theo tác nhân
+Ask first	先询问	먼저 확인	先に確認	Hỏi trước
+Auto edits	自动编辑	자동 편집	自動編集	Tự động chỉnh sửa
+Autonomous	自主运行	자율 실행	自律実行	Tự chủ
+Ctrl+1 Home · Ctrl+2 New run · Ctrl+3 Activity · Ctrl+4 Library · Ctrl+5 Settings	Ctrl+1 主页 · Ctrl+2 新建任务 · Ctrl+3 活动 · Ctrl+4 技能库 · Ctrl+5 设置	Ctrl+1 홈 · Ctrl+2 새 작업 · Ctrl+3 활동 · Ctrl+4 스킬 라이브러리 · Ctrl+5 설정	Ctrl+1 ホーム · Ctrl+2 新規タスク · Ctrl+3 アクティビティ · Ctrl+4 スキル一覧 · Ctrl+5 設定	Ctrl+1 Trang chủ · Ctrl+2 Tác vụ mới · Ctrl+3 Hoạt động · Ctrl+4 Thư viện · Ctrl+5 Cài đặt
+Ctrl+P commands · ? help · Esc back · Ctrl+C quit	Ctrl+P 命令 · ? 帮助 · Esc 返回 · Ctrl+C 退出	Ctrl+P 명령 · ? 도움말 · Esc 뒤로 · Ctrl+C 종료	Ctrl+P コマンド · ? ヘルプ · Esc 戻る · Ctrl+C 終了	Ctrl+P Lệnh · ? Trợ giúp · Esc Quay lại · Ctrl+C Thoát
+Write a multiline task. Ctrl+R starts the conversation.	输入多行任务。按 Ctrl+R 开始对话。	여러 줄로 작업을 입력하세요. Ctrl+R로 대화를 시작합니다.	複数行でタスクを入力できます。Ctrl+R で会話を開始します。	Nhập tác vụ nhiều dòng. Nhấn Ctrl+R để bắt đầu trò chuyện.
+Ctrl+S chooses a skill; Ctrl+D removes it.	Ctrl+S 选择技能，Ctrl+D 移除技能。	Ctrl+S로 스킬을 선택하고 Ctrl+D로 제거합니다.	Ctrl+S でスキルを選択し、Ctrl+D で解除します。	Ctrl+S để chọn kỹ năng, Ctrl+D để bỏ chọn.
+Tab moves through task, agent, permissions, and Start.	按 Tab 在任务、代理、权限和开始之间移动。	Tab으로 작업, 에이전트, 권한, 시작 사이를 이동합니다.	Tab でタスク、エージェント、権限、開始を切り替えます。	Nhấn Tab để chuyển giữa tác vụ, tác nhân, quyền và nút bắt đầu.
+Enter changes an option; Enter in the task inserts a newline.	按 Enter 更改选项。在任务中按 Enter 换行。	Enter로 옵션을 변경합니다. 작업 입력 중에는 줄을 바꿉니다.	Enter で選択肢を変更します。タスク入力欄では改行します。	Nhấn Enter để đổi tùy chọn hoặc xuống dòng khi nhập tác vụ.
+Skill browser	技能浏览器	스킬 탐색기	スキルブラウザー	Trình duyệt kỹ năng
+/ searches · Enter selects · PgUp/PgDn previews	/ 搜索 · Enter 选择 · PgUp/PgDn 滚动预览	/ 검색 · Enter 선택 · PgUp/PgDn 미리 보기 스크롤	/ 検索 · Enter 選択 · PgUp/PgDn プレビューをスクロール	/ tìm kiếm · Enter chọn · PgUp/PgDn cuộn bản xem trước
+v shows details on narrow terminals · i shows metadata	v 在窄窗口中显示详情 · i 显示元数据	v로 좁은 터미널에서 상세 정보 표시 · i로 메타데이터 표시	v で狭い端末に詳細を表示 · i でメタデータを表示	v xem chi tiết trên cửa sổ hẹp · i xem siêu dữ liệu
+t switches Sessions and History · Enter attaches or resumes	t 切换会话和历史记录 · Enter 连接或继续	t로 세션과 기록 전환 · Enter로 연결 또는 재개	t でセッションと履歴を切替 · Enter で接続・再開	t chuyển giữa phiên và lịch sử · Enter kết nối hoặc tiếp tục
+i toggles metadata · l opens a session log	i 切换元数据 · l 打开会话日志	i로 메타데이터 전환 · l로 세션 로그 열기	i でメタデータ切替 · l でセッションログを開く	i bật hoặc tắt siêu dữ liệu · l mở nhật ký phiên
+r refreshes · s sorts sessions · c copies the session ID	r 刷新 · s 排序 · c 复制会话 ID	r로 새로 고침 · s로 정렬 · c로 세션 ID 복사	r で更新 · s で並べ替え · c でセッション ID をコピー	r làm mới · s sắp xếp · c sao chép ID phiên
+K stops one session · X stops all	K 停止当前会话 · X 停止全部	K로 현재 세션 중지 · X로 모두 중지	K で現在のセッションを停止 · X ですべて停止	K dừng phiên hiện tại · X dừng tất cả
+D cleans finished records and keeps logs · d deletes a record	D 清理已结束的记录并保留日志 · d 删除一条记录	D로 종료 기록 정리 및 로그 유지 · d로 기록 삭제	D で終了済みの記録を整理しログを保持 · d で記録を削除	D dọn bản ghi đã kết thúc và giữ nhật ký · d xóa một bản ghi
+n/p change history pages · N renames · / searches either tab	n/p 历史翻页 · N 重命名 · / 搜索当前标签页	n/p로 기록 페이지 이동 · N으로 이름 변경 · /로 현재 탭 검색	n/p で履歴のページ移動 · N で名前変更 · / で現在のタブを検索	n/p đổi trang lịch sử · N đổi tên · / tìm trong thẻ hiện tại
+Ctrl+F switches All fields and Directory · Ctrl+U clears the search	Ctrl+F 切换所有字段和目录 · Ctrl+U 清除搜索	Ctrl+F로 모든 필드와 디렉터리 전환 · Ctrl+U로 검색어 지우기	Ctrl+F ですべての項目とディレクトリを切替 · Ctrl+U で検索をクリア	Ctrl+F đổi giữa mọi trường và thư mục · Ctrl+U xóa tìm kiếm
+Browse your skills, create a workflow, or sync installed skills.	浏览技能、创建工作流或同步已安装的技能。	스킬을 찾아보거나 워크플로를 만들고 설치된 스킬을 동기화합니다.	スキルの閲覧、ワークフローの作成、インストール済みスキルの同期ができます。	Duyệt kỹ năng, tạo quy trình hoặc đồng bộ kỹ năng đã cài.
+Choose Find or Add to discover community skills.	选择查找或添加以获取社区技能。	찾기 또는 추가를 선택해 커뮤니티 스킬을 살펴보세요.	検索または追加を選んでコミュニティスキルを探せます。	Chọn Tìm hoặc Thêm để khám phá kỹ năng cộng đồng.
+Creator	创建工具	만들기 도구	作成ツール	Trình tạo
+Ctrl+N next · Ctrl+S save · Ctrl+E JSON	Ctrl+N 下一步 · Ctrl+S 保存 · Ctrl+E JSON	Ctrl+N 다음 · Ctrl+S 저장 · Ctrl+E JSON	Ctrl+N 次へ · Ctrl+S 保存 · Ctrl+E JSON	Ctrl+N tiếp · Ctrl+S lưu · Ctrl+E JSON
+Workflow: Ctrl+A add step · Ctrl+D delete step	工作流：Ctrl+A 添加步骤 · Ctrl+D 删除步骤	워크플로: Ctrl+A 단계 추가 · Ctrl+D 단계 삭제	ワークフロー: Ctrl+A ステップ追加 · Ctrl+D ステップ削除	Quy trình: Ctrl+A thêm bước · Ctrl+D xóa bước
+Arrows or Tab/Shift+Tab move · Enter selects	方向键或 Tab/Shift+Tab 移动 · Enter 选择	방향키 또는 Tab/Shift+Tab으로 이동 · Enter로 선택	矢印キーまたは Tab/Shift+Tab で移動 · Enter で選択	Phím mũi tên hoặc Tab/Shift+Tab để di chuyển · Enter để chọn
+Changes save automatically. Esc returns Home.	更改自动保存。按 Esc 返回主页。	변경 사항은 자동으로 저장됩니다. Esc로 홈에 돌아갑니다.	変更は自動で保存されます。Esc でホームに戻ります。	Thay đổi được lưu tự động. Nhấn Esc để về Trang chủ.
+Ashley runs coding agents with shared skills.	Ashley 使用共享技能运行编程代理。	Ashley는 공유 스킬로 코딩 에이전트를 실행합니다.	Ashley は共有スキルでコーディングエージェントを実行します。	Ashley chạy tác nhân lập trình với kỹ năng dùng chung.
+Start tasks, manage sessions, and resume conversations.	启动任务、管理会话并继续对话。	작업을 시작하고 세션을 관리하며 대화를 재개합니다.	タスクの開始、セッション管理、会話の再開ができます。	Bắt đầu tác vụ, quản lý phiên và tiếp tục trò chuyện.
+Project	项目	프로젝트	プロジェクト	Dự án
+None — set up an agent CLI to get started.	未找到代理。请先配置代理 CLI。	에이전트가 없습니다. 먼저 에이전트 CLI를 설정하세요.	エージェントが見つかりません。まず CLI を設定してください。	Chưa có tác nhân. Hãy thiết lập CLI của tác nhân.
+Generate and install skills for detected coding agents.	为检测到的编程代理生成并安装技能。	감지된 코딩 에이전트에 스킬을 생성하고 설치합니다.	検出したコーディングエージェント用のスキルを生成してインストールします。	Tạo và cài kỹ năng cho các tác nhân lập trình đã phát hiện.
+Existing custom skills are preserved.	保留现有自定义技能。	기존 사용자 스킬을 유지합니다.	既存のカスタムスキルは保持されます。	Giữ các kỹ năng tùy chỉnh hiện có.
+Detected	已检测到	감지됨	検出済み	Đã phát hiện
+I sets up %s (chosen in Settings).	按 i 配置在设置中选择的 %s。	i로 설정에서 선택한 %s을 설정합니다.	i で設定から選んだ %s をセットアップします。	Nhấn i để thiết lập %s đã chọn trong Cài đặt.
+Skills synced for %s	已为 %s 同步技能	%s 스킬 동기화 완료	%s のスキルを同期しました	Đã đồng bộ kỹ năng cho %s
+Could not finish	无法完成	완료하지 못했습니다	完了できませんでした	Không thể hoàn tất
+Use the agent's standard approval prompts.	使用代理的标准审批提示。	에이전트의 기본 승인 요청을 사용합니다.	エージェントの標準の承認確認を使います。	Dùng yêu cầu phê duyệt mặc định của tác nhân.
+Skip approval prompts and allow unrestricted access.	跳过审批提示，允许不受限制的访问。	승인 요청을 건너뛰고 제한 없는 접근을 허용합니다.	承認確認を省略し、アクセス制限を解除します。	Bỏ qua yêu cầu phê duyệt và cho phép truy cập không giới hạn.
+Use the agent's automatic edit approval mode.	使用代理的自动批准编辑模式。	에이전트의 자동 편집 승인 모드를 사용합니다.	エージェントの編集自動承認モードを使います。	Dùng chế độ tự động duyệt chỉnh sửa của tác nhân.
+Work without input, with unrestricted access.	无需输入即可运行，访问不受限制。	입력 없이 작업하며 접근을 제한하지 않습니다.	入力を待たずに作業し、アクセス制限を解除します。	Làm việc không cần nhập liệu, với quyền truy cập không giới hạn.
+Automatic approvals; the agent's explicit deny rules still apply.	自动批准操作，代理的显式拒绝规则仍然有效。	자동으로 승인하지만 에이전트의 명시적 차단 규칙은 적용됩니다.	自動承認します。エージェントの明示的な拒否ルールは適用されます。	Tự động phê duyệt. Quy tắc từ chối rõ ràng của tác nhân vẫn có hiệu lực.
+Page %d/%d · n Next · p Previous	第 %d/%d 页 · n 下一页 · p 上一页	%d/%d 페이지 · n 다음 · p 이전	%d/%d ページ · n 次へ · p 前へ	Trang %d/%d · n Tiếp · p Trước
+Page %d/%d	第 %d/%d 页	%d/%d 페이지	%d/%d ページ	Trang %d/%d
+Press Enter to continue.	按 Enter 继续。	계속하려면 Enter를 누르세요.	Enter で続けます。	Nhấn Enter để tiếp tục.
+Discover · maintain · create	发现 · 管理 · 创建	찾기 · 관리 · 만들기	検索 · 管理 · 作成	Khám phá · Quản lý · Tạo
+Navigation	导航	탐색	ナビゲーション	Điều hướng
+Search shortcuts…	搜索快捷键…	단축키 검색…	ショートカットを検索…	Tìm phím tắt…
+No matching shortcuts	没有匹配的快捷键	일치하는 단축키가 없습니다	一致するショートカットがありません	Không có phím tắt phù hợp
+Clear skill	取消选择技能	스킬 선택 해제	スキルを解除	Bỏ chọn kỹ năng
+Select or add a line	选择或换行	선택 또는 줄 바꿈	選択または改行	Chọn hoặc xuống dòng
+Copy prompt	复制提示词	프롬프트 복사	プロンプトをコピー	Sao chép lời nhắc
+Add step	添加步骤	단계 추가	ステップを追加	Thêm bước
+Remove step	删除步骤	단계 삭제	ステップを削除	Xóa bước
+Open running and finished sessions.	打开运行中和已结束的会话。	실행 중인 세션과 종료된 세션을 엽니다.	実行中と終了済みのセッションを開きます。	Mở các phiên đang chạy và đã kết thúc.
+Find running and finished sessions and their logs	查找运行中和已结束的会话及其日志	실행 중이거나 종료된 세션과 로그 찾기	実行中・終了済みのセッションとログを探す	Tìm các phiên đang chạy, phiên đã kết thúc và nhật ký
+Running	运行中	실행 중	実行中	Đang chạy
+Finished	已结束	종료됨	終了済み	Đã kết thúc
+Session ID	会话 ID	세션 ID	セッション ID	ID phiên
+Manage bundles	管理技能包	번들 관리	バンドル管理	Quản lý gói
+Installation log	安装日志	설치 로그	インストールログ	Nhật ký cài đặt
+Check bundles to install. Clear bundles to remove.	勾选要安装的技能包，取消勾选可卸载。	설치할 번들을 선택합니다. 제거하려면 선택을 해제하세요.	インストールするバンドルを選択します。削除するには選択を外します。	Chọn gói để cài đặt. Bỏ chọn để gỡ.
+Choose which community bundles Ashley installs and manages.	选择由 Ashley 安装和管理的社区技能包。	Ashley가 설치하고 관리할 커뮤니티 번들을 선택합니다.	Ashley でインストール、管理するコミュニティバンドルを選択します。	Chọn các gói cộng đồng để Ashley cài đặt và quản lý.
+Could not read bundle status	无法读取技能包状态	번들 상태를 읽을 수 없습니다	バンドルの状態を取得できません	Không thể đọc trạng thái gói
+Applying bundle changes…	正在应用技能包更改…	번들 변경 사항 적용 중…	バンドルの変更を適用中…	Đang áp dụng thay đổi gói…
+Could not apply all changes	无法应用所有更改	일부 변경 사항을 적용할 수 없습니다	一部の変更を適用できませんでした	Không thể áp dụng mọi thay đổi
+Bundle changes applied	已应用技能包更改	번들 변경 사항 적용 완료	バンドルの変更を適用しました	Đã áp dụng thay đổi gói
+Review your selection, then confirm.	检查选择后确认。	선택을 검토한 뒤 확인하세요.	選択内容を確認して確定します。	Kiểm tra lựa chọn rồi xác nhận.
+Installed	已安装	설치됨	インストール済み	Đã cài đặt
+Available	可安装	설치 가능	インストール可能	Có thể cài đặt
+Will install	将安装	설치 예정	インストール予定	Sẽ cài đặt
+Will remove	将卸载	제거 예정	削除予定	Sẽ gỡ
+Toggle	切换	전환	切替	Bật/tắt
+Conversation ID	对话 ID	대화 ID	会話 ID	ID cuộc trò chuyện
+Start a run to see it here or in Activity.	启动任务后，可在此处或活动页面查看。	작업을 시작하면 여기나 활동에서 볼 수 있습니다.	タスクを開始すると、ここやアクティビティに表示されます。	Bắt đầu tác vụ để xem tại đây hoặc trong Hoạt động.
+Standard	标准	표준	標準	Tiêu chuẩn
+Full	完整	전체	すべて	Đầy đủ
+New line	换行	줄 바꿈	改行	Xuống dòng
+Change	更改	변경	変更	Thay đổi
+Submit	提交	제출	送信	Gửi
+Top	顶部	맨 위	先頭	Đầu trang
+Field	字段	필드	入力欄	Trường
+Switch step	切换步骤	단계 전환	ステップを切り替え	Chuyển bước
+Half page	半页	반 페이지	半ページ	Nửa trang

@@ -37,14 +37,16 @@ func (m *Model) confirmBounds() rect {
 
 func (m *Model) confirmButtons() []settingControl {
 	r := m.confirmBounds()
-	stacked := r.w-4 < 23
+	labels := []string{m.tr("Cancel"), m.tr("Confirm")}
+	stacked := r.w-4 < ansi.StringWidth(labels[0])+ansi.StringWidth(labels[1])+10
 	y, x := r.y+r.h-2, r.x+2
 	if stacked {
 		y--
 	}
 	var controls []settingControl
-	for i, label := range []string{"Cancel", "Confirm"} {
-		width := len(label) + 4
+	for i, label := range labels {
+		label = ansi.Truncate(label, r.w-8, "…")
+		width := ansi.StringWidth(label) + 4
 		text := "[ " + label + " ]"
 		if (i == 1) == m.confirm.proceed {
 			text = "> " + label + " <"

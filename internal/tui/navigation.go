@@ -36,7 +36,7 @@ func (m *Model) backDestination() string {
 }
 
 var navigation = []struct{ key, label, screen string }{
-	{"ctrl+1", "Home", "hub"}, {"ctrl+2", "New run", "compose"}, {"ctrl+3", "Activity", "sessions"},
+	{"ctrl+1", "Home", "hub"}, {"ctrl+2", "New run", "compose"}, {"ctrl+3", "Activity", "activity"},
 	{"ctrl+4", "Library", "skills.sh"}, {"ctrl+5", "Settings", "settings"},
 }
 
@@ -73,7 +73,7 @@ func (m *Model) navControls() []settingControl {
 	var controls []settingControl
 	x := 2
 	for _, item := range navigation {
-		label := strings.Replace(item.key, "ctrl+", "^", 1) + " " + item.label
+		label := strings.Replace(item.key, "ctrl+", "^", 1) + " " + m.tr(item.label)
 		if m.width < 76 {
 			label = strings.Replace(item.key, "ctrl+", "^", 1)
 		}
@@ -102,30 +102,29 @@ type confirmation struct {
 
 func (m *Model) requestConfirmation(key string) bool {
 	var title, body string
-	if m.screen == "history" && key == "d" && len(m.historyRows) > 0 {
+	if entry := m.selectHistoryEntry(); key == "d" && entry.ID != 0 && m.selectedSession().ID == "" {
 		title = "Delete this history entry?"
-		body = fmt.Sprintf("Remove #%d from Ashley history. The agent's conversation remains available in its own storage.", m.historyRows[m.cursor].ID)
+		body = fmt.Sprintf(m.tr("Remove #%d from Ashley history. The agent's conversation remains available in its own storage."), entry.ID)
 	}
-	if m.screen == "sessions" {
+	if m.screen == "sessions" || m.screen == "activity" {
 		if key == "cleanup" {
 			title, body = "Remove all finished sessions?", "Remove finished session records in every directory, including hidden results. Keep their logs and all running sessions."
 		}
 		if key == "X" {
 			title, body = "Stop all running sessions?", "Stop all running Ashley sessions in every directory, including hidden results. Remove all session records. Keep their logs. This can interrupt work."
-		} else if len(m.sessionRows) > 0 {
-			s := m.sessionRows[m.cursor]
+		} else if s := m.selectedSession(); s.ID != "" {
 			if key == "K" {
-				title, body = "Stop this session?", "Stop "+s.Skill+" ("+s.ID+"). In-progress work may be interrupted. The log will remain."
+				title, body = "Stop this session?", fmt.Sprintf(m.tr("Stop %s (%s). In-progress work may be interrupted. The log will remain."), s.Skill, s.ID)
 			}
 			if key == "d" && !m.sessionAlive[s.ID] {
-				title, body = "Delete this session and log?", "Permanently remove the saved log for "+s.Skill+" ("+s.ID+"). This cannot be undone."
+				title, body = "Delete this session and log?", fmt.Sprintf(m.tr("Permanently remove the saved log for %s (%s). This cannot be undone."), s.Skill, s.ID)
 			}
 		}
 	}
 	if title == "" {
 		return false
 	}
-	m.confirm = &confirmation{title: title, body: body, key: key}
+	m.confirm = &confirmation{title: m.tr(title), body: m.tr(body), key: key}
 	return true
 }
 

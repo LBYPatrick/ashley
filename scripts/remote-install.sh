@@ -67,11 +67,14 @@ trap 'rm -rf "$tmp"' EXIT
 curl --retry 3 -fsSL "https://raw.githubusercontent.com/$repo/main/scripts/install.sh" -o "$tmp/install.sh"
 ASHLEY_BOOTSTRAP=1 bash "$tmp/install.sh" ${binary_args[@]+"${binary_args[@]}"}
 if [[ "$binary_only" == false ]]; then
-    "$install_dir/ash" install ${agent_args[@]+"${agent_args[@]}"} ${skills_only[@]+"${skills_only[@]}"}
+    ASHLEY_INSTALL_DIR="$install_dir" "$install_dir/ash" install ${agent_args[@]+"${agent_args[@]}"} ${skills_only[@]+"${skills_only[@]}"}
 else
     case "${ASHLEY_INSTALL_SKILLS:-}" in
         1|true|yes) "$install_dir/ash" skills --version ;;
     esac
+    if "$install_dir/ash" __setup-shell --check >/dev/null 2>&1; then
+        "$install_dir/ash" __setup-shell "$install_dir"
+    fi
 fi
 
 case ":$PATH:" in

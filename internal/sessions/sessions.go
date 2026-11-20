@@ -15,6 +15,7 @@ import (
 
 // Session preserves metadata written by the Python session manager.
 type Session struct {
+	Superseded     bool     `json:"superseded,omitempty"`
 	Backend        string   `json:"backend,omitempty"`
 	ZellijSession  string   `json:"zellij_session,omitempty"`
 	Name           string   `json:"name"`

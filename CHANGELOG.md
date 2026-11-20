@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-20
+
+### Added
+
+- Add searchable keyboard shortcut help and Standard, Full, and Off shortcut bar settings. Activity shows keys to rename, stop one session, or stop all sessions.
+- Add English, Simplified Chinese, Korean, Japanese, and Vietnamese to Settings. Ashley uses the saved choice, then the terminal language, then English.
+- Add a checklist in Library to install or remove community skill bundles. Ashley tracks the skill links it manages.
+- Offer to append missing settings to the active shell's startup file. Detect tools already available on PATH, including tools installed through Homebrew.
+
+### Changed
+
+- Combine running sessions and past conversations in Activity. Attach or resume with Enter from the same list.
+- Offer the recommended Emil Kowalski, Modern Web Guidance, and Find Skills bundles together during interactive agent setup.
+
+### Fixed
+
+- Update the existing history entry with the new session ID when a conversation resumes. Keep saved logs accessible by their original session IDs.
+
 ## [1.6.1] - 2026-11-02
 
 ### Fixed

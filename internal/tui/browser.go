@@ -39,6 +39,20 @@ func (m *Model) browserView(f *frame, a appearance) {
 	var titles, directories, times []string
 	heading, hint := "Choose a skill", "/ Search by name or purpose"
 	switch m.screen {
+	case "activity":
+		heading = "Activity"
+		for _, row := range m.activityRows {
+			titles = append(titles, row.title())
+			directories = append(directories, row.cwd())
+			when := ""
+			if row.session.ID != "" {
+				when = row.session.Elapsed(time.Now())
+			} else if !row.when.IsZero() {
+				when = row.when.Local().Format("Jan 2")
+			}
+			times = append(times, when)
+		}
+
 	case "vibe":
 		for _, name := range m.names {
 			titles = append(titles, "a-"+name)
@@ -46,7 +60,7 @@ func (m *Model) browserView(f *frame, a appearance) {
 	case "skills.sh":
 		heading, hint = "Skill library", "Discover · maintain · create"
 		for _, v := range skillsActions {
-			titles = append(titles, v.label)
+			titles = append(titles, m.tr(v.label))
 		}
 	case "sessions":
 		heading, hint = "Activity · Sessions", "t History   r Refresh   s Sort"
@@ -57,7 +71,7 @@ func (m *Model) browserView(f *frame, a appearance) {
 		}
 	case "history":
 		heading = fmt.Sprintf("History (%d)", m.total)
-		hint = fmt.Sprintf("Page %d/%d · n Next · p Previous", m.offset/50+1, max(1, (m.total+49)/50))
+		hint = fmt.Sprintf(m.tr("Page %d/%d · n Next · p Previous"), m.offset/50+1, max(1, (m.total+49)/50))
 		for _, v := range m.historyRows {
 			titles = append(titles, taskTitle(v.Skill, v.Question, v.Name))
 			directories = append(directories, v.CWD)
@@ -69,8 +83,8 @@ func (m *Model) browserView(f *frame, a appearance) {
 		}
 	}
 	if !m.compactDetail {
-		f.section(rect{l.left.x, l.left.y, l.left.w, 1}, heading, a)
-		if m.isActivity() {
+		f.section(rect{l.left.x, l.left.y, l.left.w, 1}, m.tr(heading), a)
+		if m.isActivity() && m.screen != "activity" {
 			f.fill(rect{l.left.x, l.left.y, l.left.w, 1}, a.base)
 			for _, control := range m.activityTabControls() {
 				style := a.muted
@@ -83,25 +97,35 @@ func (m *Model) browserView(f *frame, a appearance) {
 		if m.isActivity() {
 			m.activitySearchView(f, a)
 		} else if m.screen == "vibe" {
-			f.input(l.input, m.filter.Value(), "Search skills…", m.focus == "filter", a, m.filter.Position())
+			f.input(l.input, m.filter.Value(), m.tr("Search skills…"), m.focus == "filter", a, m.filter.Position())
 		} else {
-			f.put(l.left.x, l.left.y+1, a.muted.Render(ansi.Truncate(hint, l.left.w, "…")))
+			f.put(l.left.x, l.left.y+1, a.muted.Render(ansi.Truncate(m.tr(hint), l.left.w, "…")))
 		}
 		for _, control := range m.sessionActionControls() {
 			f.put(control.x, control.y, a.panel.Render(" "+control.label+" "))
 		}
 		if m.isActivity() && m.height >= 12 {
 			count, noun := len(m.sessionRows), "sessions"
+			if m.screen == "activity" {
+				count, noun = len(m.activityRows), "entries"
+			}
 			if m.screen == "history" {
 				count, noun = m.total, "entries"
 			}
 			if count == 1 {
 				noun = strings.TrimSuffix(noun, "s")
-				if m.screen == "history" {
+				if m.screen == "history" || m.screen == "activity" {
 					noun = "entry"
 				}
 			}
-			f.put(l.list.x, l.list.y-1, a.muted.Render(ansi.Truncate(fmt.Sprintf("%d %s", count, noun), l.list.w, "…")))
+			summary := fmt.Sprintf("%d %s", count, m.tr(noun))
+			if m.screen == "activity" && count > 0 {
+				legend := "● " + m.tr("Running") + "   ○ " + m.tr("Finished")
+				if ansi.StringWidth(legend) <= l.list.w {
+					summary = legend
+				}
+			}
+			f.put(l.list.x, l.list.y-1, a.muted.Render(ansi.Truncate(summary, l.list.w, "…")))
 		}
 		visible := m.visibleRows()
 		start := max(0, m.cursor-visible+1)
@@ -115,6 +139,10 @@ func (m *Model) browserView(f *frame, a appearance) {
 			if m.isActivity() && l.list.w >= 12 && times[i] != "" {
 				suffix = " " + times[i]
 				titleWidth = max(4, titleWidth-ansi.StringWidth(suffix))
+			}
+			if m.screen == "activity" {
+				indicator, _ := m.activityStatus(m.activityRows[i])
+				title = indicator + " " + title
 			}
 			if m.screen == "sessions" {
 				indicator := "○ "
@@ -141,34 +169,38 @@ func (m *Model) browserView(f *frame, a appearance) {
 			}
 		}
 		if len(titles) == 0 {
-			text := "Nothing here yet.\nCtrl+2 starts a new conversation."
+			text := m.tr("Nothing here yet.") + "\n" + m.tr("Ctrl+2 starts a new conversation.")
 			if m.isActivity() && strings.TrimSpace(m.filter.Value()) != "" {
-				text = "No matching results.\nCtrl+U clears the search."
+				text = m.tr("No matching results.") + "\n" + m.tr("Ctrl+U clears the search.")
 			}
 			f.text(rect{l.list.x, l.list.y, l.list.w, min(4, l.list.h)}, text, a.muted, 0)
 		}
-		if len(titles) > visible && m.height >= 12 {
-			f.put(l.list.x, m.height-3, a.muted.Render(fmt.Sprintf("%d of %d", m.cursor+1, len(titles))))
+		if len(titles) > visible && m.height >= 12 && m.footerTop()-2 >= l.list.y+l.list.h {
+			f.put(l.list.x, m.footerTop()-2, a.muted.Render(fmt.Sprintf("%d of %d", m.cursor+1, len(titles))))
 		}
-		if m.screen == "history" && m.height >= 12 {
+		if m.screen == "history" && m.height >= 12 && m.footerTop()-2 >= l.list.y+l.list.h {
 			if m.total <= 50 {
-				hint = "Page 1/1"
+				hint = fmt.Sprintf(m.tr("Page %d/%d"), 1, 1)
 			}
-			f.put(l.list.x, m.height-3, a.muted.Render(ansi.Truncate(hint, l.list.w, "…")))
+			f.put(l.list.x, m.footerTop()-2, a.muted.Render(ansi.Truncate(m.tr(hint), l.list.w, "…")))
 		}
 	}
 	if l.detail.w > 0 && !m.maximized {
-		f.section(rect{l.detail.x, l.right.y, l.detail.w, 1}, "DETAILS", a)
+		f.section(rect{l.detail.x, l.right.y, l.detail.w, 1}, m.tr("DETAILS"), a)
 		if !m.compactDetail {
-			for y := 3; y < m.height-3; y++ {
+			for y := 3; y < m.footerTop()-2; y++ {
 				f.put(l.right.x-2, y, a.border.Render("│"))
 			}
 		}
-		if m.screen == "sessions" && (len(m.sessionRows) > 0 || m.sessionLog != "") {
+		if m.selectedSession().ID != "" || m.screen == "sessions" && m.sessionLog != "" {
 			detail, log, body := m.sessionPanels()
 			f.richText(detail, m.detailText(), a, m.preview.YOffset)
-			f.put(log.x, log.y, a.border.Render(strings.Repeat("─", log.w)))
-			f.put(log.x, log.y+1, a.muted.Render("Recent output · L opens full log"))
+			if log.h > 0 {
+				f.put(log.x, log.y, a.border.Render(strings.Repeat("─", log.w)))
+			}
+			if log.h > 1 {
+				f.put(log.x, log.y+1, a.muted.Render(ansi.Truncate(m.tr("Recent output · l opens full log"), log.w, "…")))
+			}
 			f.text(body, m.sessionLog, a.base, min(m.logOffset, m.maxLogOffset()))
 		} else {
 			f.richText(l.detail, m.detailText(), a, m.preview.YOffset)

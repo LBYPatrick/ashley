@@ -17,19 +17,19 @@ var skillsActions = []struct{ label, description, command string }{
 	{"Remove skills", "Choose globally installed skills to remove. The native CLI asks for confirmation.", "remove"},
 	{"Check updates", "Check installed skills for available updates.", "check"},
 	{"Update skills", "Update installed skills using the native CLI.", "update"},
-	{"Community bundle", "Set up Ashley skills and optionally add all Emil Kowalski skills plus find-skills. Choose agents or reuse Ashley's installed agents; confirm the bundle in the terminal.", "bundle"},
+	{"Community bundle", "Choose which community bundles Ashley installs and manages.", "bundle"},
 }
 
 func (m *Model) skillsPlaceholder() string {
 	if skillsActions[m.cursor].command == "add" {
-		return "Repository or URL, e.g. emilkowalski/skills"
+		return m.tr("Repository or URL, e.g. emilkowalski/skills")
 	}
-	return "Optional search term, e.g. animations"
+	return m.tr("Optional search term, e.g. animations")
 }
 
 func (m *Model) skillsDetail() string {
 	action := skillsActions[m.cursor]
-	return fmt.Sprintf("%s\n\n%s\n\nThe terminal opens for this action. Missing dependencies require consent.\n\nPress Enter to continue; return here after the command finishes.", action.label, action.description)
+	return fmt.Sprintf("%s\n\n%s\n\n%s", m.tr(action.label), m.tr(action.description), m.tr("Press Enter to continue."))
 }
 
 func (m *Model) activateSkills() tea.Cmd {
@@ -41,6 +41,8 @@ func (m *Model) activateSkills() tea.Cmd {
 	case "create":
 		m.open("create")
 		return nil
+	case "bundle":
+		return m.openCommunity()
 	case "sync":
 		m.open("sync")
 		return m.startOperation("sync")
@@ -68,8 +70,6 @@ func (m *Model) activateSkills() tea.Cmd {
 		}
 	case "list", "remove":
 		args = append(args, "--global")
-	case "bundle":
-		args = []string{"__tui-command", "install", "--skills-only"}
 	}
 	if action == "add" {
 		args = append(args, "--global")

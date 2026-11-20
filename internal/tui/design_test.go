@@ -45,7 +45,7 @@ func TestEveryCreatorStageAndViewerFitsTerminal(t *testing.T) {
 		if size[0] == 100 {
 			exportRegressionView(t, "creator-json", m.View())
 		}
-		for _, screen := range []string{"log", "help", "create-preview"} {
+		for _, screen := range []string{"log", "create-preview"} {
 			m.screen = screen
 			m.logContent = "Readable output\n\n" + strings.Repeat("Line of output\n", 60) + "END"
 			m.sizeLogPreview()

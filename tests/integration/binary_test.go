@@ -274,9 +274,19 @@ func communityFixtures(t *testing.T, s *sandbox) {
 	fakeBin := filepath.Join(s.home, "fake-bin")
 	write(t, filepath.Join(fakeBin, "node"), "#!/bin/bash\nexit 0\n", 0755)
 	write(t, filepath.Join(fakeBin, "npm"), "#!/bin/bash\necho \"$HOME/.ashley/tools\"\n", 0755)
-	write(t, filepath.Join(fakeBin, "skills"), "#!/bin/bash\nprintf '%s\\n' \"$*\" >> \"$HOME/community-calls\"\n", 0755)
+	write(t, filepath.Join(fakeBin, "skills"), communitySkillsFixture, 0755)
+	s.env["COMMUNITY_TEST_LOG"] = filepath.Join(s.home, "community-calls")
 	s.env["PATH"] = fakeBin + ":" + s.env["PATH"]
 }
+
+const communitySkillsFixture = `#!/bin/bash
+set -eu
+printf '%s\n' "$*" >> "$COMMUNITY_TEST_LOG"
+name="${2##*/}"
+dir="$HOME/.agents/skills/$name"
+mkdir -p "$dir"
+printf '# %s\n' "$name" > "$dir/SKILL.md"
+`
 
 func TestAutomatedRemoteInstallation(t *testing.T) {
 	for _, valid := range []bool{true, false} {
@@ -307,8 +317,9 @@ func TestAutomatedRemoteInstallation(t *testing.T) {
 			checkSkills(t, s, agentDirs[:2])
 			calls := read(t, filepath.Join(s.home, "community-calls"))
 			requireContains(t, calls, "add emilkowalski/skills --global --yes --skill * --agent claude-code codex")
+			requireContains(t, calls, "add GoogleChrome/modern-web-guidance --global --yes --skill * --agent claude-code codex")
 			requireContains(t, calls, "add vercel-labs/skills --global --yes --skill find-skills --agent claude-code codex")
-			if strings.Contains(out, "[y/N]") || strings.Contains(out, "Choice") {
+			if strings.Contains(out, "[y/N]") || strings.Contains(out, "[Y/n]") || strings.Contains(out, "Choice") {
 				t.Fatal("unexpected prompt", out)
 			}
 		})
